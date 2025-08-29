@@ -1,4 +1,5 @@
 import Image from "next/image";
+import FirebaseStatus from "@/components/FirebaseStatus";
 
 export default function Home() {
   return (
@@ -24,6 +25,10 @@ export default function Home() {
             Save and see your changes instantly.
           </li>
         </ol>
+
+        <div className="w-full max-w-md">
+          <FirebaseStatus />
+        </div>
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <a
