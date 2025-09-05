@@ -25,19 +25,74 @@ export const useAuth = () => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('Attempting to sign in with email:', email);
       const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Sign in successful:', result.user.uid);
       return { user: result.user, error: null };
     } catch (error: any) {
-      return { user: null, error: error.message };
+      console.error('Sign in error:', error);
+      let errorMessage = error.message;
+      
+      // Handle specific Firebase auth errors
+      switch (error.code) {
+        case 'auth/configuration-not-found':
+          errorMessage = 'Firebase Authentication is not properly configured.';
+          break;
+        case 'auth/user-not-found':
+          errorMessage = 'No account found with this email. Please check your email or register.';
+          break;
+        case 'auth/wrong-password':
+          errorMessage = 'Incorrect password. Please try again.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Please enter a valid email address.';
+          break;
+        case 'auth/too-many-requests':
+          errorMessage = 'Too many failed attempts. Please try again later.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection.';
+          break;
+        default:
+          errorMessage = error.message || 'An error occurred during sign in.';
+      }
+      
+      return { user: null, error: errorMessage };
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
+      console.log('Attempting to sign up with email:', email);
       const result = await createUserWithEmailAndPassword(auth, email, password);
+      console.log('Sign up successful:', result.user.uid);
       return { user: result.user, error: null };
     } catch (error: any) {
-      return { user: null, error: error.message };
+      console.error('Sign up error:', error);
+      let errorMessage = error.message;
+      
+      // Handle specific Firebase auth errors
+      switch (error.code) {
+        case 'auth/configuration-not-found':
+          errorMessage = 'Firebase Authentication is not properly configured. Please check your Firebase console.';
+          break;
+        case 'auth/email-already-in-use':
+          errorMessage = 'This email is already registered. Please use a different email or try signing in.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Please enter a valid email address.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Password should be at least 6 characters long.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection.';
+          break;
+        default:
+          errorMessage = error.message || 'An error occurred during registration.';
+      }
+      
+      return { user: null, error: errorMessage };
     }
   };
 
