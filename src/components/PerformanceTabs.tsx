@@ -3,18 +3,22 @@ import { useState } from "react";
 import TrainingLogForm from "./TrainingLogForm";
 import PerformanceAnalytics from "./PerformanceAnalytics";
 import TrainingSessionsList from "./TrainingSessionsList";
+import GamificationDashboard from "./GamificationDashboard";
 
 interface PerformanceTabsProps {
   athleteId: string;
+  sport?: string;
+  region?: string;
 }
 
 const tabs = [
-  { id: 'log', label: ' Log Training', icon: '📝' },
-  { id: 'analytics', label: ' Analytics', icon: '📊' },
-  { id: 'sessions', label: ' History', icon: '📋' }
+  { id: 'log', label: '📝 Log Training', icon: '📝' },
+  { id: 'analytics', label: '📊 Analytics', icon: '📊' },
+  { id: 'sessions', label: '📋 History', icon: '📋' },
+  { id: 'gamification', label: '🎮 Challenges', icon: '🎮' }
 ];
 
-export default function PerformanceTabs({ athleteId }: PerformanceTabsProps) {
+export default function PerformanceTabs({ athleteId, sport, region }: PerformanceTabsProps) {
   const [activeTab, setActiveTab] = useState('log');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -68,6 +72,14 @@ export default function PerformanceTabs({ athleteId }: PerformanceTabsProps) {
           <TrainingSessionsList 
             athleteId={athleteId} 
             refreshTrigger={refreshTrigger}
+          />
+        )}
+        
+        {activeTab === 'gamification' && (
+          <GamificationDashboard 
+            athleteId={athleteId}
+            sport={sport}
+            region={region}
           />
         )}
       </div>

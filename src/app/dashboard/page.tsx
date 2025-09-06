@@ -307,7 +307,11 @@ export default function DashboardPage() {
           </>
         ) : (
           /* Performance Section */
-          <PerformanceTabs athleteId={user.uid} />
+          <PerformanceTabs 
+            athleteId={user.uid} 
+            sport={profile.sport}
+            region={profile.region}
+          />
         )}
       </main>
     </div>

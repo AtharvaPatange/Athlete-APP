@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { createTrainingSession, TrainingSession } from "@/services/performanceService";
+import { updateQuestProgress } from "@/services/gamificationService";
 
 interface TrainingLogFormProps {
   athleteId: string;
@@ -77,6 +78,9 @@ export default function TrainingLogForm({ athleteId, onSessionAdded }: TrainingL
     const result = await createTrainingSession(sessionData);
     
     if (result.success) {
+      // Update quest progress based on the session
+      await updateQuestProgressForSession(sessionData);
+      
       setSuccess(true);
       setForm({
         date: new Date().toISOString().split('T')[0],
@@ -97,6 +101,35 @@ export default function TrainingLogForm({ athleteId, onSessionAdded }: TrainingL
     }
     
     setLoading(false);
+  };
+
+  const updateQuestProgressForSession = async (session: Omit<TrainingSession, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      // Update session-based quests
+      await updateQuestProgress(athleteId, 'sessions_quest', 1);
+      
+      // Update duration-based quests (convert minutes to target unit)
+      if (session.duration > 0) {
+        await updateQuestProgress(athleteId, 'duration_quest', session.duration);
+      }
+      
+      // Update distance-based quests
+      if (session.distance && session.distance > 0) {
+        await updateQuestProgress(athleteId, 'distance_quest', session.distance);
+      }
+      
+      // Update sport-specific quests
+      if (session.sport) {
+        await updateQuestProgress(athleteId, `${session.sport}_quest`, 1);
+      }
+      
+      // Update intensity-based quests
+      if (session.intensity === 'high' || session.intensity === 'peak') {
+        await updateQuestProgress(athleteId, 'intensity_quest', 1);
+      }
+    } catch (error) {
+      console.error('Error updating quest progress:', error);
+    }
   };
 
   return (
