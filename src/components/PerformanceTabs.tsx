@@ -5,6 +5,7 @@ import PerformanceAnalytics from "./PerformanceAnalytics";
 import TrainingSessionsList from "./TrainingSessionsList";
 import GamificationDashboard from "./GamificationDashboard";
 import InjuryManagement from "./InjuryManagement";
+import NutritionDashboard from "./NutritionDashboard";
 
 interface PerformanceTabsProps {
   athleteId: string;
@@ -16,6 +17,7 @@ const tabs = [
   { id: 'log', label: ' Log Training', icon: '📝' },
   { id: 'analytics', label: ' Analytics', icon: '📊' },
   { id: 'sessions', label: ' History', icon: '📋' },
+  { id: 'nutrition', label: ' Nutrition', icon: '🥗' },
   { id: 'gamification', label: ' Challenges', icon: '🎮' },
   { id: 'injury', label: ' Injury Mgmt', icon: '🏥' }
 ];
@@ -74,6 +76,13 @@ export default function PerformanceTabs({ athleteId, sport, region }: Performanc
           <TrainingSessionsList 
             athleteId={athleteId} 
             refreshTrigger={refreshTrigger}
+          />
+        )}
+        
+        {activeTab === 'nutrition' && (
+          <NutritionDashboard 
+            athleteId={athleteId}
+            sport={sport}
           />
         )}
         
