@@ -4,6 +4,7 @@ import TrainingLogForm from "./TrainingLogForm";
 import PerformanceAnalytics from "./PerformanceAnalytics";
 import TrainingSessionsList from "./TrainingSessionsList";
 import GamificationDashboard from "./GamificationDashboard";
+import InjuryManagement from "./InjuryManagement";
 
 interface PerformanceTabsProps {
   athleteId: string;
@@ -12,10 +13,11 @@ interface PerformanceTabsProps {
 }
 
 const tabs = [
-  { id: 'log', label: '📝 Log Training', icon: '📝' },
-  { id: 'analytics', label: '📊 Analytics', icon: '📊' },
-  { id: 'sessions', label: '📋 History', icon: '📋' },
-  { id: 'gamification', label: '🎮 Challenges', icon: '🎮' }
+  { id: 'log', label: ' Log Training', icon: '📝' },
+  { id: 'analytics', label: ' Analytics', icon: '📊' },
+  { id: 'sessions', label: ' History', icon: '📋' },
+  { id: 'gamification', label: ' Challenges', icon: '🎮' },
+  { id: 'injury', label: ' Injury Mgmt', icon: '🏥' }
 ];
 
 export default function PerformanceTabs({ athleteId, sport, region }: PerformanceTabsProps) {
@@ -81,6 +83,10 @@ export default function PerformanceTabs({ athleteId, sport, region }: Performanc
             sport={sport}
             region={region}
           />
+        )}
+        
+        {activeTab === 'injury' && (
+          <InjuryManagement />
         )}
       </div>
 
