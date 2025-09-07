@@ -7,9 +7,13 @@ import httpx
 import json
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from groq import Groq
 
 # Load environment variables
 load_dotenv()
+
+# Initialize GROQ client
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 app = FastAPI(title="AthleteApp AI Recovery API", version="1.0.0")
 
@@ -51,6 +55,90 @@ class RecoveryPlan(BaseModel):
     totalEstimatedDays: int
     recommendations: List[str]
     warnings: List[str]
+
+# Nutrition Models
+class AthleteProfile(BaseModel):
+    age: Optional[int] = None
+    weight: Optional[float] = None  # kg
+    height: Optional[float] = None  # cm
+    activityLevel: str  # sedentary, light, moderate, active, very_active
+    sport: str
+
+class NutritionProfile(BaseModel):
+    dietaryPreference: str  # vegetarian, non-vegetarian, vegan, etc.
+    allergies: List[str] = []
+    calorieTarget: Optional[int] = None
+    budgetRange: str  # low, medium, high, premium
+    activityLevel: str
+    mealsPerDay: int = 6
+    goals: List[str] = []  # weight_loss, muscle_gain, endurance, recovery
+    medicalConditions: List[str] = []
+    supplementsAllowed: bool = True
+
+class InjuryInfo(BaseModel):
+    type: str
+    bodyPart: str
+    severity: str
+    restrictions: List[str] = []
+
+class PerformanceData(BaseModel):
+    weeklySessionCount: int = 0
+    averageIntensity: str = "moderate"  # low, moderate, high
+    trainingPhase: str = "maintenance"  # preparation, competition, recovery
+
+class NutritionRequest(BaseModel):
+    athleteProfile: AthleteProfile
+    nutritionProfile: NutritionProfile
+    injuryInfo: Optional[List[InjuryInfo]] = []
+    performanceData: Optional[PerformanceData] = None
+
+class MealItem(BaseModel):
+    name: str
+    quantity: str
+    calories: int
+    protein: int
+    carbs: int
+    fat: int
+    price: int
+    instructions: str
+
+class Meal(BaseModel):
+    name: str
+    time: str
+    items: List[MealItem]
+    totalCalories: int
+    totalProtein: int
+    totalCarbs: int
+    totalFat: int
+    totalPrice: int
+
+class DailyPlan(BaseModel):
+    day: str
+    meals: List[Meal]
+    totalDayCalories: int
+    totalDayProtein: int
+    totalDayCarbs: int
+    totalDayFat: int
+    totalDayPrice: int
+
+class WeeklyGoals(BaseModel):
+    targetCalories: int
+    targetProtein: int
+    targetCarbs: int
+    targetFat: int
+    focusAreas: List[str]
+
+class ShoppingItem(BaseModel):
+    item: str
+    quantity: str
+    estimatedPrice: int
+    category: str
+
+class NutritionPlan(BaseModel):
+    dailyPlans: List[DailyPlan]
+    weeklyGoals: WeeklyGoals
+    shoppingList: Optional[List[ShoppingItem]] = []
+    totalWeeklyCost: Optional[int] = None
 
 @app.get("/")
 async def root():
@@ -316,6 +404,344 @@ def create_fallback_plan(injury: InjuryInput) -> RecoveryPlan:
         totalEstimatedDays=int(base_weeks * 7),
         recommendations=recommendations,
         warnings=warnings
+    )
+
+@app.post("/nutrition-plan", response_model=NutritionPlan)
+async def generate_nutrition_plan(request: NutritionRequest):
+    """
+    Generate AI-powered nutrition plan for athlete
+    """
+    try:
+        # Create simplified AI prompt to avoid truncation
+        dietary_pref = request.nutritionProfile.dietaryPreference
+        allergies_str = ', '.join(request.nutritionProfile.allergies) if request.nutritionProfile.allergies else 'None'
+        calorie_target = request.nutritionProfile.calorieTarget or 2500
+        meals_per_day = request.nutritionProfile.mealsPerDay
+        
+        prompt = f"""Create a 7-day nutrition plan for a {request.athleteProfile.sport} athlete.
+
+Profile: {dietary_pref}, {calorie_target} calories/day, {meals_per_day} meals/day
+Allergies: {allergies_str}
+Budget: {request.nutritionProfile.budgetRange}
+
+Return ONLY this JSON format (complete all 7 days):
+{{
+  "dailyPlans": [
+    {{
+      "day": "Monday",
+      "meals": [
+        {{
+          "name": "Breakfast",
+          "time": "07:00",
+          "items": [
+            {{
+              "name": "Oats with banana",
+              "quantity": "1 bowl",
+              "calories": 300,
+              "protein": 12,
+              "carbs": 54,
+              "fat": 6,
+              "price": 40,
+              "instructions": "Cook oats with milk"
+            }}
+          ],
+          "totalCalories": 300,
+          "totalProtein": 12,
+          "totalCarbs": 54,
+          "totalFat": 6,
+          "totalPrice": 40
+        }}
+      ],
+      "totalDayCalories": {calorie_target},
+      "totalDayProtein": 150,
+      "totalDayCarbs": 300,
+      "totalDayFat": 85,
+      "totalDayPrice": 400
+    }}
+  ],
+  "weeklyGoals": {{
+    "targetCalories": {calorie_target},
+    "targetProtein": 150,
+    "targetCarbs": 300,
+    "targetFat": 85,
+    "focusAreas": ["performance", "recovery"]
+  }},
+  "shoppingList": [
+    {{
+      "item": "Oats",
+      "quantity": "1 kg",
+      "estimatedPrice": 120,
+      "category": "grains"
+    }}
+  ],
+  "totalWeeklyCost": 2800
+}}
+
+Create {meals_per_day} meals for each of the 7 days. Use Indian foods and rupee prices."""
+
+        # Make API call to GROQ
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a certified sports nutritionist and dietitian. Create detailed, practical meal plans that consider athletic performance, injury recovery, and budget constraints. ALWAYS return complete, valid JSON only. Ensure the response is not truncated."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.1,
+            max_tokens=8000,  # Increased to prevent truncation
+            stream=False
+        )
+
+        # Get AI response
+        ai_response = completion.choices[0].message.content.strip()
+        
+        # Clean and validate JSON response
+        try:
+            # Remove any markdown formatting
+            if ai_response.startswith("```json"):
+                ai_response = ai_response[7:]
+            if ai_response.startswith("```"):
+                ai_response = ai_response[3:]
+            if ai_response.endswith("```"):
+                ai_response = ai_response[:-3]
+            
+            # Parse JSON with error handling
+            nutrition_data = json.loads(ai_response.strip())
+            
+            # Validate required fields
+            if "dailyPlans" not in nutrition_data:
+                raise ValueError("Missing dailyPlans in AI response")
+            
+            # Ensure we have 7 days
+            if len(nutrition_data["dailyPlans"]) < 7:
+                raise ValueError(f"Expected 7 days, got {len(nutrition_data['dailyPlans'])}")
+            
+            # Add default values for missing fields
+            if "weeklyGoals" not in nutrition_data:
+                nutrition_data["weeklyGoals"] = {
+                    "targetCalories": request.nutritionProfile.calorieTarget or 2500,
+                    "targetProtein": 150,
+                    "targetCarbs": 300,
+                    "targetFat": 85,
+                    "focusAreas": ["general fitness"]
+                }
+            
+            if "shoppingList" not in nutrition_data:
+                nutrition_data["shoppingList"] = []
+                
+            if "totalWeeklyCost" not in nutrition_data:
+                nutrition_data["totalWeeklyCost"] = 2800
+            
+            return NutritionPlan(**nutrition_data)
+            
+        except json.JSONDecodeError as e:
+            print(f"JSON Parse Error: {e}")
+            print(f"AI Response Length: {len(ai_response)} characters")
+            print(f"AI Response Sample: {ai_response[:500]}...")
+            
+            # Try to fix common JSON issues
+            try:
+                # Remove incomplete trailing content
+                last_brace = ai_response.rfind('}')
+                if last_brace > 0:
+                    truncated_response = ai_response[:last_brace + 1]
+                    print(f"Trying truncated response at position {last_brace}")
+                    nutrition_data = json.loads(truncated_response)
+                    
+                    # Add missing required fields if they exist
+                    if "dailyPlans" in nutrition_data and len(nutrition_data["dailyPlans"]) >= 1:
+                        # Fill in missing days with simple fallback
+                        while len(nutrition_data["dailyPlans"]) < 7:
+                            day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                            missing_day = day_names[len(nutrition_data["dailyPlans"])]
+                            nutrition_data["dailyPlans"].append({
+                                "day": missing_day,
+                                "meals": [],
+                                "totalDayCalories": request.nutritionProfile.calorieTarget or 2500,
+                                "totalDayProtein": 150,
+                                "totalDayCarbs": 300,
+                                "totalDayFat": 85,
+                                "totalDayPrice": 400
+                            })
+                        
+                        # Add missing fields
+                        if "weeklyGoals" not in nutrition_data:
+                            nutrition_data["weeklyGoals"] = {
+                                "targetCalories": request.nutritionProfile.calorieTarget or 2500,
+                                "targetProtein": 150,
+                                "targetCarbs": 300,
+                                "targetFat": 85,
+                                "focusAreas": ["performance", "recovery"]
+                            }
+                        
+                        if "shoppingList" not in nutrition_data:
+                            nutrition_data["shoppingList"] = []
+                            
+                        if "totalWeeklyCost" not in nutrition_data:
+                            nutrition_data["totalWeeklyCost"] = 2800
+                        
+                        print("Successfully recovered partial AI response!")
+                        return NutritionPlan(**nutrition_data)
+                        
+            except Exception as recovery_error:
+                print(f"Recovery attempt failed: {recovery_error}")
+            
+            # Fall back to our predefined plan
+            print("Using fallback nutrition plan due to AI parsing failure")
+            return create_fallback_nutrition_plan(request)
+            
+        except Exception as e:
+            print(f"Validation Error: {e}")
+            return create_fallback_nutrition_plan(request)
+            
+    except Exception as e:
+        print(f"Error generating nutrition plan: {e}")
+        return create_fallback_nutrition_plan(request)
+
+def create_fallback_nutrition_plan(request: NutritionRequest) -> NutritionPlan:
+    """
+    Create a basic fallback nutrition plan when AI fails
+    """
+    is_vegetarian = "vegetarian" in request.nutritionProfile.dietaryPreference.lower()
+    is_vegan = "vegan" in request.nutritionProfile.dietaryPreference.lower()
+    target_calories = request.nutritionProfile.calorieTarget or 2500
+    
+    # Basic meal template
+    if is_vegan:
+        breakfast_items = [
+            {
+                "name": "Oats with almond milk and fruits",
+                "quantity": "1 bowl",
+                "calories": 350,
+                "protein": 12,
+                "carbs": 65,
+                "fat": 8,
+                "price": 60,
+                "instructions": "Cook oats with almond milk, add seasonal fruits"
+            }
+        ]
+        lunch_protein = {
+            "name": "Dal and quinoa",
+            "quantity": "1 plate",
+            "calories": 400,
+            "protein": 18,
+            "carbs": 70,
+            "fat": 8,
+            "price": 80,
+            "instructions": "Serve dal with quinoa and vegetables"
+        }
+    elif is_vegetarian:
+        breakfast_items = [
+            {
+                "name": "Vegetable upma with yogurt",
+                "quantity": "1 bowl",
+                "calories": 320,
+                "protein": 12,
+                "carbs": 55,
+                "fat": 8,
+                "price": 50,
+                "instructions": "Prepare upma with vegetables, serve with yogurt"
+            }
+        ]
+        lunch_protein = {
+            "name": "Paneer curry with rice",
+            "quantity": "1 plate",
+            "calories": 450,
+            "protein": 20,
+            "carbs": 65,
+            "fat": 12,
+            "price": 100,
+            "instructions": "Paneer curry with brown rice and salad"
+        }
+    else:
+        breakfast_items = [
+            {
+                "name": "Scrambled eggs with toast",
+                "quantity": "2 eggs + 2 slices",
+                "calories": 380,
+                "protein": 20,
+                "carbs": 30,
+                "fat": 18,
+                "price": 60,
+                "instructions": "Scrambled eggs with whole wheat toast"
+            }
+        ]
+        lunch_protein = {
+            "name": "Chicken breast with rice",
+            "quantity": "150g + 1 cup rice",
+            "calories": 500,
+            "protein": 35,
+            "carbs": 60,
+            "fat": 8,
+            "price": 120,
+            "instructions": "Grilled chicken breast with steamed rice and vegetables"
+        }
+    
+    # Create daily plans
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    daily_plans = []
+    
+    for day in days:
+        meals = [
+            {
+                "name": "Breakfast",
+                "time": "07:00",
+                "items": breakfast_items,
+                "totalCalories": sum(item["calories"] for item in breakfast_items),
+                "totalProtein": sum(item["protein"] for item in breakfast_items),
+                "totalCarbs": sum(item["carbs"] for item in breakfast_items),
+                "totalFat": sum(item["fat"] for item in breakfast_items),
+                "totalPrice": sum(item["price"] for item in breakfast_items)
+            },
+            {
+                "name": "Lunch",
+                "time": "12:30",
+                "items": [lunch_protein],
+                "totalCalories": lunch_protein["calories"],
+                "totalProtein": lunch_protein["protein"],
+                "totalCarbs": lunch_protein["carbs"],
+                "totalFat": lunch_protein["fat"],
+                "totalPrice": lunch_protein["price"]
+            }
+        ]
+        
+        day_totals = {
+            "totalDayCalories": sum(meal["totalCalories"] for meal in meals),
+            "totalDayProtein": sum(meal["totalProtein"] for meal in meals),
+            "totalDayCarbs": sum(meal["totalCarbs"] for meal in meals),
+            "totalDayFat": sum(meal["totalFat"] for meal in meals),
+            "totalDayPrice": sum(meal["totalPrice"] for meal in meals)
+        }
+        
+        daily_plans.append({
+            "day": day,
+            "meals": meals,
+            **day_totals
+        })
+    
+    return NutritionPlan(
+        dailyPlans=daily_plans,
+        weeklyGoals={
+            "targetCalories": target_calories,
+            "targetProtein": 150,
+            "targetCarbs": 300,
+            "targetFat": 85,
+            "focusAreas": ["basic nutrition", "athletic performance"]
+        },
+        shoppingList=[
+            {
+                "item": "Basic groceries",
+                "quantity": "Weekly supply",
+                "estimatedPrice": 2000,
+                "category": "mixed"
+            }
+        ],
+        totalWeeklyCost=2500
     )
 
 if __name__ == "__main__":
