@@ -1,16 +1,15 @@
 "use client";
 import { useState, useEffect } from "react";
-import { 
-  getActiveQuests, 
-  getAthleteQuests, 
+import {
+  getActiveQuests,
+  getAthleteQuests,
   startQuest,
-  Quest, 
+  Quest,
   AthleteQuest,
   getRarityColor,
-  BadgeRarity 
+  BadgeRarity
 } from "@/services/gamificationService";
-import { Trophy, Zap, Target, CheckCircle } from "lucide-react";
-
+import { Trophy, Zap, Target, CheckCircle, Award, Star, Calendar, Clock } from "lucide-react";
 
 interface QuestDashboardProps {
   athleteId: string;
@@ -35,7 +34,6 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
     ]);
     
     if (questsResult.success) {
-      // Filter out quests already started by athlete
       const startedQuestIds = athleteQuestsResult.athleteQuests.map(aq => aq.questId);
       const availableQuests = questsResult.quests.filter(q => !startedQuestIds.includes(q.id!));
       setActiveQuests(availableQuests);
@@ -51,7 +49,7 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
   const handleStartQuest = async (quest: Quest) => {
     const result = await startQuest(athleteId, quest);
     if (result.success) {
-      await fetchQuestData(); // Refresh data
+      await fetchQuestData();
     }
   };
 
@@ -61,12 +59,12 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
 
   const getRarityIcon = (rarity: BadgeRarity) => {
     switch (rarity) {
-      case 'bronze': return '🥉';
-      case 'silver': return '🥈';
-      case 'gold': return '🥇';
-      case 'platinum': return '💎';
-      case 'legendary': return '👑';
-      default: return '🏅';
+      case 'bronze': return <Award className="w-4 h-4 text-amber-600" />;
+      case 'silver': return <Award className="w-4 h-4 text-gray-400" />;
+      case 'gold': return <Award className="w-4 h-4 text-yellow-500" />;
+      case 'platinum': return <Award className="w-4 h-4 text-purple-500" />;
+      case 'legendary': return <Trophy className="w-4 h-4 text-orange-500" />;
+      default: return <Award className="w-4 h-4" />;
     }
   };
 
@@ -75,126 +73,288 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-8">
+      <div className="bg-white rounded-xl shadow-lg p-8 border border-slate-100">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading quests...</p>
+            <div className="w-12 h-12 border-4 border-[#0F172A] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-[#303644] font-medium">Loading quests...</p>
           </div>
         </div>
       </div>
     );
   }
 
-return (
-  <div className="space-y-6" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-    {/* Header */}
-    <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-black rounded-xl shadow-xl p-6 text-white relative overflow-hidden">
-      <div className="flex items-center mb-4">
-        <div className="bg-white/10 p-3 rounded-lg mr-4">
-          <Target className="w-8 h-8 text-white" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold">Quests & Challenges</h2>
-          <p className="text-slate-300">Complete quests to earn points and unlock badges!</p>
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-[#0F172A] via-[#182031] to-[#303644] rounded-xl shadow-lg p-6 text-white relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="relative z-10 flex items-center">
+          <div className="bg-white/10 backdrop-blur-sm p-3 rounded-lg mr-4 border border-white/20 group-hover:bg-white/15 transition-colors duration-300">
+            <Target className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Quests & Challenges</h2>
+            <p className="text-[#F6F7F7]/80">Complete quests to earn points and unlock badges!</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* Tab Navigation */}
-    <div className="bg-white rounded-xl shadow-lg p-2">
-      <div className="flex space-x-2">
-        {[
-          { id: "available", label: "Available", count: activeQuests.length, icon: <Target className="w-4 h-4" /> },
-          { id: "active", label: "Active", count: getActiveAthleteQuests().length, icon: <Zap className="w-4 h-4" /> },
-          { id: "completed", label: "Completed", count: getCompletedAthleteQuests().length, icon: <CheckCircle className="w-4 h-4" /> },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setSelectedTab(tab.id as any)}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
-              selectedTab === tab.id
-                ? "bg-gradient-to-r from-slate-700 to-slate-900 text-white shadow-lg"
-                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-            }`}
-          >
-            {tab.icon}
-            <span>{tab.label}</span>
-            <span
-              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                selectedTab === tab.id ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-xl shadow-lg p-2 border border-slate-100">
+        <div className="flex space-x-1">
+          {[
+            { id: 'available', label: 'Available', count: activeQuests.length, icon: <Target className="w-4 h-4" /> },
+            { id: 'active', label: 'Active', count: getActiveAthleteQuests().length, icon: <Zap className="w-4 h-4" /> },
+            { id: 'completed', label: 'Completed', count: getCompletedAthleteQuests().length, icon: <CheckCircle className="w-4 h-4" /> }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setSelectedTab(tab.id as any)}
+              className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 ${
+                selectedTab === tab.id
+                  ? 'bg-gradient-to-r from-[#0F172A] to-[#303644] text-white shadow-lg'
+                  : 'text-[#303644] hover:text-[#0F172A] hover:bg-[#F6F7F7]'
               }`}
             >
-              {tab.count}
-            </span>
-          </button>
-        ))}
+              <span className="mr-2">{tab.icon}</span>
+              <span>{tab.label}</span>
+              <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                selectedTab === tab.id 
+                  ? 'bg-white/20 text-white' 
+                  : 'bg-[#F6F7F7] text-[#303644]'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
 
-    {/* Quest Cards Example (Available) */}
-    {selectedTab === "available" && (
-      <>
-        {activeQuests.length > 0 ? (
-          activeQuests.map((quest) => (
-            <div
-              key={quest.id}
-              className="bg-white rounded-xl shadow-lg p-6 border border-slate-200 hover:border-purple-400 transition-all"
-            >
-              <div className="flex items-start justify-between">
-                {/* Left Content */}
-                <div className="flex items-start">
-                  <div className="text-4xl mr-4">{quest.icon}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <h3 className="text-xl font-bold text-gray-900 mr-3">{quest.title}</h3>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${getRarityColor(
-                          quest.rarity
-                        )}`}
-                      >
-                        {getRarityIcon(quest.rarity)} {quest.rarity.toUpperCase()}
-                      </span>
-                    </div>
-                    <p className="text-slate-600 mb-4">{quest.description}</p>
+      {/* Quest Content */}
+      <div className="grid gap-6">
+        {selectedTab === 'available' && (
+          <>
+            {activeQuests.length > 0 ? (
+              activeQuests.map((quest) => (
+                <div key={quest.id} className="bg-white rounded-xl shadow-lg p-6 border border-slate-100 hover:border-[#0F172A]/20 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start flex-1">
+                      <div className="text-4xl mr-4 group-hover:scale-110 transition-transform duration-300">{quest.icon}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center mb-2">
+                          <h3 className="text-xl font-bold text-[#0F172A] mr-3 group-hover:text-[#303644] transition-colors duration-300">{quest.title}</h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRarityColor(quest.rarity)} flex items-center gap-1`}>
+                            {getRarityIcon(quest.rarity)}
+                            {quest.rarity.toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-[#303644] mb-4">{quest.description}</p>
+                        
+                        <div className="flex items-center space-x-4 text-sm text-[#182031] mb-4">
+                          <div className="flex items-center bg-[#F6F7F7] px-3 py-1 rounded-lg hover:bg-[#0F172A]/5 transition-colors duration-200">
+                            <Target className="w-4 h-4 mr-1" />
+                            <span>Target: {quest.target}</span>
+                          </div>
+                          <div className="flex items-center bg-[#F6F7F7] px-3 py-1 rounded-lg hover:bg-[#0F172A]/5 transition-colors duration-200">
+                            <Star className="w-4 h-4 mr-1" />
+                            <span>{quest.points} points</span>
+                          </div>
+                          <div className="flex items-center bg-[#F6F7F7] px-3 py-1 rounded-lg hover:bg-[#0F172A]/5 transition-colors duration-200">
+                            <Clock className="w-4 h-4 mr-1" />
+                            <span>{quest.duration} days</span>
+                          </div>
+                          {quest.requirements && quest.requirements.sport && (
+                            <div className="flex items-center bg-[#F6F7F7] px-3 py-1 rounded-lg hover:bg-[#0F172A]/5 transition-colors duration-200">
+                              <span className="font-medium">{quest.requirements.sport}</span>
+                            </div>
+                          )}
+                        </div>
 
-                    <div className="flex items-center space-x-4 text-sm text-slate-500 mb-4">
-                      <span>🎯 Target: {quest.target}</span>
-                      <span>⭐ {quest.points} pts</span>
-                      <span>⏰ {quest.duration} days</span>
-                      {quest.requirements?.sport && <span>🏃 {quest.requirements.sport}</span>}
-                    </div>
-
-                    {quest.badge && (
-                      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-3 rounded-lg border border-yellow-200">
-                        <p className="text-sm text-yellow-800">
-                          🏅 <strong>Badge Reward:</strong> Complete this quest to earn a special badge!
-                        </p>
+                        {quest.badge && (
+                          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-200 hover:border-amber-300 transition-colors duration-200">
+                            <p className="text-sm text-amber-800 flex items-center">
+                              <Award className="w-4 h-4 mr-2" />
+                              <strong>Badge Reward:</strong>&nbsp;Complete this quest to earn a special badge!
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+                    
+                    <button
+                      onClick={() => handleStartQuest(quest)}
+                      className="bg-gradient-to-r from-[#0F172A] to-[#303644] text-white px-6 py-3 rounded-lg font-semibold hover:from-[#182031] hover:to-[#0F172A] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                    >
+                      Start Quest
+                    </button>
                   </div>
                 </div>
-
-                {/* CTA */}
-                <button
-                  onClick={() => handleStartQuest(quest)}
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  Start Quest
-                </button>
+              ))
+            ) : (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center border border-slate-100 hover:shadow-xl transition-shadow duration-300">
+                <Target className="w-16 h-16 text-[#303644]/50 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-[#0F172A] mb-2">No Available Quests</h3>
+                <p className="text-[#303644]">Check back later for new challenges!</p>
               </div>
-            </div>
-          ))
-        ) : (
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-            <Target className="w-12 h-12 text-slate-400 mx-auto mb-4 animate-pulse" />
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No Available Quests</h3>
-            <p className="text-gray-600">Check back later for new challenges!</p>
-          </div>
+            )}
+          </>
         )}
-      </>
-    )}
-  </div>
-);
 
+        {selectedTab === 'active' && (
+          <>
+            {getActiveAthleteQuests().length > 0 ? (
+              getActiveAthleteQuests().map((athleteQuest) => (
+                <div key={athleteQuest.id} className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-[#182031] hover:shadow-xl hover:border-l-[#0F172A] transition-all duration-300 transform hover:scale-[1.02] group">
+                  <div className="flex items-start">
+                    <div className="text-4xl mr-4 group-hover:scale-110 transition-transform duration-300">{athleteQuest.quest.icon}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xl font-bold text-[#0F172A] group-hover:text-[#303644] transition-colors duration-300">{athleteQuest.quest.title}</h3>
+                        <div className="flex items-center space-x-2">
+                          <span className="bg-gradient-to-r from-[#182031] to-[#0F172A] text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <Zap className="w-3 h-3" />
+                            IN PROGRESS
+                          </span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRarityColor(athleteQuest.quest.rarity)} flex items-center gap-1`}>
+                            {getRarityIcon(athleteQuest.quest.rarity)}
+                            {athleteQuest.quest.rarity.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-[#303644] mb-4">{athleteQuest.quest.description}</p>
+                      
+                      {/* Progress Bar */}
+                      <div className="mb-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm font-medium text-[#0F172A]">
+                            Progress: {athleteQuest.progress} / {athleteQuest.quest.target}
+                          </span>
+                          <span className="text-sm text-[#182031] bg-[#F6F7F7] px-2 py-1 rounded-lg">
+                            {getProgressPercentage(athleteQuest.progress, athleteQuest.quest.target).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-[#F6F7F7] rounded-full h-3 shadow-inner overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-[#182031] to-[#0F172A] h-3 rounded-full transition-all duration-700 shadow-sm relative overflow-hidden"
+                            style={{
+                              width: `${getProgressPercentage(athleteQuest.progress, athleteQuest.quest.target)}%`
+                            }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent rounded-full"></div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4 text-sm text-[#182031]">
+                        <div className="flex items-center bg-[#F6F7F7] px-3 py-1 rounded-lg hover:bg-[#0F172A]/5 transition-colors duration-200">
+                          <Star className="w-4 h-4 mr-1" />
+                          <span>Reward: {athleteQuest.quest.points} points</span>
+                        </div>
+                        <div className="flex items-center bg-[#F6F7F7] px-3 py-1 rounded-lg hover:bg-[#0F172A]/5 transition-colors duration-200">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          <span>Started: {athleteQuest.startedAt.toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center bg-[#F6F7F7] px-3 py-1 rounded-lg hover:bg-[#0F172A]/5 transition-colors duration-200">
+                          <Clock className="w-4 h-4 mr-1" />
+                          <span>Expires: {athleteQuest.quest.expiresAt.toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center border border-slate-100 hover:shadow-xl transition-shadow duration-300">
+                <Zap className="w-16 h-16 text-[#303644]/50 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-[#0F172A] mb-2">No Active Quests</h3>
+                <p className="text-[#303644]">Start a quest from the available tab to begin your journey!</p>
+              </div>
+            )}
+          </>
+        )}
+
+        {selectedTab === 'completed' && (
+          <>
+            {getCompletedAthleteQuests().length > 0 ? (
+              getCompletedAthleteQuests().map((athleteQuest) => (
+                <div key={athleteQuest.id} className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl hover:border-l-green-600 transition-all duration-300 transform hover:scale-[1.02] group relative">
+                  <div className="absolute top-4 right-4">
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-2 rounded-full shadow-md group-hover:scale-110 transition-transform duration-300">
+                      <CheckCircle className="w-5 h-5" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start pr-14">
+                    <div className="text-4xl mr-4 group-hover:scale-110 transition-transform duration-300">{athleteQuest.quest.icon}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xl font-bold text-[#0F172A] group-hover:text-[#303644] transition-colors duration-300">{athleteQuest.quest.title}</h3>
+                        <div className="flex items-center space-x-2">
+                          <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            COMPLETED
+                          </span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRarityColor(athleteQuest.quest.rarity)} flex items-center gap-1`}>
+                            {getRarityIcon(athleteQuest.quest.rarity)}
+                            {athleteQuest.quest.rarity.toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <p className="text-[#303644] mb-4">{athleteQuest.quest.description}</p>
+                      
+                      {/* Completion Stats */}
+                      <div className="bg-green-50 p-4 rounded-lg mb-4 border border-green-200 hover:border-green-300 transition-colors duration-200">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                          <div className="bg-white/70 p-3 rounded-lg hover:bg-white transition-colors duration-200">
+                            <p className="text-green-600 text-xs font-semibold uppercase tracking-wide mb-1">Points Earned</p>
+                            <p className="text-2xl font-bold text-green-800">+{athleteQuest.pointsEarned}</p>
+                          </div>
+                          <div className="bg-white/70 p-3 rounded-lg hover:bg-white transition-colors duration-200">
+                            <p className="text-green-600 text-xs font-semibold uppercase tracking-wide mb-1">Completed</p>
+                            <p className="text-sm font-bold text-green-800">
+                              {athleteQuest.completedAt?.toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="bg-white/70 p-3 rounded-lg hover:bg-white transition-colors duration-200">
+                            <p className="text-green-600 text-xs font-semibold uppercase tracking-wide mb-1">Progress</p>
+                            <p className="text-lg font-bold text-green-800">
+                              {athleteQuest.progress}/{athleteQuest.quest.target}
+                            </p>
+                          </div>
+                          <div className="bg-white/70 p-3 rounded-lg hover:bg-white transition-colors duration-200">
+                            <p className="text-green-600 text-xs font-semibold uppercase tracking-wide mb-1">Duration</p>
+                            <p className="text-lg font-bold text-green-800">
+                              {Math.ceil((athleteQuest.completedAt!.getTime() - athleteQuest.startedAt.getTime()) / (1000 * 60 * 60 * 24))} days
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {athleteQuest.quest.badge && (
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-200 hover:border-amber-300 transition-colors duration-200">
+                          <p className="text-sm text-amber-800 flex items-center">
+                            <Trophy className="w-4 h-4 mr-2" />
+                            <strong>Badge Earned:</strong>&nbsp;You've unlocked a special achievement badge!
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="bg-white rounded-xl shadow-lg p-8 text-center border border-slate-100 hover:shadow-xl transition-shadow duration-300">
+                <Trophy className="w-16 h-16 text-[#303644]/50 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-[#0F172A] mb-2">No Completed Quests Yet</h3>
+                <p className="text-[#303644]">Complete your first quest to see your achievements here!</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
