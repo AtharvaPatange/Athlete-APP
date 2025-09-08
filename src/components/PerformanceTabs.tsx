@@ -14,29 +14,34 @@ interface PerformanceTabsProps {
 }
 
 const tabs = [
-  { id: 'log', label: ' Log Training', icon: '📝' },
-  { id: 'analytics', label: ' Analytics', icon: '📊' },
-  { id: 'sessions', label: ' History', icon: '📋' },
-  { id: 'nutrition', label: ' Nutrition', icon: '🥗' },
-  { id: 'gamification', label: ' Challenges', icon: '🎮' },
-  { id: 'injury', label: ' Injury Mgmt', icon: '🏥' }
+  { id: "log", label: "Log Training" },
+  { id: "analytics", label: "Analytics" },
+  { id: "sessions", label: "History" },
+  { id: "nutrition", label: "Nutrition" },
+  { id: "gamification", label: "Challenges" },
+  { id: "injury", label: "Manage Injury" },
 ];
 
-export default function PerformanceTabs({ athleteId, sport, region }: PerformanceTabsProps) {
-  const [activeTab, setActiveTab] = useState('log');
+export default function PerformanceTabs({
+  athleteId,
+  sport,
+  region,
+}: PerformanceTabsProps) {
+  const [activeTab, setActiveTab] = useState("log");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleSessionAdded = () => {
-    // Trigger refresh for analytics and sessions list
-    setRefreshTrigger(prev => prev + 1);
-    // Switch to analytics tab to show the new data
-    setActiveTab('analytics');
+    setRefreshTrigger((prev) => prev + 1);
+    setActiveTab("analytics");
   };
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+    >
       {/* Tab Navigation */}
-      <div className="bg-white rounded-xl shadow-lg p-2">
+      <div className="bg-white rounded-xl shadow-md p-2 border border-[#E0E4E9]">
         <div className="flex space-x-1">
           {tabs.map((tab) => (
             <button
@@ -44,13 +49,11 @@ export default function PerformanceTabs({ athleteId, sport, region }: Performanc
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
-              <span className="mr-2 text-lg">{tab.icon}</span>
-              <span className="hidden sm:inline">{tab.label}</span>
-              <span className="sm:hidden">{tab.label.split(' ')[1]}</span>
+              {tab.label}
             </button>
           ))}
         </div>
@@ -58,101 +61,87 @@ export default function PerformanceTabs({ athleteId, sport, region }: Performanc
 
       {/* Tab Content */}
       <div className="min-h-[500px]">
-        {activeTab === 'log' && (
-          <TrainingLogForm 
-            athleteId={athleteId} 
+        {activeTab === "log" && (
+          <TrainingLogForm
+            athleteId={athleteId}
             onSessionAdded={handleSessionAdded}
           />
         )}
-        
-        {activeTab === 'analytics' && (
-          <PerformanceAnalytics 
-            athleteId={athleteId} 
-            refreshTrigger={refreshTrigger}
-          />
-        )}
-        
-        {activeTab === 'sessions' && (
-          <TrainingSessionsList 
-            athleteId={athleteId} 
-            refreshTrigger={refreshTrigger}
-          />
-        )}
-        
-        {activeTab === 'nutrition' && (
-          <NutritionDashboard 
+
+        {activeTab === "analytics" && (
+          <PerformanceAnalytics
             athleteId={athleteId}
-            sport={sport}
+            refreshTrigger={refreshTrigger}
           />
         )}
-        
-        {activeTab === 'gamification' && (
-          <GamificationDashboard 
+
+        {activeTab === "sessions" && (
+          <TrainingSessionsList
+            athleteId={athleteId}
+            refreshTrigger={refreshTrigger}
+          />
+        )}
+
+        {activeTab === "nutrition" && (
+          <NutritionDashboard athleteId={athleteId} sport={sport} />
+        )}
+
+        {activeTab === "gamification" && (
+          <GamificationDashboard
             athleteId={athleteId}
             sport={sport}
             region={region}
           />
         )}
-        
-        {activeTab === 'injury' && (
-          <InjuryManagement />
-        )}
+
+        {activeTab === "injury" && <InjuryManagement />}
       </div>
 
       {/* Quick Stats Bar */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+      <div className="bg-gradient-to-r from-[#182031] to-[#020817] rounded-xl shadow-md p-6 text-white">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div>
-            <div className="text-2xl font-bold">🎯</div>
-            <p className="text-sm opacity-90">Weekly Goal</p>
+            <p className="text-sm opacity-80">Weekly Goal</p>
             <p className="text-lg font-semibold">5 Sessions</p>
           </div>
           <div>
-            <div className="text-2xl font-bold">🔥</div>
-            <p className="text-sm opacity-90">Streak</p>
+            <p className="text-sm opacity-80">Streak</p>
             <p className="text-lg font-semibold">7 Days</p>
           </div>
           <div>
-            <div className="text-2xl font-bold">📈</div>
-            <p className="text-sm opacity-90">This Month</p>
+            <p className="text-sm opacity-80">This Month</p>
             <p className="text-lg font-semibold">18 Sessions</p>
           </div>
           <div>
-            <div className="text-2xl font-bold">⚡</div>
-            <p className="text-sm opacity-90">Avg Intensity</p>
+            <p className="text-sm opacity-80">Avg Intensity</p>
             <p className="text-lg font-semibold">Medium</p>
           </div>
         </div>
       </div>
 
       {/* Performance Tips */}
-      <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6 border border-green-200">
-        <div className="flex items-start">
-          <div className="bg-green-100 p-3 rounded-lg mr-4">
-            <span className="text-2xl">💡</span>
-          </div>
-          <div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-2">Performance Tips</h4>
-            <ul className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-center">
-                <span className="text-green-500 mr-2">✓</span>
-                Log your training consistently to track progress patterns
-              </li>
-              <li className="flex items-center">
-                <span className="text-green-500 mr-2">✓</span>
-                Include heart rate data for better intensity monitoring
-              </li>
-              <li className="flex items-center">
-                <span className="text-green-500 mr-2">✓</span>
-                Add detailed notes about how you felt during training
-              </li>
-              <li className="flex items-center">
-                <span className="text-green-500 mr-2">✓</span>
-                Review weekly/monthly trends to optimize your training plan
-              </li>
-            </ul>
-          </div>
-        </div>
+      <div className="bg-gradient-to-r from-gray-50 to-[#E0E4E9] rounded-xl p-6 border border-gray-200">
+        <h4 className="text-lg font-semibold text-gray-900 mb-3">
+          Performance Tips
+        </h4>
+        <ul className="space-y-2 text-sm text-gray-700">
+          <li className="flex items-center">
+            <span className="h-2 w-2 bg-green-500 rounded-full mr-2"></span>
+            Log your training consistently to track progress patterns
+          </li>
+          <li className="flex items-center">
+            <span className="h-2 w-2 bg-green-500 rounded-full mr-2"></span>
+            Include heart rate data for better intensity monitoring
+          </li>
+          <li className="flex items-center">
+            <span className="h-2 w-2 bg-green-500 rounded-full mr-2"></span>
+            Add detailed notes about how you felt during training
+          </li>
+          <li className="flex items-center">
+            <span className="h-2 w-2 bg-green-500 rounded-full mr-2"></span>
+            Review weekly/monthly trends to optimize your training plan
+          </li>
+        </ul>
       </div>
     </div>
   );

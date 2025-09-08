@@ -217,29 +217,30 @@ export default function NutritionDashboard({ athleteId, sport, userProfile }: Nu
       )}
 
       {/* Tab Navigation */}
-      <div className="bg-white rounded-xl shadow-lg p-2">
-        <div className="flex space-x-1">
-          {[
-            { id: 'profile', label: 'Profile', icon: '👤' },
-            { id: 'plan', label: 'Current Plan', icon: '📋' },
-            { id: 'calendar', label: 'Meal Calendar', icon: '📅' },
-            { id: 'shopping', label: 'Shopping List', icon: '🛒' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === tab.id
-                  ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <span className="mr-2 text-lg">{tab.icon}</span>
-              <span className="hidden sm:inline">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Tab Navigation */}
+<div className="bg-white rounded-xl shadow-lg p-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+  <div className="flex space-x-1">
+    {[
+      { id: 'profile', label: 'Profile' },
+      { id: 'plan', label: 'Current Plan' },
+      { id: 'calendar', label: 'Meal Calendar' },
+      { id: 'shopping', label: 'Shopping List' }
+    ].map((tab) => (
+      <button
+        key={tab.id}
+        onClick={() => setActiveTab(tab.id as any)}
+        className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
+          activeTab === tab.id
+            ? 'bg-gradient-to-r from-slate-700 to-slate-900 text-white shadow-lg'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-[#e0e4e9]'
+        }`}
+      >
+        <span>{tab.label}</span>
+      </button>
+    ))}
+  </div>
+</div>
+
 
       {/* Tab Content */}
       <div className="min-h-[600px]">

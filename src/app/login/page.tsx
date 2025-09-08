@@ -7,10 +7,7 @@ import Link from "next/link";
 export default function LoginPage() {
   const { signIn } = useAuth();
   const router = useRouter();
-  const [form, setForm] = useState({
-    email: "",
-    password: ""
-  });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +21,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    
+
     if (!form.email || !form.password) {
       setError("Please fill in all fields");
       setLoading(false);
@@ -42,42 +39,52 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center p-6 bg-[#E0E4E9] relative"
+      style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+    >
+      {/* Grid Background */}
+      <div 
+        className="fixed inset-0 opacity-100 pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+          backgroundSize: '32px 32px'
+        }}
+      ></div>
+      
+      <div className="w-full max-w-md relative">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-            <span className="text-2xl">🏃‍♂️</span>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your AthleteApp account</p>
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-[#182031] mb-2">
+            Welcome Back
+          </h1>
+          <p className="text-[#020817]/70">
+            Sign in to your AthleteApp account
+          </p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-lg p-8 border border-[#E0E4E9]">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-[#182031] mb-2">
                 Email Address
               </label>
-              <div className="relative">
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="your@email.com"
-                  value={form.email}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-400">📧</span>
-                </div>
-              </div>
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="your@email.com"
+                value={form.email}
+                onChange={handleChange}
+                className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] placeholder-gray-400 border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
+              />
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-[#182031] mb-2">
                 Password
               </label>
               <div className="relative">
@@ -88,35 +95,42 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   value={form.password}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 pl-12 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 pr-16 rounded-lg bg-white text-[#020817] placeholder-gray-400 border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                 />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-400">🔒</span>
-                </div>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-sm text-gray-500 hover:text-[#182031] transition"
                 >
-                  {showPassword ? "🙈" : "👁️"}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
             </div>
 
+            {/* Remember + Forgot */}
             <div className="flex items-center justify-between">
               <label className="flex items-center">
-                <input type="checkbox" className="h-4 w-4 text-blue-600 rounded" />
-                <span className="ml-2 text-sm text-gray-600">Remember me</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 text-[#182031] rounded border-gray-300"
+                />
+                <span className="ml-2 text-sm text-gray-600">
+                  Remember me
+                </span>
               </label>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <a
+                href="#"
+                className="text-sm text-[#182031] hover:underline font-medium"
+              >
                 Forgot password?
               </a>
             </div>
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-[#182031] to-[#020817] text-white py-3 rounded-lg font-medium shadow hover:opacity-90 transition transform hover:scale-[1.01] focus:ring-2 focus:ring-offset-2 focus:ring-[#182031] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="flex items-center justify-center">
@@ -124,19 +138,13 @@ export default function LoginPage() {
                   Signing in...
                 </div>
               ) : (
-                <div className="flex items-center justify-center">
-                  <span>Sign In</span>
-                  <span className="ml-2">🚀</span>
-                </div>
+                "Sign In"
               )}
             </button>
 
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-600 text-sm flex items-center">
-                  <span className="mr-2">⚠️</span>
-                  {error}
-                </p>
+                <p className="text-red-600 text-sm">{error}</p>
               </div>
             )}
           </form>
@@ -148,17 +156,17 @@ export default function LoginPage() {
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                <span className="px-2 bg-white text-gray-500">
+                  Or continue with
+                </span>
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
-                <span className="mr-2">🔍</span>
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
                 Google
               </button>
-              <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
-                <span className="mr-2">📱</span>
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
                 Apple
               </button>
             </div>
@@ -166,8 +174,11 @@ export default function LoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
-              Don't have an account?{" "}
-              <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/register"
+                className="text-[#182031] hover:underline font-medium"
+              >
                 Create one now
               </Link>
             </p>
@@ -178,9 +189,13 @@ export default function LoginPage() {
         <div className="mt-8 text-center">
           <p className="text-xs text-gray-500">
             By signing in, you agree to our{" "}
-            <a href="#" className="text-blue-600 hover:text-blue-700">Terms of Service</a>
-            {" "}and{" "}
-            <a href="#" className="text-blue-600 hover:text-blue-700">Privacy Policy</a>
+            <a href="#" className="text-[#182031] hover:underline">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="#" className="text-[#182031] hover:underline">
+              Privacy Policy
+            </a>
           </p>
         </div>
       </div>

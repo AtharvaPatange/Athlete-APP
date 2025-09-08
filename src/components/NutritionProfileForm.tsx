@@ -745,28 +745,33 @@ export default function NutritionProfileForm({
           )}
           
           {step < totalSteps ? (
-            <button
-              onClick={handleNext}
-              className="px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-all"
-            >
-              Next →
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-all disabled:opacity-50"
-            >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  {existingProfile ? 'Updating...' : 'Creating...'}
-                </div>
-              ) : (
-                existingProfile ? '💾 Update Profile' : '🚀 Create Profile'
-              )}
-            </button>
-          )}
+  <button
+    onClick={handleNext}
+    className="px-8 py-3 bg-gradient-to-r from-slate-700 to-slate-900 text-white rounded-lg 
+               hover:from-slate-800 hover:to-black transition-all"
+    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+  >
+    Next →
+  </button>
+) : (
+  <button
+    onClick={handleSubmit}
+    disabled={loading}
+    className="px-8 py-3 bg-gradient-to-r from-slate-700 to-slate-900 text-white rounded-lg 
+               hover:from-slate-800 hover:to-black transition-all disabled:opacity-50"
+    style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+  >
+    {loading ? (
+      <div className="flex items-center">
+        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+        {existingProfile ? 'Updating...' : 'Creating...'}
+      </div>
+    ) : (
+      existingProfile ? 'Update Profile' : 'Create Profile'
+    )}
+  </button>
+)}
+
         </div>
       </div>
     </div>

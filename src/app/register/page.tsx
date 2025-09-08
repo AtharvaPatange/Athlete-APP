@@ -128,23 +128,39 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center p-6 bg-[#E0E4E9] relative"
+      style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+    >
+      {/* Grid Background */}
+      <div 
+        className="fixed inset-0 opacity-100 pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+          backgroundSize: "32px 32px"
+        }}
+      ></div>
+
+      <div className="w-full max-w-md relative">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join AthleteApp</h1>
-          <p className="text-gray-600">Create your digital athlete profile</p>
+        <div className="text-center mb-10">
+          <h1 className="text-3xl font-bold text-[#182031] mb-2">
+            Create Account
+          </h1>
+          <p className="text-[#020817]/70">
+            Join AthleteApp and build your profile
+          </p>
         </div>
 
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-center space-x-4 mb-4">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+              step >= 1 ? "bg-[#182031] text-white" : "bg-gray-200 text-gray-600"
             }`}>1</div>
-            <div className={`h-1 w-16 ${step >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+            <div className={`h-1 w-16 ${step >= 2 ? "bg-[#182031]" : "bg-gray-200"}`}></div>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+              step >= 2 ? "bg-[#182031] text-white" : "bg-gray-200 text-gray-600"
             }`}>2</div>
           </div>
           <div className="flex justify-between text-xs text-gray-500 px-4">
@@ -154,14 +170,18 @@ export default function RegisterPage() {
         </div>
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-lg p-8 border border-[#E0E4E9]">
           <form onSubmit={handleSubmit}>
             {step === 1 && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Information</h2>
-                
+                <h2 className="text-xl font-semibold text-[#182031] mb-6">
+                  Account Information
+                </h2>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-[#182031] mb-2">
+                    Email
+                  </label>
                   <input
                     name="email"
                     type="email"
@@ -169,24 +189,28 @@ export default function RegisterPage() {
                     placeholder="your@email.com"
                     value={form.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] placeholder-gray-400 border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                  <label className="block text-sm font-medium text-[#182031] mb-2">
+                    Full Name
+                  </label>
                   <input
                     name="name"
                     required
                     placeholder="Enter your full name"
                     value={form.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] placeholder-gray-400 border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                  <label className="block text-sm font-medium text-[#182031] mb-2">
+                    Password
+                  </label>
                   <input
                     name="password"
                     type="password"
@@ -194,12 +218,14 @@ export default function RegisterPage() {
                     placeholder="Create a strong password"
                     value={form.password}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] placeholder-gray-400 border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                  <label className="block text-sm font-medium text-[#182031] mb-2">
+                    Confirm Password
+                  </label>
                   <input
                     name="confirmPassword"
                     type="password"
@@ -207,14 +233,14 @@ export default function RegisterPage() {
                     placeholder="Confirm your password"
                     value={form.confirmPassword}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] placeholder-gray-400 border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                   />
                 </div>
 
                 <button
                   type="button"
                   onClick={nextStep}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="w-full bg-gradient-to-r from-[#182031] to-[#020817] text-white py-3 rounded-lg font-medium shadow hover:opacity-90 transition transform hover:scale-[1.01] focus:ring-2 focus:ring-offset-2 focus:ring-[#182031]"
                 >
                   Continue to Profile →
                 </button>
@@ -224,11 +250,13 @@ export default function RegisterPage() {
             {step === 2 && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Profile Details</h2>
+                  <h2 className="text-xl font-semibold text-[#182031]">
+                    Profile Details
+                  </h2>
                   <button
                     type="button"
                     onClick={prevStep}
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    className="text-[#182031] hover:underline text-sm font-medium"
                   >
                     ← Back
                   </button>
@@ -236,7 +264,9 @@ export default function RegisterPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+                    <label className="block text-sm font-medium text-[#182031] mb-2">
+                      Age
+                    </label>
                     <input
                       name="age"
                       type="number"
@@ -244,16 +274,18 @@ export default function RegisterPage() {
                       placeholder="25"
                       value={form.age}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] placeholder-gray-400 border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                    <label className="block text-sm font-medium text-[#182031] mb-2">
+                      Gender
+                    </label>
                     <select
                       name="gender"
                       value={form.gender}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                     >
                       {genders.map((g) => (
                         <option key={g.value} value={g.value}>{g.label}</option>
@@ -263,12 +295,14 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sport</label>
+                  <label className="block text-sm font-medium text-[#182031] mb-2">
+                    Sport
+                  </label>
                   <select
                     name="sport"
                     value={form.sport}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                   >
                     {sports.map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
@@ -277,12 +311,14 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Region</label>
+                  <label className="block text-sm font-medium text-[#182031] mb-2">
+                    Region
+                  </label>
                   <select
                     name="region"
                     value={form.region}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                   >
                     {regions.map((r) => (
                       <option key={r.value} value={r.value}>{r.label}</option>
@@ -291,12 +327,14 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Income Band</label>
+                  <label className="block text-sm font-medium text-[#182031] mb-2">
+                    Income Band
+                  </label>
                   <select
                     name="income_band"
                     value={form.income_band}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-white text-[#020817] border border-gray-300 focus:ring-2 focus:ring-[#182031] focus:border-[#182031] outline-none transition"
                   >
                     {incomeBands.map((b) => (
                       <option key={b.value} value={b.value}>{b.label}</option>
@@ -305,7 +343,9 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                  <label className="block text-sm font-medium text-[#182031] mb-2">
+                    Role
+                  </label>
                   <div className="space-y-3">
                     {roles.map((role) => (
                       <label key={role.value} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
@@ -315,10 +355,10 @@ export default function RegisterPage() {
                           value={role.value}
                           checked={form.role === role.value}
                           onChange={handleChange}
-                          className="mr-3 text-blue-600"
+                          className="mr-3 text-[#182031]"
                         />
                         <div>
-                          <div className="font-medium text-gray-900">{role.label}</div>
+                          <div className="font-medium text-[#182031]">{role.label}</div>
                           <div className="text-sm text-gray-500">{role.description}</div>
                         </div>
                       </label>
@@ -333,10 +373,10 @@ export default function RegisterPage() {
                       type="checkbox"
                       checked={form.disability_flag}
                       onChange={handleChange}
-                      className="mt-1 text-blue-600"
+                      className="mt-1 text-[#182031]"
                     />
                     <div>
-                      <div className="font-medium text-gray-900">Accessibility Support</div>
+                      <div className="font-medium text-[#182031]">Accessibility Support</div>
                       <div className="text-sm text-gray-600">Check if you require disability accommodations</div>
                     </div>
                   </label>
@@ -345,7 +385,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 rounded-lg font-medium hover:from-green-700 hover:to-blue-700 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-gradient-to-r from-[#182031] to-[#020817] text-white py-3 rounded-lg font-medium shadow hover:opacity-90 transition transform hover:scale-[1.01] focus:ring-2 focus:ring-offset-2 focus:ring-[#182031] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
@@ -372,16 +412,11 @@ export default function RegisterPage() {
           <div className="mt-6 text-center">
             <p className="text-gray-600 text-sm">
               Already have an account?{" "}
-              <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+              <Link href="/login" className="text-[#182031] hover:underline font-medium">
                 Sign in here
               </Link>
             </p>
           </div>
-        </div>
-
-        {/* Debug Info - Remove this in production */}
-        <div className="mt-6">
-          <FirebaseDebug />
         </div>
       </div>
     </div>

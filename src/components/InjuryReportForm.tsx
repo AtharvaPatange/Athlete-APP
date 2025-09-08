@@ -14,13 +14,21 @@ interface InjuryReportFormProps {
   initialData?: Partial<Injury>;
 }
 
-const INJURY_TYPES: { value: InjuryType; label: string; icon: string }[] = [
-  { value: 'muscle', label: 'Muscle Strain/Tear', icon: '💪' },
-  { value: 'bone', label: 'Bone Fracture/Break', icon: '🦴' },
-  { value: 'joint', label: 'Joint Injury', icon: '🔗' },
-  { value: 'ligament', label: 'Ligament Injury', icon: '🏃‍♂️' },
-  { value: 'tendon', label: 'Tendon Injury', icon: '🎯' },
-  { value: 'other', label: 'Other', icon: '❓' }
+const COLORS = {
+  oxfordBlue: "#030C26",
+  marianBlue: "#2D488B",
+  seasalt: "#F9FAFB",
+  powderBlue: "#9FAFDO",
+  platinum: "#E0E4E9",
+};
+
+const INJURY_TYPES: { value: InjuryType; label: string }[] = [
+  { value: 'muscle', label: 'Muscle Strain/Tear' },
+  { value: 'bone', label: 'Bone Fracture/Break' },
+  { value: 'joint', label: 'Joint Injury' },
+  { value: 'ligament', label: 'Ligament Injury' },
+  { value: 'tendon', label: 'Tendon Injury' },
+  { value: 'other', label: 'Other' }
 ];
 
 const SEVERITY_LEVELS: { value: InjurySeverity; label: string; description: string; color: string }[] = [
@@ -155,16 +163,20 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-8">
+    <div className="max-w-4xl mx-auto rounded-2xl shadow-lg p-8" style={{ backgroundColor: COLORS.seasalt }}>
+      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">🏥 Report Injury</h2>
-          <p className="text-gray-600 mt-2">Document your injury details for proper tracking and recovery</p>
+          <h2 className="text-3xl font-bold" style={{ color: COLORS.oxfordBlue }}>Report Injury</h2>
+          <p className="mt-2" style={{ color: COLORS.marianBlue }}>
+            Document your injury details for proper tracking and recovery
+          </p>
         </div>
         {onCancel && (
           <button
             onClick={onCancel}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            className="text-2xl font-bold"
+            style={{ color: COLORS.marianBlue }}
           >
             ✕
           </button>
@@ -173,13 +185,13 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Basic Injury Information */}
-        <div className="bg-gray-50 p-6 rounded-xl">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">📋 Basic Information</h3>
+        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
+          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>Basic Information</h3>
           
           <div className="grid md:grid-cols-2 gap-6">
             {/* Injury Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.marianBlue }}>
                 Injury Type <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -190,11 +202,15 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
                     onClick={() => handleInputChange('injuryType', type.value)}
                     className={`p-3 rounded-lg border text-sm font-medium transition-all ${
                       formData.injuryType === type.value
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        ? 'border-2'
+                        : ''
                     }`}
+                    style={{
+                      borderColor: formData.injuryType === type.value ? COLORS.marianBlue : COLORS.platinum,
+                      backgroundColor: formData.injuryType === type.value ? COLORS.powderBlue : COLORS.seasalt,
+                      color: formData.injuryType === type.value ? COLORS.oxfordBlue : COLORS.marianBlue
+                    }}
                   >
-                    <div className="text-lg mb-1">{type.icon}</div>
                     {type.label}
                   </button>
                 ))}
@@ -203,13 +219,17 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
 
             {/* Body Part */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.marianBlue }}>
                 Body Part Affected <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.bodyPart}
                 onChange={(e) => handleInputChange('bodyPart', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
+                style={{
+                  borderColor: COLORS.platinum,
+                  color: COLORS.oxfordBlue
+                }}
                 required
               >
                 <option value="">Select body part</option>
@@ -222,7 +242,7 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
 
           {/* Severity */}
           <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium mb-3" style={{ color: COLORS.marianBlue }}>
               Injury Severity <span className="text-red-500">*</span>
             </label>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -231,11 +251,12 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
                   key={level.value}
                   type="button"
                   onClick={() => handleInputChange('severity', level.value)}
-                  className={`p-4 rounded-lg border text-left transition-all ${
-                    formData.severity === level.value
-                      ? `border-opacity-100 ${level.color.replace('text-', 'border-').replace('-600', '-500')}`
-                      : 'border-gray-200 hover:border-gray-300'
-                    } ${formData.severity === level.value ? level.color : 'text-gray-700'}`}
+                  className="p-4 rounded-lg border text-left transition-all"
+                  style={{
+                    borderColor: formData.severity === level.value ? COLORS.marianBlue : COLORS.platinum,
+                    backgroundColor: formData.severity === level.value ? COLORS.powderBlue : COLORS.seasalt,
+                    color: COLORS.oxfordBlue
+                  }}
                 >
                   <div className="font-medium">{level.label}</div>
                   <div className="text-xs mt-1 opacity-80">{level.description}</div>
@@ -246,52 +267,55 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
         </div>
 
         {/* Dates */}
-        <div className="bg-gray-50 p-6 rounded-xl">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">📅 Timeline</h3>
+        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
+          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>Timeline</h3>
           
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.marianBlue }}>
                 Date of Injury <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
                 value={formData.diagnosisDate}
                 onChange={(e) => handleInputChange('diagnosisDate', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
+                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.marianBlue }}>
                 Expected Recovery Date
               </label>
               <input
                 type="date"
                 value={formData.expectedRecoveryDate}
                 onChange={(e) => handleInputChange('expectedRecoveryDate', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
+                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
               />
             </div>
           </div>
         </div>
 
         {/* Detailed Description */}
-        <div className="bg-gray-50 p-6 rounded-xl">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">📝 Detailed Information</h3>
+        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
+          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>Detailed Information</h3>
           
           <div className="space-y-6">
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.marianBlue }}>
                 Injury Description <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 placeholder-gray-500"
+                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
                 placeholder="Describe how the injury occurred and what you felt..."
                 required
               />
@@ -299,27 +323,29 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
 
             {/* Diagnosis */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.marianBlue }}>
                 Medical Diagnosis
               </label>
               <input
                 type="text"
                 value={formData.diagnosis}
                 onChange={(e) => handleInputChange('diagnosis', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 placeholder-gray-500"
+                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
                 placeholder="Medical professional's diagnosis (if available)"
               />
             </div>
 
             {/* Caused By */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.marianBlue }}>
                 Caused By
               </label>
               <select
                 value={formData.causedBy}
                 onChange={(e) => handleInputChange('causedBy', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
+                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
               >
                 <option value="">Select cause</option>
                 {COMMON_CAUSES.map((cause) => (
@@ -331,26 +357,25 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
         </div>
 
         {/* Symptoms */}
-        <div className="bg-gray-50 p-6 rounded-xl">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">🩺 Symptoms</h3>
+        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
+          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>Symptoms</h3>
           
-          <div className="mb-4">
-            <div className="flex flex-wrap gap-2">
-              {COMMON_SYMPTOMS.map((symptom) => (
-                <button
-                  key={symptom}
-                  type="button"
-                  onClick={() => handleSymptomToggle(symptom)}
-                  className={`px-3 py-2 rounded-full text-sm transition-all ${
-                    formData.symptoms.includes(symptom)
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 border border-transparent'
-                  }`}
-                >
-                  {symptom}
-                </button>
-              ))}
-            </div>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {COMMON_SYMPTOMS.map((symptom) => (
+              <button
+                key={symptom}
+                type="button"
+                onClick={() => handleSymptomToggle(symptom)}
+                className="px-3 py-2 rounded-full text-sm border transition-all"
+                style={{
+                  backgroundColor: formData.symptoms.includes(symptom) ? COLORS.powderBlue : COLORS.seasalt,
+                  color: formData.symptoms.includes(symptom) ? COLORS.oxfordBlue : COLORS.marianBlue,
+                  borderColor: formData.symptoms.includes(symptom) ? COLORS.marianBlue : COLORS.platinum
+                }}
+              >
+                {symptom}
+              </button>
+            ))}
           </div>
 
           <div className="flex gap-2">
@@ -359,13 +384,18 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
               value={customSymptom}
               onChange={(e) => setCustomSymptom(e.target.value)}
               placeholder="Add custom symptom"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 placeholder-gray-500"
+              style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
               onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomSymptom())}
             />
             <button
               type="button"
               onClick={addCustomSymptom}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 rounded-lg transition-colors"
+              style={{
+                background: `linear-gradient(to right, ${COLORS.oxfordBlue}, ${COLORS.marianBlue})`,
+                color: COLORS.seasalt
+              }}
             >
               Add
             </button>
@@ -373,27 +403,28 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
         </div>
 
         {/* Treatment & Restrictions */}
-        <div className="bg-gray-50 p-6 rounded-xl">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">⚕️ Treatment & Restrictions</h3>
+        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
+          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>Treatment & Restrictions</h3>
           
           <div className="space-y-6">
             {/* Treatment Plan */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.marianBlue }}>
                 Treatment Plan
               </label>
               <textarea
                 value={formData.treatmentPlan}
                 onChange={(e) => handleInputChange('treatmentPlan', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 placeholder-gray-500"
+                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
                 placeholder="Describe the treatment plan or medical recommendations..."
               />
             </div>
 
             {/* Activity Restrictions */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.marianBlue }}>
                 Activity Restrictions
               </label>
               
@@ -402,13 +433,15 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
                   {formData.restrictions.map((restriction, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 text-sm rounded-full"
+                      className="inline-flex items-center px-3 py-1 text-sm rounded-full"
+                      style={{ backgroundColor: COLORS.powderBlue, color: COLORS.oxfordBlue }}
                     >
                       {restriction}
                       <button
                         type="button"
                         onClick={() => removeRestriction(restriction)}
-                        className="ml-2 text-red-500 hover:text-red-700"
+                        className="ml-2 font-bold"
+                        style={{ color: COLORS.oxfordBlue }}
                       >
                         ×
                       </button>
@@ -422,14 +455,19 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
                   type="text"
                   value={customRestriction}
                   onChange={(e) => setCustomRestriction(e.target.value)}
-                  placeholder="Add activity restriction (e.g., 'No running', 'Avoid overhead movements')"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Add activity restriction"
+                  className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 placeholder-gray-500"
+                  style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomRestriction())}
                 />
                 <button
                   type="button"
                   onClick={addCustomRestriction}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  className="px-4 py-2 rounded-lg transition-colors"
+                  style={{
+                    background: `linear-gradient(to right, ${COLORS.oxfordBlue}, ${COLORS.marianBlue})`,
+                    color: COLORS.seasalt
+                  }}
                 >
                   Add
                 </button>
@@ -443,7 +481,11 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
           <button
             type="submit"
             disabled={isSubmitting || !formData.injuryType || !formData.bodyPart || !formData.severity || !formData.description}
-            className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 text-white py-4 px-6 rounded-xl font-medium hover:from-red-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-4 px-6 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: `linear-gradient(to right, ${COLORS.oxfordBlue}, ${COLORS.marianBlue})`,
+              color: COLORS.seasalt
+            }}
           >
             {isSubmitting ? (
               <div className="flex items-center justify-center">
@@ -451,7 +493,7 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
                 Submitting...
               </div>
             ) : (
-              '🏥 Report Injury'
+              'Report Injury'
             )}
           </button>
           
@@ -459,7 +501,11 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
             <button
               type="button"
               onClick={onCancel}
-              className="px-8 py-4 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              className="px-8 py-4 border rounded-xl font-medium transition-colors"
+              style={{
+                borderColor: COLORS.marianBlue,
+                color: COLORS.marianBlue
+              }}
             >
               Cancel
             </button>
