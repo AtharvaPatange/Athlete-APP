@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { Pill, Check } from "lucide-react";
+
 import {
   createNutritionProfile,
   updateNutritionProfile,
@@ -539,39 +541,45 @@ export default function NutritionProfileForm({
             </div>
 
             <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">💊 Supplement Preferences</h4>
-              <p className="text-sm text-gray-600 mb-4">Select supplements you currently use or are interested in</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {supplementOptions.map(supplement => (
-                  <label
-                    key={supplement}
-                    className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.supplementPreferences.includes(supplement)
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.supplementPreferences.includes(supplement)}
-                      onChange={() => toggleSupplement(supplement)}
-                      className="sr-only"
-                    />
-                    <div className="flex items-center">
-                      <span className="text-lg mr-2">💊</span>
-                      <span className="text-sm font-medium">{supplement}</span>
-                    </div>
-                    {formData.supplementPreferences.includes(supplement) && (
-                      <div className="ml-auto text-purple-500">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </label>
-                ))}
-              </div>
-            </div>
+  <h4 className="text-lg font-semibold text-[#0F172A] mb-4 flex items-center gap-2">
+    <Pill className="w-5 h-5 text-[#303644]" />
+    Supplement Preferences
+  </h4>
+  <p className="text-sm text-[#303644] mb-4">
+    Select supplements you currently use or are interested in
+  </p>
+
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+    {supplementOptions.map((supplement) => (
+      <label
+        key={supplement}
+        className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+          formData.supplementPreferences.includes(supplement)
+            ? "border-[#0F172A] bg-[#F6F7F7]"
+            : "border-[#E5E7EB] hover:border-[#303644]"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={formData.supplementPreferences.includes(supplement)}
+          onChange={() => toggleSupplement(supplement)}
+          className="sr-only"
+        />
+
+        <div className="flex items-center gap-2">
+          <Pill className="w-4 h-4 text-[#303644]" />
+          <span className="text-sm font-medium text-[#182031]">{supplement}</span>
+        </div>
+
+        {formData.supplementPreferences.includes(supplement) && (
+          <div className="ml-auto text-[#0F172A]">
+            <Check className="w-5 h-5" />
+          </div>
+        )}
+      </label>
+    ))}
+  </div>
+</div>
           </div>
         );
 

@@ -194,7 +194,7 @@ export default function RecoveryTracker({ injury, onUpdateInjury }: RecoveryTrac
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">🔄 Recovery Tracker</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Recovery Tracker</h2>
           <p className="text-gray-600 mt-2">{injury.bodyPart} - {injury.injuryType}</p>
         </div>
         
@@ -390,7 +390,7 @@ export default function RecoveryTracker({ injury, onUpdateInjury }: RecoveryTrac
               onClick={() => setShowProgressForm(!showProgressForm)}
               className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
             >
-              📊 Add Progress Entry
+             Add Progress Entry
             </button>
           </div>
 
@@ -438,15 +438,19 @@ export default function RecoveryTracker({ injury, onUpdateInjury }: RecoveryTrac
                 </div>
               </div>
 
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <div className="mt-6">
+                <label className="block text-sm font-medium text-[#0F172A] mb-2">
                   Progress Notes
                 </label>
                 <textarea
                   value={progressForm.notes}
-                  onChange={(e) => setProgressForm(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) =>
+                    setProgressForm((prev) => ({ ...prev, notes: e.target.value }))
+                  }
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border border-[#303644] rounded-lg 
+                            focus:ring-2 focus:ring-[#0F172A] focus:border-transparent
+                            placeholder:text-[#6B7280] text-[#182031]"
                   placeholder="How are you feeling today? Any improvements or concerns?"
                 />
               </div>
