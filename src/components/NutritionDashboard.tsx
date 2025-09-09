@@ -127,157 +127,143 @@ export default function NutritionDashboard({ athleteId, sport, userProfile }: Nu
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">🥗 Nutrition & Diet Planning</h2>
-          <p className="text-gray-600 mt-2">Personalized meal plans for optimal performance</p>
-          <p className="text-sm text-gray-500">Week of {weekRange.start} - {weekRange.end}</p>
-        </div>
-        <div className="flex space-x-3">
-          {nutritionProfile && (
-            <button
-              onClick={handleGenerateMealPlan}
-              disabled={isGenerating}
-              className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:from-green-700 hover:to-blue-700 transition-all disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <div className="flex items-center">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Generating AI Plan...
-                </div>
-              ) : (
-                '🤖 Generate New Plan'
-              )}
-            </button>
+   <div className="space-y-8">
+  {/* Header */}
+  <div className="flex items-center justify-between">
+    <div>
+      <h2 className="text-3xl font-bold text-[#1E2537]">Nutrition & Diet Planning</h2>
+      <p className="text-[#303848] mt-2">Personalized meal plans for optimal performance</p>
+      <p className="text-sm text-[#6b7280]">Week of {weekRange.start} - {weekRange.end}</p>
+    </div>
+    <div className="flex space-x-3">
+      {nutritionProfile && (
+        <button
+          onClick={handleGenerateMealPlan}
+          disabled={isGenerating}
+          className="bg-[#1E2537] text-white px-6 py-3 rounded-xl font-medium hover:bg-[#11192C] transition-all disabled:opacity-50"
+        >
+          {isGenerating ? (
+            <div className="flex items-center">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Generating AI Plan...
+            </div>
+          ) : (
+            'Generate New Plan'
           )}
+        </button>
+      )}
+    </div>
+  </div>
+
+  {/* Quick Stats */}
+  {nutritionProfile && currentMealPlan && (
+    <div className="grid md:grid-cols-4 gap-6">
+      <div className="bg-[#F4F5F6] p-6 rounded-xl shadow-md border border-[#EEEFF1]">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[#303848] text-sm font-medium">Daily Calories</p>
+            <p className="text-2xl font-bold text-[#1E2537]">
+              {Math.round(currentMealPlan.weeklyGoals.targetCalories / 7)}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      {nutritionProfile && currentMealPlan && (
-        <div className="grid md:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-700 text-sm font-medium">Daily Calories</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {Math.round(currentMealPlan.weeklyGoals.targetCalories / 7)}
-                </p>
-              </div>
-              <div className="bg-green-100 p-3 rounded-lg">
-                <span className="text-2xl">🔥</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-700 text-sm font-medium">Weekly Cost</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  ₹{currentMealPlan.totalWeeklyCost || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <span className="text-2xl">💰</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-700 text-sm font-medium">Diet Type</p>
-                <p className="text-lg font-bold text-purple-600">
-                  {getDietaryPreferenceIcon(nutritionProfile.dietaryPreference)} {nutritionProfile.dietaryPreference}
-                </p>
-              </div>
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <span className="text-2xl">🌱</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-700 text-sm font-medium">Daily Protein</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {Math.round(currentMealPlan.weeklyGoals.targetProtein / 7)}g
-                </p>
-              </div>
-              <div className="bg-orange-100 p-3 rounded-lg">
-                <span className="text-2xl">💪</span>
-              </div>
-            </div>
+      <div className="bg-[#F4F5F6] p-6 rounded-xl shadow-md border border-[#EEEFF1]">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[#303848] text-sm font-medium">Weekly Cost</p>
+            <p className="text-2xl font-bold text-[#1E2537]">
+              ₹{currentMealPlan.totalWeeklyCost || 'N/A'}
+            </p>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Tab Navigation */}
-      {/* Tab Navigation */}
-<div className="bg-white rounded-xl shadow-lg p-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-  <div className="flex space-x-1">
-    {[
-      { id: 'profile', label: 'Profile' },
-      { id: 'plan', label: 'Current Plan' },
-      { id: 'calendar', label: 'Meal Calendar' },
-      { id: 'shopping', label: 'Shopping List' }
-    ].map((tab) => (
-      <button
-        key={tab.id}
-        onClick={() => setActiveTab(tab.id as any)}
-        className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
-          activeTab === tab.id
-            ? 'bg-gradient-to-r from-slate-700 to-slate-900 text-white shadow-lg'
-            : 'text-slate-600 hover:text-slate-900 hover:bg-[#e0e4e9]'
-        }`}
-      >
-        <span>{tab.label}</span>
-      </button>
-    ))}
-  </div>
-</div>
+      <div className="bg-[#F4F5F6] p-6 rounded-xl shadow-md border border-[#EEEFF1]">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[#303848] text-sm font-medium">Diet Type</p>
+            <p className="text-lg font-bold text-[#1E2537]">
+              {nutritionProfile.dietaryPreference}
+            </p>
+          </div>
+        </div>
+      </div>
 
-
-      {/* Tab Content */}
-      <div className="min-h-[600px]">
-        {activeTab === 'profile' && (
-          <NutritionProfileTab
-            profile={nutritionProfile}
-            athleteId={athleteId}
-            userProfile={userProfile}
-            sport={sport}
-            onProfileUpdated={loadNutritionData}
-            showProfileForm={showProfileForm}
-            setShowProfileForm={setShowProfileForm}
-          />
-        )}
-
-        {activeTab === 'plan' && (
-          <CurrentPlanTab
-            mealPlan={currentMealPlan}
-            onGenerateNew={handleGenerateMealPlan}
-            isGenerating={isGenerating}
-          />
-        )}
-
-        {activeTab === 'calendar' && (
-          <MealCalendarTab
-            mealPlan={currentMealPlan}
-            onDayClick={(date: Date) => console.log('Day clicked:', date)}
-          />
-        )}
-
-        {activeTab === 'shopping' && (
-          <ShoppingListTab
-            mealPlan={currentMealPlan}
-          />
-        )}
+      <div className="bg-[#F4F5F6] p-6 rounded-xl shadow-md border border-[#EEEFF1]">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[#303848] text-sm font-medium">Daily Protein</p>
+            <p className="text-2xl font-bold text-[#1E2537]">
+              {Math.round(currentMealPlan.weeklyGoals.targetProtein / 7)}g
+            </p>
+          </div>
+        </div>
       </div>
     </div>
+  )}
+
+  {/* Tab Navigation */}
+  <div className="bg-white rounded-xl shadow-md p-2" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div className="flex space-x-1">
+      {[
+        { id: 'profile', label: 'Profile' },
+        { id: 'plan', label: 'Current Plan' },
+        { id: 'calendar', label: 'Meal Calendar' },
+        { id: 'shopping', label: 'Shopping List' }
+      ].map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => setActiveTab(tab.id as any)}
+          className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
+            activeTab === tab.id
+              ? 'bg-[#1E2537] text-white shadow-md'
+              : 'text-[#303848] hover:text-[#11192C] hover:bg-[#EEEFF1]'
+          }`}
+        >
+          <span>{tab.label}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+
+  {/* Tab Content */}
+  <div className="min-h-[600px]">
+    {activeTab === 'profile' && (
+      <NutritionProfileTab
+        profile={nutritionProfile}
+        athleteId={athleteId}
+        userProfile={userProfile}
+        sport={sport}
+        onProfileUpdated={loadNutritionData}
+        showProfileForm={showProfileForm}
+        setShowProfileForm={setShowProfileForm}
+      />
+    )}
+
+    {activeTab === 'plan' && (
+      <CurrentPlanTab
+        mealPlan={currentMealPlan}
+        onGenerateNew={handleGenerateMealPlan}
+        isGenerating={isGenerating}
+      />
+    )}
+
+    {activeTab === 'calendar' && (
+      <MealCalendarTab
+        mealPlan={currentMealPlan}
+        onDayClick={(date: Date) => console.log('Day clicked:', date)}
+      />
+    )}
+
+    {activeTab === 'shopping' && (
+      <ShoppingListTab
+        mealPlan={currentMealPlan}
+      />
+    )}
+  </div>
+</div>
   );
 }
 
@@ -344,17 +330,24 @@ function NutritionProfileTab({ profile, athleteId, userProfile, sport, onProfile
           </button>
         </div>
       ) : (
-        <div className="text-center py-12">
-          <div className="text-6xl mb-4">👤</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Nutrition Profile Found</h3>
-          <p className="text-gray-600 mb-6">Create your nutrition profile to get personalized meal plans</p>
-          <button 
-            onClick={() => setShowProfileForm(true)}
-            className="bg-green-600 text-white px-8 py-4 rounded-xl font-medium hover:bg-green-700 transition-colors"
-          >
-            🌱 Create Nutrition Profile
-          </button>
-        </div>
+                    <div className="text-center py-12">
+              <div className="flex items-center justify-center w-20 h-20 mx-auto mb-6 rounded-full bg-[#EEEFF1] text-[#1E2537]">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.121 17.804A11.953 11.953 0 0112 15c2.485 0 4.774.755 6.879 2.051M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-[#1E2537] mb-2">No Nutrition Profile Found</h3>
+              <p className="text-[#303848] mb-6">Create your nutrition profile to get personalized meal plans</p>
+              <button 
+                onClick={() => setShowProfileForm(true)}
+                className="px-8 py-4 rounded-xl font-medium text-white 
+                          bg-gradient-to-r from-[#1E2537] to-[#303848] 
+                          hover:from-[#11192C] hover:to-[#1E2537] 
+                          transition-all cursor-pointer"
+              >
+                Create Nutrition Profile
+              </button>
+            </div>
       )}
     </div>
   );
@@ -364,17 +357,24 @@ function CurrentPlanTab({ mealPlan, onGenerateNew, isGenerating }: any) {
   if (!mealPlan) {
     return (
       <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-        <div className="text-8xl mb-6">📋</div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-4">No Meal Plan Available</h3>
-        <p className="text-gray-600 mb-8">Generate your first AI-powered meal plan</p>
-        <button
-          onClick={onGenerateNew}
-          disabled={isGenerating}
-          className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-8 py-4 rounded-xl font-medium hover:from-green-700 hover:to-blue-700 transition-all disabled:opacity-50"
-        >
-          {isGenerating ? 'Generating...' : '🤖 Generate Meal Plan'}
-        </button>
-      </div>
+  <div className="flex items-center justify-center w-24 h-24 mx-auto mb-6 rounded-full bg-[#EEEFF1] text-[#1E2537]">
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m-6-8h6M5 6h14v12H5z" />
+    </svg>
+  </div>
+  <h3 className="text-2xl font-bold text-[#1E2537] mb-4">No Meal Plan Available</h3>
+  <p className="text-[#303848] mb-8">Generate your first AI-powered meal plan</p>
+  <button
+    onClick={onGenerateNew}
+    disabled={isGenerating}
+    className="px-8 py-4 rounded-xl font-medium text-white 
+               bg-gradient-to-r from-[#1E2537] to-[#303848] 
+               hover:from-[#11192C] hover:to-[#1E2537] 
+               transition-all disabled:opacity-50 cursor-pointer"
+  >
+    {isGenerating ? 'Generating...' : 'Generate Meal Plan'}
+  </button>
+</div>
     );
   }
 
@@ -389,7 +389,7 @@ function CurrentPlanTab({ mealPlan, onGenerateNew, isGenerating }: any) {
           disabled={isGenerating}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          🔄 Regenerate
+          Regenerate
         </button>
       </div>
 

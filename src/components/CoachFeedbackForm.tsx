@@ -94,132 +94,130 @@ export default function CoachFeedbackForm({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center mb-6">
-        <div className="bg-blue-100 p-3 rounded-lg mr-4">
-          <span className="text-2xl">👨‍🏫</span>
-        </div>
-        <div>
-          <h3 className="text-xl font-bold text-gray-900">Coach Feedback</h3>
-          <p className="text-gray-600">Provide guidance and feedback to the athlete</p>
+  <div className="bg-white rounded-2xl shadow-lg p-8">
+    {/* Header */}
+    <div className="flex items-center mb-6">
+      <div className="bg-[#EEEFF1] p-3 rounded-lg mr-4">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-[#1E2537]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422A12.083 12.083 0 0118 20.944M6 20.944a12.083 12.083 0 01-.16-10.366L12 14z" />
+        </svg>
+      </div>
+      <div>
+        <h3 className="text-xl font-bold text-[#1E2537]">Coach Feedback</h3>
+        <p className="text-[#303848]">Provide guidance and feedback to the athlete</p>
+      </div>
+    </div>
+
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Rating */}
+      <div>
+        <label className="block text-sm font-medium text-[#303848] mb-3">Overall Rating</label>
+        <div className="flex space-x-2 items-center">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => handleRatingChange(star)}
+              className={`text-3xl transition-colors ${
+                star <= form.rating ? 'text-yellow-400' : 'text-gray-300'
+              }`}
+            >
+              ⭐
+            </button>
+          ))}
+          <span className="ml-3 text-sm text-[#303848]">
+            {form.rating}/5 stars
+          </span>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Rating */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">Overall Rating</label>
-          <div className="flex space-x-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                type="button"
-                onClick={() => handleRatingChange(star)}
-                className={`text-3xl transition-colors ${
-                  star <= form.rating ? 'text-yellow-400' : 'text-gray-300'
-                }`}
-              >
-                ⭐
-              </button>
-            ))}
-            <span className="ml-3 text-sm text-gray-600 self-center">
-              {form.rating}/5 stars
-            </span>
-          </div>
-        </div>
+      {/* Feedback */}
+      <div>
+        <label className="block text-sm font-medium text-[#303848] mb-2">Feedback *</label>
+        <textarea
+          name="feedback"
+          value={form.feedback}
+          onChange={handleChange}
+          placeholder="Provide detailed feedback on the athlete's performance, technique, and areas for improvement..."
+          rows={4}
+          required
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E2537] focus:border-[#1E2537] resize-none"
+        />
+      </div>
 
-        {/* Feedback */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Feedback *
-          </label>
-          <textarea
-            name="feedback"
-            value={form.feedback}
-            onChange={handleChange}
-            placeholder="Provide detailed feedback on the athlete's performance, technique, and areas for improvement..."
-            rows={4}
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-          />
-        </div>
+      {/* Recommendations */}
+      <div>
+        <label className="block text-sm font-medium text-[#303848] mb-2">Recommendations</label>
+        <textarea
+          name="recommendations"
+          value={form.recommendations}
+          onChange={handleChange}
+          placeholder="Specific recommendations for next training sessions, techniques to practice, or goals to focus on..."
+          rows={3}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E2537] focus:border-[#1E2537] resize-none"
+        />
+      </div>
 
-        {/* Recommendations */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Recommendations
-          </label>
-          <textarea
-            name="recommendations"
-            value={form.recommendations}
-            onChange={handleChange}
-            placeholder="Specific recommendations for next training sessions, techniques to practice, or goals to focus on..."
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-          />
+      {/* Focus Areas */}
+      <div>
+        <label className="block text-sm font-medium text-[#303848] mb-3">Focus Areas for Improvement</label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {focusAreaOptions.map((area) => (
+            <button
+              key={area}
+              type="button"
+              onClick={() => handleFocusAreaToggle(area)}
+              className={`p-2 rounded-lg text-sm font-medium transition-all ${
+                form.focusAreas.includes(area)
+                  ? 'bg-[#1E2537] text-white border-2 border-[#1E2537]'
+                  : 'bg-[#EEEFF1] text-[#303848] hover:bg-[#d9dbe0] border-2 border-transparent'
+              }`}
+            >
+              {area}
+            </button>
+          ))}
         </div>
+        {form.focusAreas.length > 0 && (
+          <p className="text-xs text-[#60687a] mt-2">
+            Selected: {form.focusAreas.join(', ')}
+          </p>
+        )}
+      </div>
 
-        {/* Focus Areas */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Focus Areas for Improvement
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {focusAreaOptions.map((area) => (
-              <button
-                key={area}
-                type="button"
-                onClick={() => handleFocusAreaToggle(area)}
-                className={`p-2 rounded-lg text-sm font-medium transition-all ${
-                  form.focusAreas.includes(area)
-                    ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent'
-                }`}
-              >
-                {area}
-              </button>
-            ))}
-          </div>
-          {form.focusAreas.length > 0 && (
-            <p className="text-xs text-gray-500 mt-2">
-              Selected: {form.focusAreas.join(', ')}
-            </p>
+      {/* Submit Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          {success && (
+            <div className="flex items-center text-green-600">
+              <span className="mr-2">✅</span>
+              Feedback submitted successfully!
+            </div>
+          )}
+          {error && (
+            <div className="flex items-center text-red-600">
+              <span className="mr-2">⚠️</span>
+              {error}
+            </div>
           )}
         </div>
 
-        {/* Submit Button */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {success && (
-              <div className="flex items-center text-green-600">
-                <span className="mr-2">✅</span>
-                Feedback submitted successfully!
-              </div>
-            )}
-            {error && (
-              <div className="flex items-center text-red-600">
-                <span className="mr-2">⚠️</span>
-                {error}
-              </div>
-            )}
-          </div>
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <div className="flex items-center">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Submitting...
-              </div>
-            ) : (
-              "📝 Submit Feedback"
-            )}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-gradient-to-r from-[#1E2537] to-[#303848] text-white px-6 py-3 rounded-lg font-medium hover:from-[#11192C] hover:to-[#1E2537] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <div className="flex items-center">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Submitting...
+            </div>
+          ) : (
+            "Submit Feedback"
+          )}
+        </button>
+      </div>
+    </form>
+  </div>
+);
 }

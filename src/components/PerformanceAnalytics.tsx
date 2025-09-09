@@ -312,35 +312,50 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
         </div>
 
         {/* Sport Distribution */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">Sport Distribution</h4>
-          {sportData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={sportData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" tick={{ fill: '#374151', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#374151', fontSize: 12 }} />
-                <Tooltip 
-                  formatter={(value: any) => [`${value} sessions`, 'Count']}
-                  contentStyle={{ 
-                    backgroundColor: '#ffffff', 
-                    border: '1px solid #e5e7eb', 
-                    borderRadius: '8px',
-                    color: '#374151'
-                  }}
-                />
-                <Bar dataKey="value" fill="#10b981" />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-48 flex items-center justify-center text-gray-700">
-              <div className="text-center">
-                <div className="text-3xl mb-2">🏃‍♂️</div>
-                <p className="font-medium">No sport data available</p>
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h4 className="text-lg font-semibold text-gray-900 mb-4">Sport Distribution</h4>
+        {sportData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={sportData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" /> 
+              <XAxis dataKey="name" tick={{ fill: '#374151', fontSize: 12 }} />
+              <YAxis tick={{ fill: '#374151', fontSize: 12 }} />
+
+              <Tooltip 
+                formatter={(value: any) => [`${value} sessions`, 'Count']}
+                contentStyle={{ 
+                  backgroundColor: '#f9fafb', 
+                  border: '1px solid #e5e7eb', 
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
+                  color: '#374151'
+                }}
+              />
+
+                  <Bar 
+                    dataKey="value" 
+                    radius={[6, 6, 0, 0]}
+                    barSize={40}
+                    animationDuration={800}
+                  >
+                    {sportData.map((_, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={["#3b82f6", "#a855f7", "#06b6d4", "#f59e0b", "#ef4444", "#10b981"][index % 6]} 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+  ) : (
+    <div className="h-48 flex items-center justify-center text-gray-700">
+      <div className="text-center">
+        <div className="text-3xl mb-2">🏃‍♂️</div>
+        <p className="font-medium">No sport data available</p>
+      </div>
+    </div>
+  )}
+</div>
       </div>
     </div>
   );

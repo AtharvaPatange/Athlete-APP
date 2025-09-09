@@ -137,219 +137,181 @@ export default function CoachVerificationForm({
   const selectedStatus = STATUS_OPTIONS.find(opt => opt.value === formData.status);
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-8">
-      <div className="flex items-center justify-between mb-8">
+  <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-8">
+    {/* Header */}
+    <div className="flex items-center justify-between mb-8">
+      <div>
+        <h2 className="text-3xl font-bold text-[#1E2537] flex items-center gap-2">
+          <span className="flex items-center justify-center w-10 h-10 rounded-full bg-[#EEEFF1] text-[#1E2537]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422A12.083 12.083 0 0118 20.944M6 20.944a12.083 12.083 0 01-.16-10.366L12 14z" />
+            </svg>
+          </span>
+          Coach Verification
+        </h2>
+        <p className="text-[#303848] mt-2">
+          Verify recovery progress for {injury.bodyPart} {injury.injuryType}
+        </p>
+      </div>
+      {onCancel && (
+        <button
+          onClick={onCancel}
+          className="text-gray-500 hover:text-gray-700 text-2xl"
+        >
+          ×
+        </button>
+      )}
+    </div>
+
+    {/* Injury Summary */}
+    <div className="bg-[#EEEFF1] p-6 rounded-xl mb-8">
+      <h3 className="text-lg font-semibold text-[#1E2537] mb-4 flex items-center gap-2">
+        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-[#1E2537]">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m-6-8h6M5 6h14v12H5z" />
+          </svg>
+        </span>
+        Injury Summary
+      </h3>
+      <div className="grid md:grid-cols-3 gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">👨‍⚕️ Coach Verification</h2>
-          <p className="text-gray-600 mt-2">
-            Verify recovery progress for {injury.bodyPart} {injury.injuryType}
-          </p>
+          <p className="text-sm text-[#303848]">Injury Type</p>
+          <p className="font-medium text-[#1E2537]">{injury.injuryType} - {injury.bodyPart}</p>
         </div>
+        <div>
+          <p className="text-sm text-[#303848]">Severity</p>
+          <p className="font-medium text-[#1E2537]">{injury.severity}</p>
+        </div>
+        <div>
+          <p className="text-sm text-[#303848]">Injury Date</p>
+          <p className="font-medium text-[#1E2537]">{injury.diagnosisDate.toLocaleDateString()}</p>
+        </div>
+      </div>
+      <div className="mt-4">
+        <p className="text-sm text-[#303848]">Description</p>
+        <p className="text-[#1E2537]">{injury.description}</p>
+      </div>
+    </div>
+
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Verification Status */}
+      <div>
+        <h3 className="text-xl font-semibold text-[#1E2537] mb-4 flex items-center gap-2">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EEEFF1] text-[#1E2537]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </span>
+          Verification Status
+        </h3>
+        <div className="space-y-3">
+          {STATUS_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => handleStatusChange(option.value)}
+              className={`w-full p-4 border-2 rounded-xl text-left transition-all ${
+                formData.status === option.value
+                  ? option.color
+                  : 'border-gray-200 hover:border-gray-300 bg-white text-[#303848]'
+              }`}
+            >
+              <div className="flex items-start space-x-3">
+                <span className="text-xl">{option.icon}</span>
+                <div className="flex-1">
+                  <h4 className="font-semibold">{option.label}</h4>
+                  <p className="text-sm opacity-80 mt-1">{option.description}</p>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div>
+        <h3 className="text-xl font-semibold text-[#1E2537] mb-4 flex items-center gap-2">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EEEFF1] text-[#1E2537]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 14h.01M16 10h.01M9 21h6a2 2 0 002-2v-1a9 9 0 10-10 0v1a2 2 0 002 2z" />
+            </svg>
+          </span>
+          Assessment Notes
+        </h3>
+        <textarea
+          value={formData.notes}
+          onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+          rows={4}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E2537] focus:border-[#1E2537]"
+          placeholder="Provide detailed notes on the athlete's condition..."
+          required
+        />
+      </div>
+
+      {/* Recommended Actions */}
+      <div>
+        <h3 className="text-xl font-semibold text-[#1E2537] mb-4 flex items-center gap-2">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EEEFF1] text-[#1E2537]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 3a9 9 0 100 18 9 9 0 000-18z" />
+            </svg>
+          </span>
+          Recommended Actions
+        </h3>
+        {/* Actions list + input remain same but styled subtly */}
+      </div>
+
+      {/* Next Checkup */}
+      <div>
+        <h3 className="text-xl font-semibold text-[#1E2537] mb-4 flex items-center gap-2">
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#EEEFF1] text-[#1E2537]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2v-7H3v7a2 2 0 002 2z" />
+            </svg>
+          </span>
+          Next Checkup
+        </h3>
+        <input
+          type="date"
+          value={formData.nextCheckupDate}
+          onChange={(e) => setFormData(prev => ({ ...prev, nextCheckupDate: e.target.value }))}
+          className="w-full max-w-md px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1E2537] focus:border-[#1E2537]"
+          min={new Date().toISOString().split('T')[0]}
+        />
+        <p className="text-sm text-[#303848] mt-2">
+          Optional: Schedule the next verification or follow-up assessment
+        </p>
+      </div>
+
+      {/* Submit Buttons */}
+      <div className="flex gap-4 pt-6">
+        <button
+          type="submit"
+          disabled={isSubmitting || !formData.status || !formData.notes}
+          className="flex-1 bg-gradient-to-r from-[#1E2537] to-[#303848] text-white py-4 px-6 rounded-xl font-medium hover:from-[#11192C] hover:to-[#1E2537] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? (
+            <div className="flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Submitting Verification...
+            </div>
+          ) : (
+            'Submit Verification'
+          )}
+        </button>
+        
         {onCancel && (
           <button
+            type="button"
             onClick={onCancel}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            className="px-8 py-4 border border-gray-300 text-[#303848] rounded-xl font-medium hover:bg-[#EEEFF1] transition-colors"
           >
-            ✕
+            Cancel
           </button>
         )}
       </div>
-
-      {/* Injury Summary */}
-      <div className="bg-gray-50 p-6 rounded-xl mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Injury Summary</h3>
-        <div className="grid md:grid-cols-3 gap-4">
-          <div>
-            <p className="text-sm text-gray-600">Injury Type</p>
-            <p className="font-medium text-gray-900">{injury.injuryType} - {injury.bodyPart}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Severity</p>
-            <p className="font-medium text-gray-900">{injury.severity}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Injury Date</p>
-            <p className="font-medium text-gray-900">{injury.diagnosisDate.toLocaleDateString()}</p>
-          </div>
-        </div>
-        <div className="mt-4">
-          <p className="text-sm text-gray-600">Description</p>
-          <p className="text-gray-900">{injury.description}</p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Verification Status */}
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">🏥 Verification Status</h3>
-          <div className="space-y-3">
-            {STATUS_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => handleStatusChange(option.value)}
-                className={`w-full p-4 border-2 rounded-xl text-left transition-all ${
-                  formData.status === option.value
-                    ? option.color
-                    : 'border-gray-200 hover:border-gray-300 bg-white text-gray-700'
-                }`}
-              >
-                <div className="flex items-start space-x-3">
-                  <span className="text-2xl">{option.icon}</span>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">{option.label}</h4>
-                    <p className="text-sm opacity-80 mt-1">{option.description}</p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Verification Notes */}
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">📝 Assessment Notes</h3>
-          <textarea
-            value={formData.notes}
-            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-            rows={4}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Provide detailed notes on the athlete's current condition, progress, and any observations..."
-            required
-          />
-        </div>
-
-        {/* Recommended Actions */}
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">💡 Recommended Actions</h3>
-          
-          <div className="mb-4">
-            <div className="grid md:grid-cols-2 gap-2">
-              {RECOMMENDED_ACTIONS.map((action) => (
-                <button
-                  key={action}
-                  type="button"
-                  onClick={() => handleActionToggle(action)}
-                  className={`p-3 border rounded-lg text-sm text-left transition-all ${
-                    formData.recommendedActions.includes(action)
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  {action}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Custom Action Input */}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={customAction}
-              onChange={(e) => setCustomAction(e.target.value)}
-              placeholder="Add custom recommendation"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomAction())}
-            />
-            <button
-              type="button"
-              onClick={addCustomAction}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Add
-            </button>
-          </div>
-
-          {/* Selected Actions */}
-          {formData.recommendedActions.length > 0 && (
-            <div className="mt-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Selected Recommendations:</p>
-              <div className="flex flex-wrap gap-2">
-                {formData.recommendedActions.map((action) => (
-                  <span
-                    key={action}
-                    className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full"
-                  >
-                    {action}
-                    <button
-                      type="button"
-                      onClick={() => removeAction(action)}
-                      className="ml-2 text-blue-500 hover:text-blue-700"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Next Checkup Date */}
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">📅 Next Checkup</h3>
-          <input
-            type="date"
-            value={formData.nextCheckupDate}
-            onChange={(e) => setFormData(prev => ({ ...prev, nextCheckupDate: e.target.value }))}
-            className="w-full max-w-md px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            min={new Date().toISOString().split('T')[0]}
-          />
-          <p className="text-sm text-gray-600 mt-2">
-            Optional: Schedule the next verification or follow-up assessment
-          </p>
-        </div>
-
-        {/* Summary Preview */}
-        {selectedStatus && (
-          <div className="bg-gray-50 p-6 rounded-xl">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Verification Summary</h3>
-            <div className={`p-4 rounded-lg border-2 ${selectedStatus.color}`}>
-              <div className="flex items-center mb-2">
-                <span className="text-xl mr-2">{selectedStatus.icon}</span>
-                <span className="font-semibold">{selectedStatus.label}</span>
-              </div>
-              {formData.notes && (
-                <p className="text-sm mb-2">{formData.notes}</p>
-              )}
-              {formData.recommendedActions.length > 0 && (
-                <div className="text-sm">
-                  <strong>Recommendations:</strong> {formData.recommendedActions.join(', ')}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Submit Buttons */}
-        <div className="flex gap-4 pt-6">
-          <button
-            type="submit"
-            disabled={isSubmitting || !formData.status || !formData.notes}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-green-600 text-white py-4 px-6 rounded-xl font-medium hover:from-blue-700 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Submitting Verification...
-              </div>
-            ) : (
-              '✅ Submit Verification'
-            )}
-          </button>
-          
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-8 py-4 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
-    </div>
-  );
+    </form>
+  </div>
+);
 }

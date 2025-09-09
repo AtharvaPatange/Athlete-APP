@@ -59,7 +59,7 @@ export default function LoginPage() {
             Welcome Back
           </h1>
           <p className="text-[#020817]/70">
-            Sign in to your AthleteApp account
+            Sign in to your ATHLETEx account
           </p>
         </div>
 

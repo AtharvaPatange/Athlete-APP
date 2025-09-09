@@ -133,35 +133,31 @@ export default function TrainingLogForm({ athleteId, onSessionAdded }: TrainingL
   };
 
   return (
-    <div
-      className="max-w-4xl mx-auto rounded-2xl shadow-lg p-8"
-      style={{ backgroundColor: COLORS.seasalt }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-3xl font-bold" style={{ color: COLORS.oxfordBlue }}>
-            Log Training Session
-          </h2>
-          <p className="mt-2" style={{ color: COLORS.marianBlue }}>
-            Record your workout details and performance metrics
-          </p>
-        </div>
-      </div>
+  <div
+    className="max-w-5xl mx-auto rounded-xl shadow-md p-6"
+    style={{ backgroundColor: COLORS.seasalt }}
+  >
+    {/* Header */}
+    <div className="mb-6">
+      <h2 className="text-2xl font-bold" style={{ color: COLORS.oxfordBlue }}>
+        Log Training Session
+      </h2>
+      <p className="text-sm mt-1" style={{ color: COLORS.marianBlue }}>
+        Record your workout details and performance metrics
+      </p>
+    </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Grid wrapper to align sections tighter */}
+      <div className="grid md:grid-cols-2 gap-6">
         {/* Basic Info */}
-        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
-          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>
-            Basic Information
+        <div className="p-4 border rounded-lg bg-white">
+          <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
+            Basic Info
           </h3>
-
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="space-y-3">
             <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: COLORS.marianBlue }}
-              >
+              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
                 Date
               </label>
               <input
@@ -169,16 +165,13 @@ export default function TrainingLogForm({ athleteId, onSessionAdded }: TrainingL
                 name="date"
                 value={form.date}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
-                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
+                className="w-full px-3 py-2 border rounded-md focus:ring-1"
+                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
               />
             </div>
 
             <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: COLORS.marianBlue }}
-              >
+              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
                 Duration (minutes) <span className="text-red-500">*</span>
               </label>
               <input
@@ -189,16 +182,13 @@ export default function TrainingLogForm({ athleteId, onSessionAdded }: TrainingL
                 placeholder="45"
                 min="1"
                 required
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
-                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
+                className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500"
+                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
               />
             </div>
 
             <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: COLORS.marianBlue }}
-              >
+              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
                 Distance (km)
               </label>
               <input
@@ -209,25 +199,21 @@ export default function TrainingLogForm({ athleteId, onSessionAdded }: TrainingL
                 placeholder="5.2"
                 step="0.1"
                 min="0"
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
-                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
+                className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500"
+                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
               />
             </div>
           </div>
         </div>
 
-        {/* Sport and Exercise Type */}
-        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
-          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>
-            Activity Details
+        {/* Activity Details */}
+        <div className="p-4 border rounded-lg bg-white">
+          <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
+            Activity
           </h3>
-
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-3">
             <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: COLORS.marianBlue }}
-              >
+              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
                 Sport <span className="text-red-500">*</span>
               </label>
               <input
@@ -237,24 +223,20 @@ export default function TrainingLogForm({ athleteId, onSessionAdded }: TrainingL
                 onChange={handleChange}
                 placeholder="Football, Basketball, etc."
                 required
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
-                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
+                className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500"
+                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
               />
             </div>
-
             <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: COLORS.marianBlue }}
-              >
+              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
                 Exercise Type
               </label>
               <select
                 name="exerciseType"
                 value={form.exerciseType}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
-                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
+                className="w-full px-3 py-2 border rounded-md focus:ring-1"
+                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
               >
                 {exerciseTypes.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -265,146 +247,105 @@ export default function TrainingLogForm({ athleteId, onSessionAdded }: TrainingL
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Intensity */}
-        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
-          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>
-            Intensity Level
-          </h3>
-          <div className="grid md:grid-cols-4 gap-3">
-            {intensityLevels.map((level) => (
+      {/* Intensity */}
+      <div className="p-4 border rounded-lg bg-white">
+        <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
+          Intensity
+        </h3>
+        <div className="grid grid-cols-4 gap-2">
+          {intensityLevels.map((level) => (
+            <button
+              key={level.value}
+              type="button"
+              onClick={() => setForm((prev) => ({ ...prev, intensity: level.value as any }))}
+              className="p-2 rounded-md border text-xs font-medium transition-all"
+              style={{
+                borderColor: form.intensity === level.value ? COLORS.marianBlue : COLORS.oxfordBlue,
+                backgroundColor: form.intensity === level.value ? COLORS.powderBlue : COLORS.seasalt,
+                color: COLORS.oxfordBlue,
+              }}
+            >
+              {level.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Performance */}
+      <div className="p-4 border rounded-lg bg-white">
+        <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
+          Performance
+        </h3>
+        <div className="grid md:grid-cols-3 gap-4">
+          {[
+            { label: "Calories Burned", name: "caloriesBurned", placeholder: "250" },
+            { label: "Avg Heart Rate (bpm)", name: "heartRateAvg", placeholder: "140" },
+            { label: "Max Heart Rate (bpm)", name: "heartRateMax", placeholder: "170" },
+          ].map((metric) => (
+            <div key={metric.name}>
+              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
+                {metric.label}
+              </label>
+              <input
+                type="number"
+                name={metric.name}
+                value={form[metric.name as keyof typeof form]}
+                onChange={handleChange}
+                placeholder={metric.placeholder}
+                className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500"
+                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div className="p-4 border rounded-lg bg-white">
+        <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
+          Notes
+        </h3>
+        <textarea
+          name="notes"
+          value={form.notes}
+          onChange={handleChange}
+          rows={3}
+          placeholder="How did you feel? Any observations..."
+          className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500 resize-none"
+          style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
+        />
+      </div>
+
+      {/* Submit */}
+      <div className="cursor : pointer flex items-center justify-between pt-4">
+        <div className="flex items-center space-x-4">
+          {success && (
+            <div className="text-green-600">Training session logged successfully!</div>
+          )}
+          {error && <div className="text-red-600">{error}</div>}
+        </div>
               <button
-                key={level.value}
-                type="button"
-                onClick={() => setForm((prev) => ({ ...prev, intensity: level.value as any }))}
-                className="p-3 rounded-lg border text-sm font-medium transition-all"
+                type="submit"
+                disabled={loading}
+                className="px-8 py-4 rounded-xl  cursor : pointer font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  borderColor:
-                    form.intensity === level.value ? COLORS.marianBlue : COLORS.platinum,
-                  backgroundColor:
-                    form.intensity === level.value ? COLORS.powderBlue : COLORS.seasalt,
-                  color: COLORS.oxfordBlue
+                  backgroundColor: COLORS.oxfordBlue, // 🔹 solid color instead of gradient
+                  color: COLORS.seasalt
                 }}
               >
-                {level.label}
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Saving...
+                  </div>
+                  ) : (
+                    "Log Session"
+                      )}
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Heart Rate and Calories */}
-        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
-          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>
-            Performance Metrics
-          </h3>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: COLORS.marianBlue }}
-              >
-                Calories Burned
-              </label>
-              <input
-                type="number"
-                name="caloriesBurned"
-                value={form.caloriesBurned}
-                onChange={handleChange}
-                placeholder="250"
-                min="0"
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
-                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
-              />
             </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: COLORS.marianBlue }}
-              >
-                Avg Heart Rate (bpm)
-              </label>
-              <input
-                type="number"
-                name="heartRateAvg"
-                value={form.heartRateAvg}
-                onChange={handleChange}
-                placeholder="140"
-                min="40"
-                max="220"
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
-                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
-              />
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: COLORS.marianBlue }}
-              >
-                Max Heart Rate (bpm)
-              </label>
-              <input
-                type="number"
-                name="heartRateMax"
-                value={form.heartRateMax}
-                onChange={handleChange}
-                placeholder="170"
-                min="40"
-                max="220"
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2"
-                style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Notes */}
-        <div className="p-6 rounded-xl" style={{ backgroundColor: COLORS.platinum }}>
-          <h3 className="text-xl font-semibold mb-4" style={{ color: COLORS.oxfordBlue }}>
-            Notes
-          </h3>
-          <textarea
-            name="notes"
-            value={form.notes}
-            onChange={handleChange}
-            placeholder="How did you feel? Any observations or goals for next session..."
-            rows={3}
-            className="w-full px-4 py-3 border rounded-lg focus:ring-2 placeholder-gray-500 resize-none"
-            style={{ borderColor: COLORS.platinum, color: COLORS.oxfordBlue }}
-          />
-        </div>
-
-        {/* Submit */}
-        <div className="flex items-center justify-between pt-4">
-          <div className="flex items-center space-x-4">
-            {success && (
-              <div className="text-green-600">Training session logged successfully!</div>
-            )}
-            {error && <div className="text-red-600">{error}</div>}
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-8 py-4 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: `linear-gradient(to right, ${COLORS.oxfordBlue}, ${COLORS.marianBlue})`,
-              color: COLORS.seasalt
-            }}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                Saving...
-              </div>
-            ) : (
-              "Log Session"
-            )}
-          </button>
-        </div>
-      </form>
-    </div>
-  );
+    </form>
+  </div>
+);
 }

@@ -93,49 +93,55 @@ export default function DashboardPage() {
       </div>
 
       {/* Header */}
-      <header className="bg-white shadow-sm relative z-10">
+<header className="bg-white shadow-sm relative z-10">
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div className="flex justify-between items-center h-16">
-      {/* Logo + App Name */}
-      <div
-  onClick={() => router.push("/")}
-  className="flex items-center cursor-pointer"
->
-  <img
-    src="/AthleteX.png"        
-    alt="AthleteX Logo"
-    width={90}      
-    height={20}      
-  />
-</div> 
+      
+      {/* Logo + Tabs together on left */}
+      <div className="flex items-center space-x-8">
+        {/* Logo */}
+        <div
+          onClick={() => router.push("/")}
+          className="flex items-center cursor-pointer"
+        >
+          <img
+            src="/AthleteX.png"        
+            alt="AthleteX Logo"
+            width={90}      
+            height={20}      
+          />
+        </div>
 
-      {/* ✅ Tabs moved inside header */}
-      <div className="flex space-x-8 mx-8">
-        <button
-          onClick={() => setActiveSection('overview')}
-          className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
-            activeSection === 'overview'
-              ? 'border-slate-800 text-slate-800'
-              : 'border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300'
-          }`}
-        >
-          Overview
-        </button>
-        <button
-          onClick={() => setActiveSection('performance')}
-          className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
-            activeSection === 'performance'
-              ? 'border-slate-800 text-slate-800'
-              : 'border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300'
-          }`}
-        >
-          Performance
-        </button>
+        {/* Tabs */}
+        <div className="flex space-x-6">
+          <button
+            onClick={() => setActiveSection('overview')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
+              activeSection === 'overview'
+                ? 'border-slate-800 text-slate-800'
+                : 'border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveSection('performance')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
+              activeSection === 'performance'
+                ? 'border-slate-800 text-slate-800'
+                : 'border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300'
+            }`}
+          >
+            Performance
+          </button>
+        </div>
       </div>
 
-      {/* Welcome + Logout */}
+      {/* Welcome + Logout on right */}
       <div className="flex items-center space-x-4">
-        <span className="text-slate-600 hidden md:block">Welcome, {profile.name}!</span>
+        <span className="text-slate-600 hidden md:block">
+          Welcome, {profile.name}!
+        </span>
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 border border-gray-600 px-4 py-2 rounded-md text-slate-700 
