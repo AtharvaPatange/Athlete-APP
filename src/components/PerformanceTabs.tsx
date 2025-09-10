@@ -6,6 +6,7 @@ import TrainingSessionsList from "./TrainingSessionsList";
 import GamificationDashboard from "./GamificationDashboard";
 import InjuryManagement from "./InjuryManagement";
 import NutritionDashboard from "./NutritionDashboard";
+import ScholarshipDashboard from "./ScholarshipDashboard";
 
 interface PerformanceTabsProps {
   athleteId: string;
@@ -18,6 +19,7 @@ const tabs = [
   { id: "analytics", label: "Analytics" },
   { id: "sessions", label: "History" },
   { id: "nutrition", label: "Nutrition" },
+  { id: "scholarships", label: "Scholarships" },
   { id: "gamification", label: "Challenges" },
   { id: "injury", label: "Manage Injury" },
 ];
@@ -85,6 +87,8 @@ export default function PerformanceTabs({
         {activeTab === "nutrition" && (
           <NutritionDashboard athleteId={athleteId} sport={sport} />
         )}
+
+        {activeTab === "scholarships" && <ScholarshipDashboard />}
 
         {activeTab === "gamification" && (
           <GamificationDashboard

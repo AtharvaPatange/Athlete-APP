@@ -216,20 +216,35 @@ export const updateNutritionProfile = async (profileId: string, updates: Partial
 // Weekly Meal Plan Operations
 export const saveWeeklyMealPlan = async (planData: Omit<WeeklyMealPlan, 'id' | 'createdAt' | 'updatedAt'>) => {
   try {
+    console.log('Saving meal plan data:', JSON.stringify(planData, null, 2));
+    
+    // Validate required fields
+    if (!planData.athleteId) {
+      throw new Error('Missing athleteId');
+    }
+    if (!planData.weekStartDate) {
+      throw new Error('Missing weekStartDate');
+    }
+    if (!planData.dailyPlans || planData.dailyPlans.length === 0) {
+      throw new Error('Missing dailyPlans');
+    }
+
     const docRef = await addDoc(collection(db, WEEKLY_MEAL_PLANS_COLLECTION), {
       ...planData,
       weekStartDate: Timestamp.fromDate(planData.weekStartDate),
       dailyPlans: planData.dailyPlans.map(plan => ({
         ...plan,
         date: Timestamp.fromDate(plan.date),
-        createdAt: Timestamp.fromDate(plan.createdAt)
+        createdAt: Timestamp.fromDate(plan.createdAt || new Date())
       })),
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
     });
     
+    console.log('Successfully saved meal plan with ID:', docRef.id);
     return { id: docRef.id, success: true, error: null };
   } catch (error: any) {
+    console.error('Error saving meal plan:', error);
     return { id: null, success: false, error: error.message };
   }
 };
@@ -272,11 +287,16 @@ export const getCurrentWeekMealPlan = async (athleteId: string) => {
   try {
     const today = new Date();
     const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
     
     const q = query(
       collection(db, WEEKLY_MEAL_PLANS_COLLECTION),
       where('athleteId', '==', athleteId),
       where('weekStartDate', '>=', Timestamp.fromDate(weekStart)),
+      where('weekStartDate', '<=', Timestamp.fromDate(weekEnd)),
+      orderBy('weekStartDate', 'desc'),
       limit(1)
     );
     
@@ -289,18 +309,27 @@ export const getCurrentWeekMealPlan = async (athleteId: string) => {
     const doc = snapshot.docs[0];
     const data = doc.data();
     
+    console.log('Raw Firestore data:', JSON.stringify(data, null, 2));
+    
     const plan: WeeklyMealPlan = {
       id: doc.id,
       ...data,
       weekStartDate: data.weekStartDate.toDate(),
-      dailyPlans: data.dailyPlans.map((plan: any) => ({
-        ...plan,
-        date: plan.date.toDate(),
-        createdAt: plan.createdAt.toDate()
-      })),
+      dailyPlans: data.dailyPlans.map((plan: any) => {
+        console.log('Processing retrieved daily plan:', plan);
+        const processedPlan = {
+          ...plan,
+          date: plan.date.toDate(),
+          createdAt: plan.createdAt.toDate()
+        };
+        console.log('Processed daily plan:', processedPlan);
+        return processedPlan;
+      }),
       createdAt: data.createdAt.toDate(),
       updatedAt: data.updatedAt.toDate()
     } as WeeklyMealPlan;
+    
+    console.log('Final retrieved meal plan:', JSON.stringify(plan, null, 2));
     
     return { plan, success: true, error: null };
   } catch (error: any) {
@@ -399,18 +428,21 @@ export const generateWeeklyMealPlan = async (athleteId: string): Promise<WeeklyM
         sport: userProfile?.sport || 'general'
       },
       nutritionProfile: profileResult.profile,
-      activeInjuries: activeInjuries.map(injury => ({
+      injuryInfo: activeInjuries.map(injury => ({
         type: injury.injuryType,
         bodyPart: injury.bodyPart,
         severity: injury.severity,
-        restrictions: injury.restrictions
+        restrictions: injury.restrictions || []
       })),
       performanceData: performanceData && performanceData.length > 0 ? {
         weeklySessionCount: performanceData[0].sessions || 0,
-        totalDuration: performanceData[0].totalDuration || 0,
-        averageIntensity: performanceData[0].avgIntensity || 0
-      } : null,
-      weekStartDate: getWeekStartDate().toISOString()
+        averageIntensity: getIntensityLevel(performanceData[0].avgIntensity || 0),
+        trainingPhase: "maintenance"
+      } : {
+        weeklySessionCount: 0,
+        averageIntensity: "moderate",
+        trainingPhase: "maintenance"
+      }
     };
 
     // Call AI API
@@ -427,42 +459,124 @@ export const generateWeeklyMealPlan = async (athleteId: string): Promise<WeeklyM
     }
 
     const data = await response.json();
+    console.log('Received AI response:', JSON.stringify(data, null, 2));
+    console.log('Raw AI response data:', JSON.stringify(data, null, 2));
     
     // Convert AI response to WeeklyMealPlan format
     const weeklyPlan: Omit<WeeklyMealPlan, 'id' | 'createdAt' | 'updatedAt'> = {
       athleteId,
       weekStartDate: getWeekStartDate(),
-      dailyPlans: data.dailyPlans.map((plan: any) => ({
-        athleteId,
-        date: new Date(plan.date),
-        meals: plan.meals,
-        totalCalories: plan.totalCalories,
-        totalProtein: plan.totalProtein,
-        totalCarbs: plan.totalCarbs,
-        totalFats: plan.totalFats,
-        totalCost: plan.totalCost,
-        waterIntake: plan.waterIntake,
-        supplementRecommendations: plan.supplementRecommendations,
-        specialNotes: plan.specialNotes,
-        aiGenerated: true,
-        createdAt: new Date()
-      })),
-      weeklyGoals: data.weeklyGoals,
-      shoppingList: data.shoppingList,
-      totalWeeklyCost: data.totalWeeklyCost,
+      dailyPlans: data.dailyPlans.map((plan: any, index: number) => {
+        console.log(`Processing daily plan ${index}:`, plan);
+        const planDate = new Date(getWeekStartDate());
+        planDate.setDate(planDate.getDate() + index);
+        
+        // Ensure meals is in the correct format
+        let meals = plan.meals || {};
+        console.log(`Original meals for day ${index}:`, meals);
+        console.log(`First meal sample for day ${index}:`, meals[0]);
+        console.log(`Meal times for day ${index}:`, meals.map((m: any) => m.time || m.type || 'no-time-property'));
+        console.log(`All meals for day ${index}:`, JSON.stringify(meals, null, 2));
+        
+        // If meals is an array instead of an object, convert it
+        if (Array.isArray(meals)) {
+          console.log(`Converting meal array to object for day ${index}...`);
+          console.log(`All meal names for day ${index}:`, meals.map(m => m.name));
+          
+          // Create a more flexible mapping function
+          const getMealsByType = (searchTerms: string[]) => {
+            return meals.filter((m: any) => {
+              const mealName = (m.name || '').toLowerCase();
+              return searchTerms.some(term => mealName.includes(term.toLowerCase()));
+            });
+          };
+          
+          meals = {
+            breakfast: getMealsByType(['breakfast']),
+            lunch: getMealsByType(['lunch']),
+            dinner: getMealsByType(['dinner']),
+            snack_morning: getMealsByType(['mid-morning', 'morning snack', 'morning']),
+            snack_evening: getMealsByType(['evening snack', 'evening']),
+            pre_workout: getMealsByType(['pre-workout', 'pre workout']),
+            post_workout: getMealsByType(['post-workout', 'post workout']),
+          };
+          
+          // Log the results for debugging
+          Object.entries(meals).forEach(([type, mealArray]) => {
+            console.log(`${type}: ${Array.isArray(mealArray) ? mealArray.length : 0} meals`);
+            if (Array.isArray(mealArray) && mealArray.length > 0) {
+              console.log(`  - ${mealArray.map(m => m.name).join(', ')}`);
+            }
+          });
+          
+          console.log(`Converted meals structure for day ${index}:`, meals);
+        }
+        
+        // Ensure each meal type is an array
+        Object.keys(meals).forEach(mealType => {
+          if (!Array.isArray(meals[mealType])) {
+            meals[mealType] = meals[mealType] ? [meals[mealType]] : [];
+          }
+        });
+        
+        console.log(`Processed meals for day ${index}:`, meals);
+        
+        const dailyPlan = {
+          athleteId,
+          date: planDate,
+          meals,
+          totalCalories: plan.totalDayCalories || plan.totalCalories || 0,
+          totalProtein: plan.totalDayProtein || plan.totalProtein || 0,
+          totalCarbs: plan.totalDayCarbs || plan.totalCarbs || 0,
+          totalFats: plan.totalDayFat || plan.totalFats || 0,
+          totalCost: plan.totalDayPrice || plan.totalCost || 0,
+          waterIntake: plan.waterIntake || 2.5,
+          supplementRecommendations: plan.supplementRecommendations || [],
+          specialNotes: plan.specialNotes || [],
+          aiGenerated: true,
+          createdAt: new Date()
+        } as DailyMealPlan;
+        
+        console.log(`Final daily plan ${index}:`, dailyPlan);
+        return dailyPlan;
+      }),
+      weeklyGoals: {
+        targetCalories: data.weeklyGoals?.targetCalories || 2500,
+        targetProtein: data.weeklyGoals?.targetProtein || 150,
+        targetCarbs: data.weeklyGoals?.targetCarbs || 300,
+        targetFats: data.weeklyGoals?.targetFat || data.weeklyGoals?.targetFats || 85
+      },
+      shoppingList: data.shoppingList?.map((item: any) => ({
+        item: item.item,
+        quantity: item.quantity,
+        estimatedCost: item.estimatedPrice || item.estimatedCost || 0,
+        category: item.category
+      })) || [],
+      totalWeeklyCost: data.totalWeeklyCost || 0,
       aiGenerated: true
     };
+
+    console.log('Final weekly plan before saving:', JSON.stringify(weeklyPlan, null, 2));
 
     // Save to Firestore
     const saveResult = await saveWeeklyMealPlan(weeklyPlan);
     if (!saveResult.success) {
-      throw new Error('Failed to save meal plan');
+      console.error('Failed to save meal plan to Firestore:', saveResult.error);
+      // Still return the plan even if save failed, so user can see it
+      return { 
+        ...weeklyPlan, 
+        id: 'temp-' + Date.now(), 
+        createdAt: new Date(), 
+        updatedAt: new Date() 
+      };
     }
 
     return { ...weeklyPlan, id: saveResult.id!, createdAt: new Date(), updatedAt: new Date() };
 
   } catch (error) {
     console.error('Error generating weekly meal plan:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.log('Attempting fallback meal plan...');
     return await getFallbackMealPlan(athleteId);
   }
 };
@@ -486,6 +600,12 @@ const getWeekStartDate = () => {
   weekStart.setDate(today.getDate() - dayOfWeek);
   weekStart.setHours(0, 0, 0, 0);
   return weekStart;
+};
+
+const getIntensityLevel = (avgIntensity: number): string => {
+  if (avgIntensity >= 8) return "high";
+  if (avgIntensity >= 5) return "moderate";
+  return "low";
 };
 
 const getFallbackMealPlan = async (athleteId: string): Promise<WeeklyMealPlan> => {

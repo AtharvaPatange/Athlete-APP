@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loginType, setLoginType] = useState<'athlete' | 'admin'>('athlete');
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
@@ -34,7 +35,13 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push("/dashboard");
+    
+    // Redirect based on login type
+    if (loginType === 'admin') {
+      router.push("/admin");
+    } else {
+      router.push("/dashboard");
+    }
     setLoading(false);
   };
 
@@ -61,6 +68,32 @@ export default function LoginPage() {
           <p className="text-[#020817]/70">
             Sign in to your ATHLETEx account
           </p>
+        </div>
+
+        {/* Login Type Selector */}
+        <div className="bg-white rounded-2xl shadow-lg p-2 border border-[#E0E4E9] mb-6">
+          <div className="flex space-x-1">
+            <button
+              onClick={() => setLoginType('athlete')}
+              className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
+                loginType === 'athlete'
+                  ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+            >
+              🏃‍♂️ Athlete Login
+            </button>
+            <button
+              onClick={() => setLoginType('admin')}
+              className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
+                loginType === 'admin'
+                  ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+            >
+              🏛️ Admin / Govt
+            </button>
+          </div>
         </div>
 
         {/* Form Card */}

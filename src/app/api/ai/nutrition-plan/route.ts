@@ -6,8 +6,10 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
+    console.log('Sending request to FastAPI:', JSON.stringify(body, null, 2));
+    
     // Forward request to FastAPI backend
-    const response = await fetch(`${FASTAPI_URL}/ai/nutrition-plan`, {
+    const response = await fetch(`${FASTAPI_URL}/nutrition-plan`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -16,7 +18,9 @@ export async function POST(request: NextRequest) {
     });
     
     if (!response.ok) {
-      throw new Error(`FastAPI error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('FastAPI error details:', errorText);
+      throw new Error(`FastAPI error: ${response.status} - ${errorText}`);
     }
     
     const data = await response.json();
@@ -81,12 +85,72 @@ export async function POST(request: NextRequest) {
                 ingredients: ["salmon fillet", "sweet potato", "broccoli"],
                 instructions: ["Bake salmon", "Roast sweet potato", "Steam broccoli"]
               }
+            ],
+            snack_morning: [
+              {
+                name: "Greek yogurt with nuts",
+                quantity: "1 cup",
+                calories: 200,
+                protein: 15,
+                carbs: 10,
+                fats: 12,
+                fiber: 2,
+                cost: 3,
+                preparationTime: 2,
+                ingredients: ["greek yogurt", "almonds"],
+                instructions: ["Mix yogurt with nuts"]
+              }
+            ],
+            snack_evening: [
+              {
+                name: "Apple with peanut butter",
+                quantity: "1 apple + 2 tbsp",
+                calories: 250,
+                protein: 8,
+                carbs: 25,
+                fats: 16,
+                fiber: 5,
+                cost: 2,
+                preparationTime: 2,
+                ingredients: ["apple", "peanut butter"],
+                instructions: ["Slice apple", "Serve with peanut butter"]
+              }
+            ],
+            pre_workout: [
+              {
+                name: "Banana with coffee",
+                quantity: "1 medium banana",
+                calories: 150,
+                protein: 2,
+                carbs: 30,
+                fats: 1,
+                fiber: 3,
+                cost: 1,
+                preparationTime: 1,
+                ingredients: ["banana", "black coffee"],
+                instructions: ["Eat banana", "Drink coffee"]
+              }
+            ],
+            post_workout: [
+              {
+                name: "Protein shake",
+                quantity: "1 scoop + 250ml milk",
+                calories: 300,
+                protein: 25,
+                carbs: 15,
+                fats: 8,
+                fiber: 1,
+                cost: 4,
+                preparationTime: 2,
+                ingredients: ["whey protein", "milk"],
+                instructions: ["Blend protein with milk"]
+              }
             ]
           },
-          totalCalories: 1200,
-          totalProtein: 80,
-          totalCarbs: 120,
-          totalFats: 45,
+          totalCalories: 2100,
+          totalProtein: 130,
+          totalCarbs: 200,
+          totalFats: 86,
           totalCost: 22,
           waterIntake: 3,
           supplementRecommendations: ["Multivitamin", "Omega-3"],

@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import PerformanceTabs from "@/components/PerformanceTabs";
+import TransparencyDashboard from "@/components/TransparencyDashboard";
 
 interface UserProfile {
   name: string;
@@ -24,7 +25,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'performance'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'performance' | 'transparency'>('overview');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -133,6 +134,16 @@ export default function DashboardPage() {
             }`}
           >
             Performance
+          </button>
+          <button
+            onClick={() => setActiveSection('transparency')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
+              activeSection === 'transparency'
+                ? 'border-slate-800 text-slate-800'
+                : 'border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300'
+            }`}
+          >
+            Transparency
           </button>
         </div>
       </div>
@@ -258,6 +269,12 @@ export default function DashboardPage() {
                 >
                   View Performance
                 </button>
+                <button 
+                  onClick={() => setActiveSection('transparency')}
+                  className="border border-slate-300 text-slate-700 px-6 py-3 rounded-md font-medium hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  View Transparency
+                </button>
               </div>
             </div>
 
@@ -326,8 +343,11 @@ export default function DashboardPage() {
                 >
                   View Performance
                 </button>
-                <button className="border border-slate-600 text-white px-8 py-3 rounded-md font-medium hover:bg-slate-700 transition-colors cursor-pointer">
-                  Learn More
+                <button 
+                  onClick={() => setActiveSection('transparency')}
+                  className="border border-slate-600 text-white px-8 py-3 rounded-md font-medium hover:bg-slate-700 transition-colors cursor-pointer"
+                >
+                  View Transparency
                 </button>
               </div>
             </div>
@@ -354,7 +374,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </>
-        ) : (
+        ) : activeSection === 'performance' ? (
           /* Performance Section */
           <div className="relative">
             <PerformanceTabs 
@@ -362,6 +382,11 @@ export default function DashboardPage() {
               sport={profile.sport}
               region={profile.region}
             />
+          </div>
+        ) : (
+          /* Transparency Section */
+          <div className="relative">
+            <TransparencyDashboard />
           </div>
         )}
       </main>

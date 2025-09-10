@@ -51,6 +51,20 @@ export default function NutritionDashboard({ athleteId, sport, userProfile }: Nu
     loadNutritionData();
   }, [athleteId]);
 
+  // Reload data when the component becomes visible again
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadNutritionData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [athleteId]);
+
   const loadNutritionData = async () => {
     setLoading(true);
     try {
@@ -67,8 +81,21 @@ export default function NutritionDashboard({ athleteId, sport, userProfile }: Nu
         }
       }
 
-      if (planResult.success) {
+      if (planResult.success && planResult.plan) {
+        console.log('Loaded meal plan:', planResult.plan);
+        console.log('Daily plans:', planResult.plan.dailyPlans);
+        if (planResult.plan.dailyPlans.length > 0) {
+          console.log('First day meals:', planResult.plan.dailyPlans[0].meals);
+        }
         setCurrentMealPlan(planResult.plan);
+        // If we have both profile and plan, show the calendar
+        if (profileResult.success && profileResult.profile) {
+          setActiveTab('calendar');
+        }
+      } else if (profileResult.success && profileResult.profile) {
+        console.log('No meal plan found or error:', planResult);
+        // If we have profile but no plan, show the plan generation tab
+        setActiveTab('plan');
       }
     } catch (error) {
       console.error('Error loading nutrition data:', error);
@@ -84,13 +111,28 @@ export default function NutritionDashboard({ athleteId, sport, userProfile }: Nu
       return;
     }
 
+    console.log('Starting meal plan generation for athlete:', athleteId);
     setIsGenerating(true);
     try {
+      console.log('Calling generateWeeklyMealPlan...');
       const newPlan = await generateWeeklyMealPlan(athleteId);
+      console.log('Generated plan result:', newPlan);
+      
       if (newPlan) {
+        console.log('Setting new plan to state...');
         setCurrentMealPlan(newPlan);
         setActiveTab('calendar');
+        // Refresh the current plan data to ensure persistence
+        setTimeout(async () => {
+          console.log('Refreshing plan data from Firestore...');
+          const planResult = await getCurrentWeekMealPlan(athleteId);
+          console.log('Refresh result:', planResult);
+          if (planResult.success && planResult.plan) {
+            setCurrentMealPlan(planResult.plan);
+          }
+        }, 1000);
       } else {
+        console.error('generateWeeklyMealPlan returned null/undefined');
         alert('Failed to generate meal plan. Please try again.');
       }
     } catch (error) {
@@ -412,8 +454,43 @@ function CurrentPlanTab({ mealPlan, onGenerateNew, isGenerating }: any) {
         </div>
       </div>
 
+      {/* DEBUG SECTION - REMOVE AFTER FIXING */}
+      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-6">
+        <h4 className="font-bold text-yellow-800 mb-2">🐛 Debug Info</h4>
+        <div className="text-sm text-yellow-700 space-y-1">
+          <div><strong>Daily plans count:</strong> {mealPlan.dailyPlans?.length || 0}</div>
+          {mealPlan.dailyPlans?.slice(0, 1).map((day: any, index: number) => (
+            <div key={index} className="space-y-1">
+              <div><strong>Day {index} date:</strong> {new Date(day.date).toLocaleDateString()}</div>
+              <div><strong>Day {index} meals keys:</strong> {Object.keys(day.meals || {}).join(', ')}</div>
+              <div><strong>Day {index} breakfast:</strong> {JSON.stringify(day.meals?.breakfast)}</div>
+              <div><strong>Day {index} lunch:</strong> {JSON.stringify(day.meals?.lunch)}</div>
+              <div><strong>Day {index} dinner:</strong> {JSON.stringify(day.meals?.dinner)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="space-y-4">
         <h4 className="text-lg font-semibold text-gray-900">📊 Daily Breakdown</h4>
+        
+        {/* TEMPORARY DEBUG SECTION */}
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <h5 className="font-bold text-red-800 mb-2">🔍 DEBUG - Raw Data</h5>
+          <div className="text-xs text-red-700 space-y-2">
+            <div><strong>Meal Plan ID:</strong> {mealPlan.id}</div>
+            <div><strong>Daily Plans Count:</strong> {mealPlan.dailyPlans?.length || 0}</div>
+            {mealPlan.dailyPlans?.length > 0 && (
+              <div>
+                <strong>First Day Data:</strong>
+                <pre className="bg-red-100 p-2 rounded mt-1 text-xs overflow-auto max-h-32">
+                  {JSON.stringify(mealPlan.dailyPlans[0], null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        </div>
+        
         {mealPlan.dailyPlans.slice(0, 3).map((day: any, index: number) => (
           <div key={index} className="border border-gray-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-3">
@@ -425,18 +502,34 @@ function CurrentPlanTab({ mealPlan, onGenerateNew, isGenerating }: any) {
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 text-sm">
-              {Object.entries(day.meals).slice(0, 3).map(([mealType, meals]: [string, any]) => (
-                <div key={mealType} className="bg-gray-50 p-2 rounded">
-                  <div className="font-medium text-gray-700 mb-1">
-                    {getMealIcon(mealType)} {mealType.replace('_', ' ')}
-                  </div>
-                  {meals.slice(0, 2).map((meal: any, idx: number) => (
-                    <div key={idx} className="text-xs text-gray-600">
-                      {meal.name} ({meal.calories} cal)
+              {Object.entries(day.meals).slice(0, 3).map(([mealType, meals]: [string, any]) => {
+                console.log(`Rendering ${mealType}:`, meals, 'isArray:', Array.isArray(meals));
+                return (
+                  <div key={mealType} className="bg-gray-50 p-2 rounded">
+                    <div className="font-medium text-gray-700 mb-1">
+                      {getMealIcon(mealType)} {mealType.replace('_', ' ')}
                     </div>
-                  ))}
-                </div>
-              ))}
+                    <div className="text-xs text-blue-600 mb-1">
+                      Debug: {Array.isArray(meals) ? `Array(${meals.length})` : typeof meals}
+                    </div>
+                    {Array.isArray(meals) && meals.length > 0 ? meals.slice(0, 2).map((meal: any, idx: number) => {
+                      console.log(`Rendering meal ${idx}:`, meal);
+                      // Handle both FastAPI format and our internal format
+                      const mealName = meal.name || meal.foodItem || 'Unknown Meal';
+                      const mealCalories = meal.totalCalories || meal.calories || meal.cal || 0;
+                      return (
+                        <div key={idx} className="text-xs text-gray-600">
+                          {mealName} ({mealCalories} cal)
+                        </div>
+                      );
+                    }) : (
+                      <div className="text-xs text-gray-500">
+                        {Array.isArray(meals) ? `Empty array (${meals.length} items)` : 'No meals available'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -476,28 +569,45 @@ function MealCalendarTab({ mealPlan }: any) {
             </div>
             
             <div className="grid md:grid-cols-3 gap-4">
-              {Object.entries(day.meals).map(([mealType, meals]: [string, any]) => (
-                <div key={mealType} className="bg-gray-50 p-4 rounded-lg">
-                  <h5 className="font-medium text-gray-900 mb-3">
-                    {getMealIcon(mealType)} {mealType.replace('_', ' ').toUpperCase()}
-                  </h5>
-                  <div className="space-y-2">
-                    {meals.map((meal: any, idx: number) => (
-                      <div key={idx} className="text-sm">
-                        <div className="font-medium text-gray-800">{meal.name}</div>
-                        <div className="text-xs text-gray-600">
-                          {meal.quantity} | {meal.calories} cal | {meal.protein}g protein
-                        </div>
-                        {meal.preparationTime && (
-                          <div className="text-xs text-blue-600">
-                            ⏱️ {meal.preparationTime} min prep
+              {Object.entries(day.meals || {}).map(([mealType, meals]: [string, any]) => {
+                // Ensure meals is an array
+                const mealArray = Array.isArray(meals) ? meals : (meals ? [meals] : []);
+                
+                return (
+                  <div key={mealType} className="bg-gray-50 p-4 rounded-lg">
+                    <h5 className="font-medium text-gray-900 mb-3">
+                      {getMealIcon(mealType)} {mealType.replace('_', ' ').toUpperCase()}
+                    </h5>
+                    <div className="space-y-2">
+                      {mealArray.length > 0 ? (
+                        mealArray.map((meal: any, idx: number) => (
+                          <div key={idx} className="text-sm">
+                            <div className="font-medium text-gray-800">{meal.name || 'Unnamed Meal'}</div>
+                            <div className="text-xs text-gray-600">
+                              {meal.quantity || 'N/A'} | {meal.totalCalories || meal.calories || 0} cal | {meal.totalProtein || meal.protein || 0}g protein
+                            </div>
+                            {meal.preparationTime && (
+                              <div className="text-xs text-blue-600">
+                                ⏱️ {meal.preparationTime} min prep
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        ))
+                      ) : (
+                        <div className="text-sm text-gray-500 italic">No meals planned</div>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+              
+              {/* Show message if no meals at all */}
+              {(!day.meals || Object.keys(day.meals).length === 0) && (
+                <div className="col-span-3 text-center py-8 text-gray-500">
+                  <div className="text-4xl mb-2">🍽️</div>
+                  <p>No meals planned for this day</p>
                 </div>
-              ))}
+              )}
             </div>
             
             {day.specialNotes && day.specialNotes.length > 0 && (
