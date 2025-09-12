@@ -147,16 +147,6 @@ export default function DashboardPage() {
           >
             Transparency
           </button>
-          <button
-            onClick={() => setActiveSection('qrcode')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
-              activeSection === 'qrcode'
-                ? 'border-slate-800 text-slate-800'
-                : 'border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300'
-            }`}
-          >
-            QR Code
-          </button>
         </div>
       </div>
 
@@ -322,11 +312,6 @@ export default function DashboardPage() {
               sport={profile.sport}
               region={profile.region}
             />
-          </div>
-        ) : activeSection === 'qrcode' ? (
-          /* QR Code Section */
-          <div className="relative">
-            <AthleteQRCode />
           </div>
         ) : (
           /* Transparency Section */

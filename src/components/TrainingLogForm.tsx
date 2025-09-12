@@ -1,351 +1,411 @@
-"use client";
-import { useState } from "react";
-import { createTrainingSession, TrainingSession } from "@/services/performanceService";
-import { updateQuestProgress } from "@/services/gamificationService";
+import { useState } from 'react';
 
-// 🎨 Shared palette
-const COLORS = {
-  oxfordBlue: "#14213D",
-  marianBlue: "#2C5282",
-  powderBlue: "#B8C5D6",
-  platinum: "#E5E5E5",
-  seasalt: "#FFFFFF"
-};
-
-interface TrainingLogFormProps {
-  athleteId: string;
-  onSessionAdded: () => void;
+interface FormData {
+  sport: string;
+  exerciseType: string;
+  duration: string;
+  distance: string;
+  intensity: string;
+  date: string;
+  notes: string;
+  heartRateAvg: string;
+  heartRateMax: string;
+  caloriesBurned: string;
 }
 
-const exerciseTypes = [
-  { value: "running", label: "Running" },
-  { value: "cycling", label: "Cycling" },
-  { value: "swimming", label: "Swimming" },
-  { value: "weightlifting", label: "Weight Lifting" },
-  { value: "cardio", label: "Cardio" },
-  { value: "flexibility", label: "Flexibility" },
-  { value: "sports_practice", label: "Sports Practice" },
-  { value: "other", label: "Other" }
-];
+interface FormErrors {
+  sport?: string;
+  exerciseType?: string;
+  duration?: string;
+  intensity?: string;
+}
 
-const intensityLevels = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "peak", label: "Peak" }
-];
-
-export default function TrainingLogForm({ athleteId, onSessionAdded }: TrainingLogFormProps) {
-  const [form, setForm] = useState({
-    date: new Date().toISOString().split("T")[0],
-    duration: "",
-    distance: "",
-    intensity: "medium" as const,
-    sport: "",
-    exerciseType: "running",
-    notes: "",
-    caloriesBurned: "",
-    heartRateAvg: "",
-    heartRateMax: ""
+const TrainingSessionForm = () => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<FormData>({
+    sport: '',
+    exerciseType: '',
+    duration: '',
+    distance: '',
+    intensity: '',
+    date: new Date().toISOString().split('T')[0],
+    notes: '',
+    heartRateAvg: '',
+    heartRateMax: '',
+    caloriesBurned: ''
   });
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  const handleChange = (e: any) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  const exerciseTypes = [
+    { id: 'running', label: 'Running', icon: '🏃‍♂️' },
+    { id: 'cycling', label: 'Cycling', icon: '🚴‍♂️' },
+    { id: 'swimming', label: 'Swimming', icon: '🏊‍♂️' },
+    { id: 'weightlifting', label: 'Weight Lifting', icon: '🏋️‍♂️' },
+    { id: 'cardio', label: 'Cardio', icon: '❤️' },
+    { id: 'flexibility', label: 'Flexibility', icon: '🧘‍♀️' },
+    { id: 'sports_practice', label: 'Sports Practice', icon: '⚽' },
+    { id: 'other', label: 'Other', icon: '🏃‍♀️' }
+  ];
+
+  const intensityLevels = [
+    { id: 'low', label: 'Low', color: 'bg-green-100 text-green-800 border-green-200' },
+    { id: 'medium', label: 'Medium', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+    { id: 'high', label: 'High', color: 'bg-orange-100 text-orange-800 border-orange-200' },
+    { id: 'peak', label: 'Peak', color: 'bg-red-100 text-red-800 border-red-200' }
+  ];
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess(false);
+  const validateStep = (step: number) => {
+    const newErrors: FormErrors = {};
 
-    if (!form.duration || !form.sport) {
-      setError("Duration and sport are required");
-      setLoading(false);
-      return;
+    if (step === 1) {
+      if (!formData.sport.trim()) {
+        newErrors.sport = 'Sport is required';
+      }
+      if (!formData.exerciseType) {
+        newErrors.exerciseType = 'Activity type is required';
+      }
     }
 
-    const sessionData: Omit<TrainingSession, "id" | "createdAt" | "updatedAt"> = {
-      athleteId,
-      date: new Date(form.date),
-      duration: parseInt(form.duration),
-      distance: form.distance ? parseFloat(form.distance) : undefined,
-      intensity: form.intensity,
-      sport: form.sport,
-      exerciseType: form.exerciseType,
-      notes: form.notes || undefined,
-      caloriesBurned: form.caloriesBurned ? parseInt(form.caloriesBurned) : undefined,
-      heartRateAvg: form.heartRateAvg ? parseInt(form.heartRateAvg) : undefined,
-      heartRateMax: form.heartRateMax ? parseInt(form.heartRateMax) : undefined
-    };
+    if (step === 2) {
+      if (!formData.duration || Number(formData.duration) <= 0) {
+        newErrors.duration = 'Duration must be greater than 0';
+      }
+      if (!formData.intensity) {
+        newErrors.intensity = 'Intensity level is required';
+      }
+    }
 
-    const result = await createTrainingSession(sessionData);
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    if (result.success) {
-      await updateQuestProgressForSession(sessionData);
-      setSuccess(true);
-      setForm({
-        date: new Date().toISOString().split("T")[0],
-        duration: "",
-        distance: "",
-        intensity: "medium",
-        sport: "",
-        exerciseType: "running",
-        notes: "",
-        caloriesBurned: "",
-        heartRateAvg: "",
-        heartRateMax: ""
+  const handleNextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, 4));
+    }
+  };
+
+  const handlePrevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleInputChange = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (field in errors && errors[field as keyof FormErrors]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleSubmit = () => {
+    if (validateStep(currentStep)) {
+      console.log('Training session data:', formData);
+      alert('Training session logged successfully!');
+      // Reset form
+      setFormData({
+        sport: '',
+        exerciseType: '',
+        duration: '',
+        distance: '',
+        intensity: '',
+        date: new Date().toISOString().split('T')[0],
+        notes: '',
+        heartRateAvg: '',
+        heartRateMax: '',
+        caloriesBurned: ''
       });
-      onSessionAdded();
-      setTimeout(() => setSuccess(false), 3000);
-    } else {
-      setError(result.error || "Failed to save training session");
+      setCurrentStep(1);
     }
-
-    setLoading(false);
   };
 
-  const updateQuestProgressForSession = async (
-    session: Omit<TrainingSession, "id" | "createdAt" | "updatedAt">
-  ) => {
-    try {
-      await updateQuestProgress(athleteId, "sessions_quest", 1);
-      if (session.duration > 0) {
-        await updateQuestProgress(athleteId, "duration_quest", session.duration);
-      }
-      if (session.distance && session.distance > 0) {
-        await updateQuestProgress(athleteId, "distance_quest", session.distance);
-      }
-      if (session.sport) {
-        await updateQuestProgress(athleteId, `${session.sport}_quest`, 1);
-      }
-      if (session.intensity === "high" || session.intensity === "peak") {
-        await updateQuestProgress(athleteId, "intensity_quest", 1);
-      }
-    } catch (error) {
-      console.error("Error updating quest progress:", error);
+  const renderStep1 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">What did you train today?</h2>
+        <p className="text-gray-600">Choose your activity type</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-4">Activity Type</label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          {exerciseTypes.map((type) => (
+            <button
+              key={type.id}
+              type="button"
+              onClick={() => {
+                handleInputChange('exerciseType', type.id);
+                handleInputChange('sport', type.label);
+              }}
+              className={`p-4 border-2 rounded-lg text-center transition-all hover:shadow-md ${
+                formData.exerciseType === type.id
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="text-2xl mb-2">{type.icon}</div>
+              <div className="text-sm font-medium text-black">{type.label}</div>
+            </button>
+          ))}
+        </div>
+        
+        <div className="mt-4">
+          <input
+            type="text"
+            placeholder="Or type a custom activity/sport here..."
+            value={formData.sport}
+            onChange={(e) => {
+              handleInputChange('sport', e.target.value);
+              handleInputChange('exerciseType', 'custom');
+            }}
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-text-gray-900 ${
+              errors.sport ? 'border-red-300' : 'border-gray-300'
+            }`}
+          />
+        </div>
+        
+        {errors.exerciseType && <p className="mt-2 text-sm text-red-600">{errors.exerciseType}</p>}
+      </div>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Session Details</h2>
+        <p className="text-gray-600">Tell us about your workout intensity and duration</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+          <input
+            type="number"
+            placeholder="60"
+            value={formData.duration}
+            onChange={(e) => handleInputChange('duration', e.target.value)}
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900 ${
+              errors.duration ? 'border-red-300' : 'border-gray-300'
+            }`}
+          />
+          {errors.duration && <p className="mt-1 text-sm text-red-600">{errors.duration}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Distance (km)</label>
+          <input
+            type="number"
+            step="0.1"
+            placeholder="5.0"
+            value={formData.distance}
+            onChange={(e) => handleInputChange('distance', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+          <input
+            type="date"
+            value={formData.date}
+            onChange={(e) => handleInputChange('date', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Calories Burned</label>
+          <input
+            type="number"
+            placeholder="300"
+            value={formData.caloriesBurned}
+            onChange={(e) => handleInputChange('caloriesBurned', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-4">Intensity Level</label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {intensityLevels.map((level) => (
+            <button
+              key={level.id}
+              type="button"
+              onClick={() => handleInputChange('intensity', level.id)}
+              className={`p-3 border-2 rounded-lg text-center transition-all hover:shadow-md ${
+                formData.intensity === level.id
+                  ? `${level.color} border-current`
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="font-medium">{level.label}</div>
+            </button>
+          ))}
+        </div>
+        {errors.intensity && <p className="mt-2 text-sm text-red-600">{errors.intensity}</p>}
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Performance Metrics</h2>
+        <p className="text-gray-600">Optional: Add heart rate and other performance data</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Average Heart Rate (bpm)</label>
+          <input
+            type="number"
+            placeholder="140"
+            value={formData.heartRateAvg}
+            onChange={(e) => handleInputChange('heartRateAvg', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Heart Rate (bpm)</label>
+          <input
+            type="number"
+            placeholder="180"
+            value={formData.heartRateMax}
+            onChange={(e) => handleInputChange('heartRateMax', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Session Notes</label>
+        <textarea
+          rows={4}
+          placeholder="How did you feel? Any observations about your performance?"
+          value={formData.notes}
+          onChange={(e) => handleInputChange('notes', e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+        />
+      </div>
+    </div>
+  );
+
+  const renderStep4 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Review & Submit</h2>
+        <p className="text-gray-600">Please review your training session details</p>
+      </div>
+
+      <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Session Info</h4>
+            <p><span className="text-gray-600">Sport:</span> <span className="font-medium">{formData.sport}</span></p>
+            <p><span className="text-gray-600">Activity:</span> <span className="font-medium">{exerciseTypes.find(t => t.id === formData.exerciseType)?.label}</span></p>
+            <p><span className="text-gray-600">Date:</span> <span className="font-medium">{formatDate(formData.date)}</span></p>
+            <p><span className="text-gray-600">Intensity:</span> <span className="font-medium capitalize">{formData.intensity}</span></p>
+          </div>
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Performance</h4>
+            <p><span className="text-gray-600">Duration:</span> <span className="font-medium">{formData.duration} min</span></p>
+            {formData.distance && <p><span className="text-gray-600">Distance:</span> <span className="font-medium">{formData.distance} km</span></p>}
+            {formData.caloriesBurned && <p><span className="text-gray-600">Calories:</span> <span className="font-medium">{formData.caloriesBurned} kcal</span></p>}
+            {formData.heartRateAvg && <p><span className="text-gray-600">Avg HR:</span> <span className="font-medium">{formData.heartRateAvg} bpm</span></p>}
+          </div>
+        </div>
+        {formData.notes && (
+          <div>
+            <h4 className="font-medium text-gray-900 mb-2">Notes</h4>
+            <p className="text-gray-700 bg-white p-3 rounded border">{formData.notes}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1: return renderStep1();
+      case 2: return renderStep2();
+      case 3: return renderStep3();
+      case 4: return renderStep4();
+      default: return renderStep1();
     }
   };
 
   return (
-  <div
-    className="max-w-5xl mx-auto rounded-xl shadow-md p-6"
-    style={{ backgroundColor: COLORS.seasalt }}
-  >
-    {/* Header */}
-    <div className="mb-6">
-      <h2 className="text-2xl font-bold" style={{ color: COLORS.oxfordBlue }}>
-        Log Training Session
-      </h2>
-      <p className="text-sm mt-1" style={{ color: COLORS.marianBlue }}>
-        Record your workout details and performance metrics
-      </p>
-    </div>
-
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Grid wrapper to align sections tighter */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Basic Info */}
-        <div className="p-4 border rounded-lg bg-white">
-          <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
-            Basic Info
-          </h3>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
-                Date
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-md focus:ring-1"
-                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
-              />
+    <div className="min-h-screen bg-gray-50">
+      {/* Form Container */}
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          {/* Progress Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-gray-900">Log Training Session</h1>
+              <span className="text-sm text-gray-500">Step {currentStep} of 4</span>
             </div>
-
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
-                Duration (minutes) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="duration"
-                value={form.duration}
-                onChange={handleChange}
-                placeholder="45"
-                min="1"
-                required
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500"
-                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
-                Distance (km)
-              </label>
-              <input
-                type="number"
-                name="distance"
-                value={form.distance}
-                onChange={handleChange}
-                placeholder="5.2"
-                step="0.1"
-                min="0"
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500"
-                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
-              />
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-gray-900 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(currentStep / 4) * 100}%` }}
+              ></div>
             </div>
           </div>
-        </div>
 
-        {/* Activity Details */}
-        <div className="p-4 border rounded-lg bg-white">
-          <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
-            Activity
-          </h3>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
-                Sport <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="sport"
-                value={form.sport}
-                onChange={handleChange}
-                placeholder="Football, Basketball, etc."
-                required
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500"
-                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
-                Exercise Type
-              </label>
-              <select
-                name="exerciseType"
-                value={form.exerciseType}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border rounded-md focus:ring-1"
-                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
-              >
-                {exerciseTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Step Content */}
+          <div className="mb-8">
+            {renderCurrentStep()}
           </div>
-        </div>
-      </div>
 
-      {/* Intensity */}
-      <div className="p-4 border rounded-lg bg-white">
-        <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
-          Intensity
-        </h3>
-        <div className="grid grid-cols-4 gap-2">
-          {intensityLevels.map((level) => (
+          {/* Navigation Buttons */}
+          <div className="flex items-center justify-between pt-6 border-t">
             <button
-              key={level.value}
-              type="button"
-              onClick={() => setForm((prev) => ({ ...prev, intensity: level.value as any }))}
-              className="p-2 rounded-md border text-xs font-medium transition-all"
-              style={{
-                borderColor: form.intensity === level.value ? COLORS.marianBlue : COLORS.oxfordBlue,
-                backgroundColor: form.intensity === level.value ? COLORS.powderBlue : COLORS.seasalt,
-                color: COLORS.oxfordBlue,
-              }}
+              onClick={handlePrevStep}
+              disabled={currentStep === 1}
+              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                currentStep === 1
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-700 hover:bg-gray-100 border border-gray-300'
+              }`}
             >
-              {level.label}
+              Previous
             </button>
-          ))}
-        </div>
-      </div>
 
-      {/* Performance */}
-      <div className="p-4 border rounded-lg bg-white">
-        <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
-          Performance
-        </h3>
-        <div className="grid md:grid-cols-3 gap-4">
-          {[
-            { label: "Calories Burned", name: "caloriesBurned", placeholder: "250" },
-            { label: "Avg Heart Rate (bpm)", name: "heartRateAvg", placeholder: "140" },
-            { label: "Max Heart Rate (bpm)", name: "heartRateMax", placeholder: "170" },
-          ].map((metric) => (
-            <div key={metric.name}>
-              <label className="block text-xs font-medium mb-1" style={{ color: COLORS.marianBlue }}>
-                {metric.label}
-              </label>
-              <input
-                type="number"
-                name={metric.name}
-                value={form[metric.name as keyof typeof form]}
-                onChange={handleChange}
-                placeholder={metric.placeholder}
-                className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500"
-                style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Notes */}
-      <div className="p-4 border rounded-lg bg-white">
-        <h3 className="text-lg font-semibold mb-3" style={{ color: COLORS.oxfordBlue }}>
-          Notes
-        </h3>
-        <textarea
-          name="notes"
-          value={form.notes}
-          onChange={handleChange}
-          rows={3}
-          placeholder="How did you feel? Any observations..."
-          className="w-full px-3 py-2 border rounded-md focus:ring-1 placeholder:text-gray-500 resize-none"
-          style={{ borderColor: COLORS.oxfordBlue, color: COLORS.oxfordBlue }}
-        />
-      </div>
-
-      {/* Submit */}
-      <div className="cursor : pointer flex items-center justify-between pt-4">
-        <div className="flex items-center space-x-4">
-          {success && (
-            <div className="text-green-600">Training session logged successfully!</div>
-          )}
-          {error && <div className="text-red-600">{error}</div>}
-        </div>
+            {currentStep < 4 ? (
               <button
-                type="submit"
-                disabled={loading}
-                className="px-8 py-4 rounded-xl  cursor : pointer font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: COLORS.oxfordBlue, // 🔹 solid color instead of gradient
-                  color: COLORS.seasalt
-                }}
+                onClick={handleNextStep}
+                className="px-6 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
               >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Saving...
-                  </div>
-                  ) : (
-                    "Log Session"
-                      )}
+                Next Step
               </button>
-            </div>
-    </form>
-  </div>
-);
-}
+            ) : (
+              <button
+                onClick={handleSubmit}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              >
+                Log Session
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TrainingSessionForm;
