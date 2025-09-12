@@ -1,434 +1,307 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { scholarshipService, ScholarshipOpportunity, ScholarshipApplication, AthleteEligibilityCheck } from '@/services/scholarshipService';
-import { seedScholarships, checkExistingOpportunities } from '@/services/seedScholarships';
-import { useAuth } from '@/hooks/useAuth';
-import OpportunityCard from './OpportunityCard';
-import FairnessExplanationCard from './FairnessExplanationCard';
+import { useState, useEffect } from "react";
+import { scholarshipService, ScholarshipOpportunity, ScholarshipApplication } from "@/services/scholarshipService";
+import { refreshScholarshipsWithAI } from "@/services/scholarshipAIService";
+import OpportunityCard from "./OpportunityCard";
+import { useAuth } from "@/hooks/useAuth";
 
-const ScholarshipDashboard: React.FC = () => {
+export default function ScholarshipDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'opportunities' | 'applications' | 'analytics'>('opportunities');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'scholarship' | 'government_scheme' | 'sponsorship'>('all');
+  const [activeTab, setActiveTab] = useState("browse");
   const [opportunities, setOpportunities] = useState<ScholarshipOpportunity[]>([]);
   const [applications, setApplications] = useState<(ScholarshipApplication & { opportunity: ScholarshipOpportunity })[]>([]);
-  const [eligibilityChecks, setEligibilityChecks] = useState<{ [key: string]: AthleteEligibilityCheck }>({});
-  const [appliedOpportunities, setAppliedOpportunities] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [applying, setApplying] = useState<string | null>(null);
-  const [showFairnessCard, setShowFairnessCard] = useState<{
-    show: boolean;
-    application?: ScholarshipApplication & { opportunity: ScholarshipOpportunity };
-  }>({ show: false });
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Load data on component mount
   useEffect(() => {
-    if (user) {
-      loadData();
+    loadOpportunities();
+    if (user?.uid) {
+      loadApplications();
     }
-  }, [user, activeFilter]);
+  }, [user]);
 
-  const loadData = async () => {
-    if (!user) return;
+  const loadOpportunities = async () => {
+    try {
+      setIsLoading(true);
+      const data = await scholarshipService.getActiveOpportunities();
+      
+      // If no opportunities exist, create sample data
+      if (data.length === 0) {
+        await scholarshipService.createSampleOpportunities();
+        const newData = await scholarshipService.getActiveOpportunities();
+        setOpportunities(newData);
+      } else {
+        setOpportunities(data);
+      }
+    } catch (error) {
+      console.error("Error loading opportunities:", error);
+      setOpportunities([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadApplications = async () => {
+    if (!user?.uid) return;
     
     try {
-      setLoading(true);
-      setError(null);
-
-      // Load opportunities based on filter
-      let opportunitiesData: ScholarshipOpportunity[];
-      if (activeFilter === 'all') {
-        opportunitiesData = await scholarshipService.getActiveOpportunities();
-      } else {
-        opportunitiesData = await scholarshipService.getOpportunitiesByType(activeFilter);
-      }
-      
-      // If no opportunities exist, seed some sample data
-      if (opportunitiesData.length === 0) {
-        console.log('No opportunities found, creating sample data...');
-        const hasExisting = await checkExistingOpportunities();
-        if (!hasExisting) {
-          await seedScholarships();
-          // Reload opportunities after seeding
-          if (activeFilter === 'all') {
-            opportunitiesData = await scholarshipService.getActiveOpportunities();
-          } else {
-            opportunitiesData = await scholarshipService.getOpportunitiesByType(activeFilter);
-          }
-        }
-      }
-      
-      setOpportunities(opportunitiesData);
-
-      // Load athlete's applications
-      const applicationsData = await scholarshipService.getAthleteApplications(user.uid);
-      setApplications(applicationsData);
-
-      // Track applied opportunities
-      const appliedIds = new Set(applicationsData.map(app => app.opportunityId));
-      setAppliedOpportunities(appliedIds);
-
-      // Check eligibility for each opportunity
-      const eligibilityPromises = opportunitiesData.map(async (opportunity) => {
-        try {
-          const check = await scholarshipService.checkEligibility(opportunity.id, user.uid);
-          return { opportunityId: opportunity.id, check };
-        } catch (error) {
-          console.error(`Error checking eligibility for ${opportunity.id}:`, error);
-          return null;
-        }
-      });
-
-      const eligibilityResults = await Promise.all(eligibilityPromises);
-      const eligibilityMap: { [key: string]: AthleteEligibilityCheck } = {};
-      eligibilityResults.forEach(result => {
-        if (result) {
-          eligibilityMap[result.opportunityId] = result.check;
-        }
-      });
-      setEligibilityChecks(eligibilityMap);
-
+      const apps = await scholarshipService.getAthleteApplications(user.uid);
+      setApplications(apps);
     } catch (error) {
-      console.error('Error loading scholarship data:', error);
-      setError('Failed to load scholarship data. Please try again.');
-    } finally {
-      setLoading(false);
+      console.error("Error loading applications:", error);
+      setApplications([]);
     }
   };
 
-  const handleApply = async (opportunityId: string) => {
-    if (!user) return;
+  const handleApplyClick = async (opportunityId: string) => {
+    if (!user?.uid) {
+      alert("Please log in to apply for scholarships");
+      return;
+    }
 
     try {
-      setApplying(opportunityId);
       await scholarshipService.submitApplication(opportunityId, user.uid);
-      
-      // Reload data to reflect the new application
-      await loadData();
-      
-      // Show success message (you could add a toast notification here)
-      alert('Application submitted successfully!');
+      loadApplications(); // Refresh applications
+      loadOpportunities(); // Refresh opportunities to update counts
+      alert("Application submitted successfully!");
     } catch (error: any) {
-      console.error('Error submitting application:', error);
-      alert(error.message || 'Failed to submit application. Please try again.');
-    } finally {
-      setApplying(null);
+      alert(error.message || "Failed to submit application");
     }
   };
 
-  const getTabIcon = (tab: string) => {
-    switch (tab) {
-      case 'opportunities': return '🔍';
-      case 'applications': return '📋';
-      case 'analytics': return '📊';
-      default: return '📄';
-    }
-  };
-
-  const getFilterIcon = (filter: string) => {
-    switch (filter) {
-      case 'all': return '📚';
-      case 'scholarship': return '🎓';
-      case 'government_scheme': return '🏛️';
-      case 'sponsorship': return '🤝';
-      default: return '📄';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'under_review': return 'bg-blue-100 text-blue-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'waitlisted': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const createSampleData = async () => {
+  const handleRefreshAI = async () => {
     try {
-      await scholarshipService.createSampleOpportunities();
-      await loadData();
-      alert('Sample data created successfully!');
+      setIsRefreshing(true);
+      await refreshScholarshipsWithAI();
+      loadOpportunities(); // Refresh after AI update
     } catch (error) {
-      console.error('Error creating sample data:', error);
-      alert('Failed to create sample data.');
+      console.error("Error refreshing AI scholarships:", error);
+      alert("Failed to refresh scholarships");
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-slate-800 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading scholarships...</p>
-        </div>
-      </div>
-    );
-  }
+  const getApplicationStatus = (opportunityId: string) => {
+    return applications.find(app => app.opportunityId === opportunityId);
+  };
+
+  const totalOpportunities = opportunities.length;
+  const totalApplications = applications.length;
+  const pendingApplications = applications.filter(app => 
+    app.status === 'pending' || app.status === 'under_review'
+  ).length;
 
   return (
-    <div className="min-h-screen bg-gray-100" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Scholarships & Opportunities</h1>
-            <p className="text-gray-600">Find scholarships, government schemes, and sponsorship opportunities tailored for you</p>
+    <div className="space-y-6" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {/* Header with Analytics */}
+      <div className="bg-gradient-to-r from-[#182031] to-[#020817] rounded-xl shadow-md p-6 text-white">
+        <h2 className="text-2xl font-bold mb-4">Scholarship Opportunities</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center">
+            <p className="text-3xl font-bold">{totalOpportunities}</p>
+            <p className="text-sm opacity-80">Available Opportunities</p>
           </div>
-
-          {/* Tabs */}
-          <div className="flex space-x-8 border-b border-gray-200">
-            {[
-              { id: 'opportunities', label: 'Browse Opportunities' },
-              { id: 'applications', label: 'My Applications' },
-              { id: 'analytics', label: 'Analytics' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-slate-800 text-slate-800'
-                    : 'border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300'
-                }`}
-              >
-                <span className="mr-2">{getTabIcon(tab.id)}</span>
-                {tab.label}
-              </button>
-            ))}
+          <div className="text-center">
+            <p className="text-3xl font-bold">{totalApplications}</p>
+            <p className="text-sm opacity-80">Your Applications</p>
+          </div>
+          <div className="text-center">
+            <p className="text-3xl font-bold">{pendingApplications}</p>
+            <p className="text-sm opacity-80">Pending Reviews</p>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">{error}</p>
-            <button
-              onClick={loadData}
-              className="mt-2 text-red-600 hover:text-red-800 text-sm font-medium"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-xl shadow-md p-2 border border-[#E0E4E9]">
+        <div className="flex space-x-1">
+          <button
+            onClick={() => setActiveTab("browse")}
+            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
+              activeTab === "browse"
+                ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+          >
+            Browse Opportunities
+          </button>
+          <button
+            onClick={() => setActiveTab("ai-discover")}
+            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
+              activeTab === "ai-discover"
+                ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+          >
+            AI Discovery
+          </button>
+          <button
+            onClick={() => setActiveTab("analytics")}
+            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
+              activeTab === "analytics"
+                ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+          >
+            My Applications
+          </button>
+        </div>
+      </div>
 
-        {activeTab === 'opportunities' && (
-          <>
-            {/* Filters */}
-            <div className="flex flex-wrap items-center justify-between mb-6">
-              <div className="flex space-x-2">
-                {[
-                  { id: 'all', label: 'All Opportunities' },
-                  { id: 'scholarship', label: 'Scholarships' },
-                  { id: 'government_scheme', label: 'Government Schemes' },
-                  { id: 'sponsorship', label: 'Sponsorships' }
-                ].map((filter) => (
-                  <button
-                    key={filter.id}
-                    onClick={() => setActiveFilter(filter.id as any)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeFilter === filter.id
-                        ? 'bg-slate-800 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
-                    }`}
-                  >
-                    <span className="mr-2">{getFilterIcon(filter.id)}</span>
-                    {filter.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Sample Data Button (for testing) */}
-              {opportunities.length === 0 && (
-                <button
-                  onClick={createSampleData}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-                >
-                  Create Sample Data
-                </button>
-              )}
-            </div>
-
-            {/* Opportunities Grid */}
-            {opportunities.length === 0 ? (
+      {/* Tab Content */}
+      <div className="min-h-[500px]">
+        {activeTab === "browse" && (
+          <div className="space-y-6">
+            {isLoading ? (
               <div className="text-center py-12">
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">No Opportunities Found</h3>
-                <p className="text-gray-600 mb-4">
-                  {activeFilter === 'all' 
-                    ? 'No scholarship opportunities are currently available.' 
-                    : `No ${activeFilter.replace('_', ' ')} opportunities are currently available.`
-                  }
-                </p>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#182031]"></div>
+                <p className="mt-2 text-gray-600">Loading opportunities...</p>
+              </div>
+            ) : opportunities.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500 mb-4">No opportunities available</p>
                 <button
-                  onClick={createSampleData}
-                  className="px-6 py-3 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700"
+                  onClick={loadOpportunities}
+                  className="px-4 py-2 bg-[#182031] text-white rounded-lg hover:bg-[#020817] transition-colors"
                 >
-                  Load Sample Opportunities
+                  Refresh
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {opportunities.map((opportunity) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {opportunities.map((opportunity) => {
+                  const hasApplied = getApplicationStatus(opportunity.id);
+                  return (
+                    <OpportunityCard
+                      key={opportunity.id}
+                      opportunity={opportunity}
+                      onApply={handleApplyClick}
+                      hasApplied={!!hasApplied}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "ai-discover" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
+              <h3 className="text-lg font-semibold mb-4">AI-Powered Opportunity Discovery</h3>
+              <p className="text-gray-600 mb-4">
+                Use AI to discover new scholarship opportunities tailored to your profile and sport.
+              </p>
+              <button
+                onClick={handleRefreshAI}
+                disabled={isRefreshing}
+                className="px-6 py-3 bg-gradient-to-r from-[#182031] to-[#020817] text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-50"
+              >
+                {isRefreshing ? (
+                  <>
+                    <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Discovering...
+                  </>
+                ) : (
+                  "Discover New Opportunities"
+                )}
+              </button>
+            </div>
+            
+            {/* Show opportunities here as well after AI refresh */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {opportunities.filter(opp => 
+                opp.provider.type === 'government' || 
+                opp.title.toLowerCase().includes('ai') ||
+                opp.description.toLowerCase().includes('talent')
+              ).map((opportunity) => {
+                const hasApplied = getApplicationStatus(opportunity.id);
+                return (
                   <OpportunityCard
                     key={opportunity.id}
                     opportunity={opportunity}
-                    onApply={handleApply}
-                    eligibilityCheck={eligibilityChecks[opportunity.id]}
-                    hasApplied={appliedOpportunities.has(opportunity.id)}
-                    loading={applying === opportunity.id}
+                    onApply={handleApplyClick}
+                    hasApplied={!!hasApplied}
                   />
-                ))}
-              </div>
-            )}
-          </>
+                );
+              })}
+            </div>
+          </div>
         )}
 
-        {activeTab === 'applications' && (
-          <>
-            {applications.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">📋</div>
-                <h3 className="text-xl font-semibold text-slate-800 mb-2">No Applications Yet</h3>
-                <p className="text-gray-600 mb-4">You haven't applied for any opportunities yet.</p>
-                <button
-                  onClick={() => setActiveTab('opportunities')}
-                  className="px-6 py-3 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700"
-                >
-                  Browse Opportunities
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {applications.map((application) => (
-                  <div key={application.id} className="bg-white rounded-lg shadow-md p-6">
-                    <div className="flex items-start justify-between mb-4">
+        {activeTab === "analytics" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
+              <h3 className="text-lg font-semibold mb-4">Application Status</h3>
+              <div className="space-y-3">
+                {applications.length === 0 ? (
+                  <p className="text-gray-500">No applications yet</p>
+                ) : (
+                  applications.map((app) => (
+                    <div key={app.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <h3 className="text-lg font-bold text-slate-800">{application.opportunity.title}</h3>
-                        <p className="text-gray-600 text-sm">{application.opportunity.provider.name}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
-                          {application.status.replace('_', ' ').toUpperCase()}
-                        </span>
-                        <p className="text-gray-500 text-xs mt-1">
-                          Applied: {application.appliedAt.toDate().toLocaleDateString()}
+                        <p className="font-medium">{app.opportunity?.title || 'Unknown Opportunity'}</p>
+                        <p className="text-sm text-gray-600">
+                          Applied: {app.appliedAt?.toDate?.()?.toLocaleDateString() || 'Recently'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Fairness Score: {app.fairnessScore}
                         </p>
                       </div>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        app.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        app.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        app.status === 'waitlisted' ? 'bg-orange-100 text-orange-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {app.status}
+                      </span>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Benefit Amount</p>
-                        <p className="font-bold text-slate-800">
-                          ₹{new Intl.NumberFormat('en-IN').format(application.opportunity.benefits.amount)}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Fairness Score</p>
-                        <p className="font-bold text-slate-800">{application.fairnessScore}</p>
-                      </div>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Priority Ranking</p>
-                        <p className="font-bold text-slate-800">#{application.fairnessBreakdown.priorityRanking || 'TBD'}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => setShowFairnessCard({ show: true, application })}
-                        className="px-4 py-2 bg-blue-100 text-blue-800 rounded-md text-sm font-medium hover:bg-blue-200"
-                      >
-                        🏅 View Fairness Breakdown
-                      </button>
-                      <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-50">
-                        View Details
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === 'analytics' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm">Total Applications</p>
-                  <p className="text-2xl font-bold text-slate-800">{applications.length}</p>
-                </div>
-                <div className="bg-blue-100 p-3 rounded-lg">
-                  <span className="text-2xl">📋</span>
-                </div>
+                  ))
+                )}
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm">Approved</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {applications.filter(app => app.status === 'approved').length}
-                  </p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-lg">
-                  <span className="text-2xl">✅</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm">Pending Review</p>
-                  <p className="text-2xl font-bold text-yellow-600">
-                    {applications.filter(app => ['pending', 'under_review'].includes(app.status)).length}
-                  </p>
-                </div>
-                <div className="bg-yellow-100 p-3 rounded-lg">
-                  <span className="text-2xl">⏳</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-md">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-600 text-sm">Average Score</p>
-                  <p className="text-2xl font-bold text-purple-600">
+            <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
+              <h3 className="text-lg font-semibold mb-4">Quick Stats</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span>Success Rate</span>
+                  <span className="font-semibold">
                     {applications.length > 0 
-                      ? Math.round(applications.reduce((sum, app) => sum + app.fairnessScore, 0) / applications.length)
-                      : 0
+                      ? `${Math.round((applications.filter(app => app.status === 'approved').length / applications.length) * 100)}%`
+                      : '0%'
                     }
-                  </p>
+                  </span>
                 </div>
-                <div className="bg-purple-100 p-3 rounded-lg">
-                  <span className="text-2xl">🏆</span>
+                <div className="flex justify-between">
+                  <span>Avg Response Time</span>
+                  <span className="font-semibold">2-4 weeks</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Categories Applied</span>
+                  <span className="font-semibold">
+                    {new Set(applications.map(app => 
+                      app.opportunity?.category
+                    ).filter(Boolean)).size}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Avg Fairness Score</span>
+                  <span className="font-semibold">
+                    {applications.length > 0
+                      ? Math.round(applications.reduce((sum, app) => sum + app.fairnessScore, 0) / applications.length)
+                      : 'N/A'
+                    }
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         )}
       </div>
-
-      {/* Fairness Explanation Modal */}
-      {showFairnessCard.show && showFairnessCard.application && (
-        <FairnessExplanationCard
-          fairnessBreakdown={showFairnessCard.application.fairnessBreakdown}
-          athleteName={user?.displayName || user?.email || 'Athlete'}
-          opportunityTitle={showFairnessCard.application.opportunity.title}
-          onClose={() => setShowFairnessCard({ show: false })}
-        />
-      )}
     </div>
   );
-};
-
-export default ScholarshipDashboard;
+}

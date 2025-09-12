@@ -454,42 +454,20 @@ function CurrentPlanTab({ mealPlan, onGenerateNew, isGenerating }: any) {
         </div>
       </div>
 
-      {/* DEBUG SECTION - REMOVE AFTER FIXING */}
-      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-6">
-        <h4 className="font-bold text-yellow-800 mb-2">🐛 Debug Info</h4>
-        <div className="text-sm text-yellow-700 space-y-1">
-          <div><strong>Daily plans count:</strong> {mealPlan.dailyPlans?.length || 0}</div>
-          {mealPlan.dailyPlans?.slice(0, 1).map((day: any, index: number) => (
-            <div key={index} className="space-y-1">
-              <div><strong>Day {index} date:</strong> {new Date(day.date).toLocaleDateString()}</div>
-              <div><strong>Day {index} meals keys:</strong> {Object.keys(day.meals || {}).join(', ')}</div>
-              <div><strong>Day {index} breakfast:</strong> {JSON.stringify(day.meals?.breakfast)}</div>
-              <div><strong>Day {index} lunch:</strong> {JSON.stringify(day.meals?.lunch)}</div>
-              <div><strong>Day {index} dinner:</strong> {JSON.stringify(day.meals?.dinner)}</div>
-            </div>
-          ))}
+      {/* Meal Plan Overview */}
+      <div className="bg-green-50 p-4 rounded-lg border border-green-200 mb-6">
+        <h4 className="font-bold text-green-800 mb-2">� Plan Overview</h4>
+        <div className="text-sm text-green-700 space-y-1">
+          <div><strong>Generated:</strong> {new Date(mealPlan.createdAt).toLocaleDateString()}</div>
+          <div><strong>Weekly plan with:</strong> {mealPlan.dailyPlans?.length || 0} days</div>
+          <div><strong>Estimated cost:</strong> ₹{mealPlan.totalWeeklyCost || 'Calculating...'}</div>
         </div>
       </div>
 
       <div className="space-y-4">
         <h4 className="text-lg font-semibold text-gray-900">📊 Daily Breakdown</h4>
         
-        {/* TEMPORARY DEBUG SECTION */}
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <h5 className="font-bold text-red-800 mb-2">🔍 DEBUG - Raw Data</h5>
-          <div className="text-xs text-red-700 space-y-2">
-            <div><strong>Meal Plan ID:</strong> {mealPlan.id}</div>
-            <div><strong>Daily Plans Count:</strong> {mealPlan.dailyPlans?.length || 0}</div>
-            {mealPlan.dailyPlans?.length > 0 && (
-              <div>
-                <strong>First Day Data:</strong>
-                <pre className="bg-red-100 p-2 rounded mt-1 text-xs overflow-auto max-h-32">
-                  {JSON.stringify(mealPlan.dailyPlans[0], null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        </div>
+
         
         {mealPlan.dailyPlans.slice(0, 3).map((day: any, index: number) => (
           <div key={index} className="border border-gray-200 rounded-lg p-4">
@@ -503,28 +481,47 @@ function CurrentPlanTab({ mealPlan, onGenerateNew, isGenerating }: any) {
             </div>
             <div className="grid grid-cols-3 gap-3 text-sm">
               {Object.entries(day.meals).slice(0, 3).map(([mealType, meals]: [string, any]) => {
-                console.log(`Rendering ${mealType}:`, meals, 'isArray:', Array.isArray(meals));
                 return (
                   <div key={mealType} className="bg-gray-50 p-2 rounded">
                     <div className="font-medium text-gray-700 mb-1">
                       {getMealIcon(mealType)} {mealType.replace('_', ' ')}
                     </div>
-                    <div className="text-xs text-blue-600 mb-1">
-                      Debug: {Array.isArray(meals) ? `Array(${meals.length})` : typeof meals}
-                    </div>
-                    {Array.isArray(meals) && meals.length > 0 ? meals.slice(0, 2).map((meal: any, idx: number) => {
-                      console.log(`Rendering meal ${idx}:`, meal);
-                      // Handle both FastAPI format and our internal format
-                      const mealName = meal.name || meal.foodItem || 'Unknown Meal';
-                      const mealCalories = meal.totalCalories || meal.calories || meal.cal || 0;
-                      return (
-                        <div key={idx} className="text-xs text-gray-600">
-                          {mealName} ({mealCalories} cal)
-                        </div>
-                      );
+                    {Array.isArray(meals) && meals.length > 0 ? meals.slice(0, 1).map((meal: any, idx: number) => {
+                      // Handle nested structure with items array
+                      if (meal.items && Array.isArray(meal.items)) {
+                        return (
+                          <div key={idx} className="space-y-1">
+                            <div className="text-xs font-medium text-gray-600">
+                              {meal.name} {meal.time && `(${meal.time})`}
+                            </div>
+                            {meal.items.slice(0, 2).map((item: any, itemIdx: number) => (
+                              <div key={itemIdx} className="text-xs text-gray-600">
+                                {item.name} ({item.calories || 0} cal)
+                              </div>
+                            ))}
+                            {meal.items.length > 2 && (
+                              <div className="text-xs text-blue-600">
+                                +{meal.items.length - 2} more items
+                              </div>
+                            )}
+                            <div className="text-xs text-green-600 font-medium">
+                              Total: {meal.totalCalories || 0} cal
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        // Fallback for simple meal structure
+                        const mealName = meal.name || meal.foodItem || 'Unknown Meal';
+                        const mealCalories = meal.totalCalories || meal.calories || meal.cal || 0;
+                        return (
+                          <div key={idx} className="text-xs text-gray-600">
+                            {mealName} ({mealCalories} cal)
+                          </div>
+                        );
+                      }
                     }) : (
-                      <div className="text-xs text-gray-500">
-                        {Array.isArray(meals) ? `Empty array (${meals.length} items)` : 'No meals available'}
+                      <div className="text-xs text-gray-500 italic">
+                        No meals planned
                       </div>
                     )}
                   </div>
@@ -580,19 +577,44 @@ function MealCalendarTab({ mealPlan }: any) {
                     </h5>
                     <div className="space-y-2">
                       {mealArray.length > 0 ? (
-                        mealArray.map((meal: any, idx: number) => (
-                          <div key={idx} className="text-sm">
-                            <div className="font-medium text-gray-800">{meal.name || 'Unnamed Meal'}</div>
-                            <div className="text-xs text-gray-600">
-                              {meal.quantity || 'N/A'} | {meal.totalCalories || meal.calories || 0} cal | {meal.totalProtein || meal.protein || 0}g protein
-                            </div>
-                            {meal.preparationTime && (
-                              <div className="text-xs text-blue-600">
-                                ⏱️ {meal.preparationTime} min prep
+                        mealArray.map((meal: any, idx: number) => {
+                          // Handle nested structure - each meal object may have items array
+                          if (meal.items && Array.isArray(meal.items)) {
+                            return (
+                              <div key={idx} className="space-y-1">
+                                <div className="font-medium text-gray-800 text-xs mb-1">
+                                  {meal.name} {meal.time && `(${meal.time})`}
+                                </div>
+                                {meal.items.map((item: any, itemIdx: number) => (
+                                  <div key={itemIdx} className="text-sm border-l-2 border-blue-200 pl-2">
+                                    <div className="font-medium text-gray-800">{item.name}</div>
+                                    <div className="text-xs text-gray-600">
+                                      {item.quantity} | {item.calories || 0} cal | {item.protein || 0}g protein
+                                    </div>
+                                  </div>
+                                ))}
+                                <div className="text-xs text-green-600 font-medium">
+                                  Total: {meal.totalCalories || 0} cal | {meal.totalProtein || 0}g protein
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        ))
+                            );
+                          } else {
+                            // Fallback for simple meal structure
+                            return (
+                              <div key={idx} className="text-sm">
+                                <div className="font-medium text-gray-800">{meal.name || 'Unnamed Meal'}</div>
+                                <div className="text-xs text-gray-600">
+                                  {meal.quantity || 'N/A'} | {meal.totalCalories || meal.calories || 0} cal | {meal.totalProtein || meal.protein || 0}g protein
+                                </div>
+                                {meal.preparationTime && (
+                                  <div className="text-xs text-blue-600">
+                                    ⏱️ {meal.preparationTime} min prep
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                        })
                       ) : (
                         <div className="text-sm text-gray-500 italic">No meals planned</div>
                       )}

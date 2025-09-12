@@ -22,6 +22,7 @@ import {
   calculateWeeklyStats, 
   calculateMonthlyStats 
 } from "@/services/performanceService";
+import ConsistencyCalendar from './ConsistencyCalendar';
 
 interface PerformanceAnalyticsProps {
   athleteId: string;
@@ -128,6 +129,9 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
 
   return (
     <div className="space-y-6">
+      {/* Consistency Calendar */}
+      <ConsistencyCalendar athleteId={athleteId} />
+      
       {/* Header Controls */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
