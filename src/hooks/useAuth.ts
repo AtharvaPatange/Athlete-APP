@@ -6,7 +6,9 @@ import {
   createUserWithEmailAndPassword, 
   signOut,
   User,
-  onAuthStateChanged
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
@@ -96,6 +98,49 @@ export const useAuth = () => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      console.log('Attempting to sign in with Google');
+      const provider = new GoogleAuthProvider();
+      // Add scopes if needed
+      provider.addScope('email');
+      provider.addScope('profile');
+      
+      const result = await signInWithPopup(auth, provider);
+      console.log('Google sign in successful:', result.user.uid);
+      return { user: result.user, error: null };
+    } catch (error: any) {
+      console.error('Google sign in error:', error);
+      let errorMessage = error.message;
+      
+      // Handle specific Google auth errors
+      switch (error.code) {
+        case 'auth/popup-closed-by-user':
+          errorMessage = 'Sign-in cancelled. Please try again.';
+          break;
+        case 'auth/popup-blocked':
+          errorMessage = 'Popup was blocked. Please allow popups for this site and try again.';
+          break;
+        case 'auth/cancelled-popup-request':
+          errorMessage = 'Another sign-in is already in progress.';
+          break;
+        case 'auth/account-exists-with-different-credential':
+          errorMessage = 'An account already exists with the same email. Please sign in using your email and password.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection.';
+          break;
+        case 'auth/configuration-not-found':
+          errorMessage = 'Google sign-in is not properly configured.';
+          break;
+        default:
+          errorMessage = error.message || 'An error occurred during Google sign in.';
+      }
+      
+      return { user: null, error: errorMessage };
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -110,6 +155,7 @@ export const useAuth = () => {
     loading,
     signIn,
     signUp,
+    signInWithGoogle,
     logout
   };
 };
