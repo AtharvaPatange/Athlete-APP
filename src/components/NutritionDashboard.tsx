@@ -4,6 +4,7 @@ import {
   getNutritionProfile,
   getCurrentWeekMealPlan,
   generateWeeklyMealPlan,
+  getAllMealPlansForAthlete,
   type NutritionProfile,
   type WeeklyMealPlan,
   type DietaryPreference,
@@ -68,10 +69,16 @@ export default function NutritionDashboard({ athleteId, sport, userProfile }: Nu
   const loadNutritionData = async () => {
     setLoading(true);
     try {
+      // Add debug call to see all meal plans
+      console.log('Loading nutrition data for athlete:', athleteId);
+      
       const [profileResult, planResult] = await Promise.all([
         getNutritionProfile(athleteId),
         getCurrentWeekMealPlan(athleteId)
       ]);
+
+      console.log('Profile result:', profileResult);
+      console.log('Plan result:', planResult);
 
       if (profileResult.success) {
         setNutritionProfile(profileResult.profile);
@@ -82,8 +89,8 @@ export default function NutritionDashboard({ athleteId, sport, userProfile }: Nu
       }
 
       if (planResult.success && planResult.plan) {
-        console.log('Loaded meal plan:', planResult.plan);
-        console.log('Daily plans:', planResult.plan.dailyPlans);
+        console.log('✅ Found existing meal plan:', planResult.plan);
+        console.log('Daily plans count:', planResult.plan.dailyPlans.length);
         if (planResult.plan.dailyPlans.length > 0) {
           console.log('First day meals:', planResult.plan.dailyPlans[0].meals);
         }
@@ -92,10 +99,13 @@ export default function NutritionDashboard({ athleteId, sport, userProfile }: Nu
         if (profileResult.success && profileResult.profile) {
           setActiveTab('calendar');
         }
-      } else if (profileResult.success && profileResult.profile) {
-        console.log('No meal plan found or error:', planResult);
+      } else {
+        console.log('❌ No meal plan found for current week');
+        setCurrentMealPlan(null);
         // If we have profile but no plan, show the plan generation tab
-        setActiveTab('plan');
+        if (profileResult.success && profileResult.profile) {
+          setActiveTab('plan');
+        }
       }
     } catch (error) {
       console.error('Error loading nutrition data:', error);
@@ -119,18 +129,27 @@ export default function NutritionDashboard({ athleteId, sport, userProfile }: Nu
       console.log('Generated plan result:', newPlan);
       
       if (newPlan) {
-        console.log('Setting new plan to state...');
+        console.log('✅ Successfully generated new plan:', newPlan);
         setCurrentMealPlan(newPlan);
         setActiveTab('calendar');
-        // Refresh the current plan data to ensure persistence
+        
+        // Debug: Check all plans for this athlete
         setTimeout(async () => {
-          console.log('Refreshing plan data from Firestore...');
+          console.log('🔍 Debugging: Checking all meal plans for athlete...');
+          const allPlans = await getAllMealPlansForAthlete(athleteId);
+          console.log('All plans result:', allPlans);
+          
+          console.log('🔄 Refreshing current week plan from Firestore...');
           const planResult = await getCurrentWeekMealPlan(athleteId);
           console.log('Refresh result:', planResult);
+          
           if (planResult.success && planResult.plan) {
+            console.log('✅ Successfully refreshed plan from Firestore');
             setCurrentMealPlan(planResult.plan);
+          } else {
+            console.log('❌ Failed to refresh plan - plan might not be saved properly');
           }
-        }, 1000);
+        }, 2000);
       } else {
         console.error('generateWeeklyMealPlan returned null/undefined');
         alert('Failed to generate meal plan. Please try again.');

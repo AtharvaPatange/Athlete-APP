@@ -9,7 +9,11 @@ import {
   getRarityColor,
   BadgeRarity
 } from "@/services/gamificationService";
-import { Trophy, Zap, Target, CheckCircle, Award, Star, Calendar, Clock } from "lucide-react";
+import { updateAthleteQuestProgress, QuestProgressUpdate } from "@/services/questProgressService";
+import { autoSyncQuestProgress, getAthleteQuestStats } from "@/services/questManagementService";
+import { Trophy, Zap, Target, CheckCircle, Award, Star, Calendar, Clock, RefreshCw, Sparkles, TrendingUp, BarChart3 } from "lucide-react";
+import QuestCompletionAnimation from "./QuestCompletionAnimation";
+import { debugQuestProgress, manualQuestSync } from "@/utils/questDebugger";
 
 interface QuestDashboardProps {
   athleteId: string;
@@ -20,10 +24,44 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
   const [athleteQuests, setAthleteQuests] = useState<AthleteQuest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<'available' | 'active' | 'completed'>('available');
+  const [refreshing, setRefreshing] = useState(false);
+  const [recentUpdates, setRecentUpdates] = useState<QuestProgressUpdate[]>([]);
+  const [showUpdateAnimation, setShowUpdateAnimation] = useState(false);
+  const [completedQuest, setCompletedQuest] = useState<{
+    title: string;
+    points: number;
+    rarity: BadgeRarity;
+    icon: string;
+  } | null>(null);
+  const [showCompletionAnimation, setShowCompletionAnimation] = useState(false);
 
   useEffect(() => {
     fetchQuestData();
+    // Auto-sync quest progress on component mount
+    autoSyncQuests();
+    
+    // Expose test functions globally in development
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      (window as any).testQuestProgress = () => debugQuestProgress(athleteId);
+      (window as any).refreshQuests = () => handleRefreshProgress();
+      console.log('🎯 Quest test functions available:');
+      console.log('  - window.testQuestProgress() - Full debug');
+      console.log('  - window.refreshQuests() - Manual refresh');
+    }
   }, [athleteId]);
+
+  const autoSyncQuests = async () => {
+    try {
+      const syncResult = await autoSyncQuestProgress(athleteId);
+      if (syncResult.success && syncResult.hasUpdates) {
+        console.log('Auto-sync completed with updates');
+        // Refresh data if there were updates
+        await fetchQuestData();
+      }
+    } catch (error) {
+      console.error('Auto-sync failed:', error);
+    }
+  };
 
   const fetchQuestData = async () => {
     setLoading(true);
@@ -50,6 +88,65 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
     const result = await startQuest(athleteId, quest);
     if (result.success) {
       await fetchQuestData();
+      // Automatically refresh progress for the new quest
+      await handleRefreshProgress();
+    }
+  };
+
+  const handleRefreshProgress = async () => {
+    setRefreshing(true);
+    try {
+      const result = await updateAthleteQuestProgress(athleteId);
+      if (result.success && result.updates.length > 0) {
+        setRecentUpdates(result.updates);
+        setShowUpdateAnimation(true);
+        
+        // Check for completed quests and show completion animation
+        const completedUpdates = result.updates.filter(u => u.isCompleted);
+        if (completedUpdates.length > 0) {
+          // Find the quest details for the first completed quest
+          const firstCompleted = completedUpdates[0];
+          const completedAthleteQuest = athleteQuests.find(aq => aq.questId === firstCompleted.questId);
+          
+          if (completedAthleteQuest) {
+            setCompletedQuest({
+              title: completedAthleteQuest.quest.title,
+              points: firstCompleted.completionData?.pointsEarned || completedAthleteQuest.quest.points,
+              rarity: completedAthleteQuest.quest.rarity,
+              icon: completedAthleteQuest.quest.icon
+            });
+            setShowCompletionAnimation(true);
+          }
+        }
+        
+        // Hide update animation after 3 seconds
+        setTimeout(() => {
+          setShowUpdateAnimation(false);
+        }, 3000);
+        
+        // Refresh quest data to show updated progress
+        await fetchQuestData();
+      }
+    } catch (error) {
+      console.error('Error refreshing quest progress:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleCompletionAnimationEnd = () => {
+    setShowCompletionAnimation(false);
+    setCompletedQuest(null);
+  };
+
+  const handleDebugQuests = async () => {
+    console.log('🐛 Starting quest debug session...');
+    await debugQuestProgress(athleteId);
+    
+    // Also try manual sync
+    const syncResult = await manualQuestSync(athleteId);
+    if (syncResult.success && syncResult.updates.length > 0) {
+      await fetchQuestData(); // Refresh the UI
     }
   };
 
@@ -89,13 +186,62 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
       {/* Header */}
       <div className="bg-gradient-to-r from-[#0F172A] via-[#182031] to-[#303644] rounded-xl shadow-lg p-6 text-white relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <div className="relative z-10 flex items-center">
-          <div className="bg-white/10 backdrop-blur-sm p-3 rounded-lg mr-4 border border-white/20 group-hover:bg-white/15 transition-colors duration-300">
-            <Target className="w-8 h-8 text-white" />
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="bg-white/10 backdrop-blur-sm p-3 rounded-lg mr-4 border border-white/20 group-hover:bg-white/15 transition-colors duration-300">
+              <Target className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Quests & Challenges</h2>
+              <p className="text-[#F6F7F7]/80">Complete quests to earn points and unlock badges!</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Quests & Challenges</h2>
-            <p className="text-[#F6F7F7]/80">Complete quests to earn points and unlock badges!</p>
+          
+          {/* Progress Update Controls */}
+          <div className="flex items-center space-x-3">
+            {showUpdateAnimation && recentUpdates.length > 0 && (
+              <div className="flex items-center bg-green-500/20 backdrop-blur-sm p-3 rounded-lg border border-green-400/30 animate-pulse">
+                <Sparkles className="w-5 h-5 text-green-400 mr-2 animate-spin" />
+                <span className="text-sm font-medium text-green-300">
+                  {recentUpdates.filter(u => u.isCompleted).length > 0 
+                    ? `${recentUpdates.filter(u => u.isCompleted).length} Quest${recentUpdates.filter(u => u.isCompleted).length > 1 ? 's' : ''} Completed!`
+                    : `${recentUpdates.length} Quest${recentUpdates.length > 1 ? 's' : ''} Updated`
+                  }
+                </span>
+              </div>
+            )}
+
+            {/* Quick Stats */}
+            <div className="hidden md:flex items-center space-x-4 text-white/80 text-sm">
+              <div className="flex items-center bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20">
+                <BarChart3 className="w-4 h-4 mr-1" />
+                <span>{getActiveAthleteQuests().length} Active</span>
+              </div>
+              <div className="flex items-center bg-white/10 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20">
+                <CheckCircle className="w-4 h-4 mr-1" />
+                <span>{getCompletedAthleteQuests().length} Done</span>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleRefreshProgress}
+              disabled={refreshing}
+              className="bg-white/10 backdrop-blur-sm p-3 rounded-lg border border-white/20 hover:bg-white/15 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
+              title="Refresh quest progress from training data"
+            >
+              <RefreshCw className={`w-5 h-5 text-white ${refreshing ? 'animate-spin' : ''} group-hover:text-green-300 transition-colors`} />
+            </button>
+
+            {/* Debug button (only in development) */}
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={handleDebugQuests}
+                className="bg-red-500/20 backdrop-blur-sm p-3 rounded-lg border border-red-400/30 hover:bg-red-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95"
+                title="Debug quest progress (Dev only)"
+              >
+                <span className="text-red-300 text-sm font-mono">🐛</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -355,6 +501,18 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
           </>
         )}
       </div>
+
+      {/* Quest Completion Animation */}
+      {completedQuest && (
+        <QuestCompletionAnimation
+          isVisible={showCompletionAnimation}
+          questTitle={completedQuest.title}
+          pointsEarned={completedQuest.points}
+          badgeRarity={completedQuest.rarity}
+          questIcon={completedQuest.icon}
+          onAnimationComplete={handleCompletionAnimationEnd}
+        />
+      )}
     </div>
   );
 }

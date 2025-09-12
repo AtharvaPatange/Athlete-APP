@@ -16,8 +16,8 @@ import {
 import { db } from '@/lib/firebase';
 
 // Quest Types and Interfaces
-export type QuestType = 'distance' | 'sessions' | 'duration' | 'consistency' | 'improvement' | 'social';
-export type QuestStatus = 'active' | 'completed' | 'expired';
+export type QuestType = 'distance' | 'sessions' | 'duration' | 'consistency' | 'improvement' | 'social' | 'intensity' | 'weekly' | 'monthly';
+export type QuestStatus = 'active' | 'completed' | 'expired' | 'paused';
 export type BadgeRarity = 'bronze' | 'silver' | 'gold' | 'platinum' | 'legendary';
 
 export interface Quest {
@@ -33,9 +33,12 @@ export interface Quest {
   duration: number; // days
   requirements?: {
     sport?: string;
-    intensity?: string;
+    intensity?: 'low' | 'medium' | 'high' | 'peak';
     minDistance?: number;
     minDuration?: number;
+    specificExercise?: string;
+    timeFrame?: 'daily' | 'weekly' | 'monthly';
+    consistencyDays?: number;
   };
   createdAt: Date;
   expiresAt: Date;
@@ -697,7 +700,7 @@ export const initializeDefaultQuests = async () => {
     const defaultQuests: Omit<Quest, 'id' | 'createdAt' | 'expiresAt'>[] = [
       {
         title: "First Steps",
-        description: "Complete your first training session",
+        description: "Complete your first training session to begin your fitness journey",
         type: "sessions",
         target: 1,
         points: 50,
@@ -708,28 +711,93 @@ export const initializeDefaultQuests = async () => {
         isActive: true
       },
       {
-        title: "Distance Runner",
-        description: "Run a total of 5km in training sessions",
+        title: "Distance Warrior",
+        description: "Cover a total distance of 10km across all training sessions",
         type: "distance",
-        target: 5,
-        points: 100,
-        badge: "distance_runner_badge",
+        target: 10,
+        points: 150,
+        badge: "distance_warrior_badge",
         icon: "🏃‍♂️",
         rarity: "silver",
-        duration: 7,
-        requirements: { sport: "running" },
+        duration: 14,
+        requirements: { minDistance: 1 },
         isActive: true
       },
       {
-        title: "Consistent Athlete",
-        description: "Log training for 3 consecutive days",
+        title: "Training Streak",
+        description: "Train for 5 consecutive days without skipping",
         type: "consistency",
-        target: 3,
-        points: 150,
-        badge: "consistency_badge",
+        target: 5,
+        points: 200,
+        badge: "streak_master_badge",
         icon: "🔥",
         rarity: "gold",
+        duration: 10,
+        requirements: { consistencyDays: 5 },
+        isActive: true
+      },
+      {
+        title: "Endurance Builder",
+        description: "Accumulate 300 minutes of total training time",
+        type: "duration",
+        target: 300,
+        points: 175,
+        badge: "endurance_badge",
+        icon: "⏱️",
+        rarity: "silver",
+        duration: 14,
+        requirements: { minDuration: 30 },
+        isActive: true
+      },
+      {
+        title: "Session Master",
+        description: "Complete 10 training sessions of any type",
+        type: "sessions",
+        target: 10,
+        points: 300,
+        badge: "session_master_badge",
+        icon: "💪",
+        rarity: "gold",
+        duration: 21,
+        isActive: true
+      },
+      {
+        title: "High Intensity Hero",
+        description: "Complete 3 high or peak intensity training sessions",
+        type: "sessions",
+        target: 3,
+        points: 125,
+        badge: "intensity_hero_badge",
+        icon: "⚡",
+        rarity: "silver",
+        duration: 10,
+        requirements: { intensity: "high" },
+        isActive: true
+      },
+      {
+        title: "Weekly Warrior",
+        description: "Train at least 4 times in a single week",
+        type: "weekly",
+        target: 4,
+        points: 100,
+        badge: "weekly_warrior_badge",
+        icon: "📅",
+        rarity: "bronze",
         duration: 7,
+        requirements: { timeFrame: "weekly" },
+        isActive: true
+      },
+      {
+        title: "Marathon Distance",
+        description: "Cover a total distance of 42.2km (marathon distance)",
+        type: "distance",
+        target: 42.2,
+        points: 500,
+        badge: "marathon_badge",
+        icon: "🏅",
+        rarity: "legendary",
+        duration: 30,
+        requirements: { minDistance: 5 },
         isActive: true
       }
     ];

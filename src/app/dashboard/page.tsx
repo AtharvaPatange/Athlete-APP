@@ -6,6 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import PerformanceTabs from "@/components/PerformanceTabs";
 import TransparencyDashboard from "@/components/TransparencyDashboard";
+import AthleteQRCode from "@/components/AthleteQRCode";
 
 interface UserProfile {
   name: string;
@@ -25,7 +26,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'overview' | 'performance' | 'transparency'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'performance' | 'transparency' | 'qrcode'>('overview');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -145,6 +146,16 @@ export default function DashboardPage() {
           >
             Transparency
           </button>
+          <button
+            onClick={() => setActiveSection('qrcode')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
+              activeSection === 'qrcode'
+                ? 'border-slate-800 text-slate-800'
+                : 'border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300'
+            }`}
+          >
+            QR Code
+          </button>
         </div>
       </div>
 
@@ -170,7 +181,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
         {activeSection === 'overview' ? (
           <>
-            {/* Profile Section */}
+            {/* Simplified Profile Section with QR Code */}
             <div className="bg-white rounded-lg shadow-lg p-8 mb-12 border border-gray-200 relative">
               <div className="flex flex-col lg:flex-row items-start justify-between mb-8">
                 <div className="flex items-center mb-6 lg:mb-0">
@@ -198,83 +209,11 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Profile Details Grid */}
-              <div className="grid md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="font-semibold text-slate-800 mb-4 text-lg">Personal Info</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Gender:</span>
-                      <span className="text-slate-800 font-medium">{profile.gender}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Region:</span>
-                      <span className="text-slate-800 font-medium">{profile.region}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Age:</span>
-                      <span className="text-slate-800 font-medium">{profile.age}</span>
-                    </div>
-                  </div>
+              {/* QR Code Section */}
+              <div className="flex justify-center mt-8">
+                <div className="w-full max-w-lg">
+                  <AthleteQRCode />
                 </div>
-                
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="font-semibold text-slate-800 mb-4 text-lg">Athletic Profile</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Primary Sport:</span>
-                      <span className="text-slate-800 font-medium">{profile.sport}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Role:</span>
-                      <span className="text-slate-800 font-medium">{profile.role}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Accessibility:</span>
-                      <span className="text-slate-800 font-medium">{profile.disability_flag ? "Yes" : "No"}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <h3 className="font-semibold text-slate-800 mb-4 text-lg">Account Details</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Email:</span>
-                      <span className="text-slate-800 font-medium text-sm">{user.email}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Income Band:</span>
-                      <span className="text-slate-800 font-medium">{profile.income_band}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">User ID:</span>
-                      <span className="text-slate-800 font-medium">{profile.uid.substring(0, 8)}...</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap gap-4">
-                <button className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-md font-medium transition-colors cursor-pointer">
-                  Generate QR Code →
-                </button>
-                <button className="border border-slate-300 text-slate-700 px-6 py-3 rounded-md font-medium hover:bg-slate-50 transition-colors cursor-pointer">
-                  Edit Profile
-                </button>
-                <button 
-                  onClick={() => setActiveSection('performance')}
-                  className="border border-slate-300 text-slate-700 px-6 py-3 rounded-md font-medium hover:bg-slate-50 transition-colors cursor-pointer"
-                >
-                  View Performance
-                </button>
-                <button 
-                  onClick={() => setActiveSection('transparency')}
-                  className="border border-slate-300 text-slate-700 px-6 py-3 rounded-md font-medium hover:bg-slate-50 transition-colors cursor-pointer"
-                >
-                  View Transparency
-                </button>
               </div>
             </div>
 
@@ -382,6 +321,11 @@ export default function DashboardPage() {
               sport={profile.sport}
               region={profile.region}
             />
+          </div>
+        ) : activeSection === 'qrcode' ? (
+          /* QR Code Section */
+          <div className="relative">
+            <AthleteQRCode />
           </div>
         ) : (
           /* Transparency Section */

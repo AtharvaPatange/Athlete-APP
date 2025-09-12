@@ -5,8 +5,13 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, deleteDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
-  // Add your Firebase config here or use environment variables
-  // This should match your firebase.ts config
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyCTRH5huTOOkL9rFwz2exMgf4ebeeND6eY",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "athlete-app-c2dbd.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "athlete-app-c2dbd",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "athlete-app-c2dbd.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "404028531016",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:404028531016:web:df4623cce49f9a921ad37d",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-935SMPR49R"
 };
 
 const app = initializeApp(firebaseConfig);

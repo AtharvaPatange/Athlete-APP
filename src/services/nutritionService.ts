@@ -213,6 +213,31 @@ export const updateNutritionProfile = async (profileId: string, updates: Partial
   }
 };
 
+// Debug function to check all meal plans for an athlete
+export const getAllMealPlansForAthlete = async (athleteId: string) => {
+  try {
+    const q = query(
+      collection(db, WEEKLY_MEAL_PLANS_COLLECTION),
+      where('athleteId', '==', athleteId),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    const plans = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      weekStartDate: doc.data().weekStartDate.toDate(),
+      createdAt: doc.data().createdAt.toDate()
+    }));
+    
+    console.log(`Found ${plans.length} total meal plans for athlete ${athleteId}:`, plans);
+    return { plans, success: true, error: null };
+  } catch (error: any) {
+    console.error('Error getting all meal plans:', error);
+    return { plans: [], success: false, error: error.message };
+  }
+};
+
 // Weekly Meal Plan Operations
 export const saveWeeklyMealPlan = async (planData: Omit<WeeklyMealPlan, 'id' | 'createdAt' | 'updatedAt'>) => {
   try {
@@ -285,26 +310,47 @@ export const getWeeklyMealPlans = async (athleteId: string, limit_count: number 
 
 export const getCurrentWeekMealPlan = async (athleteId: string) => {
   try {
-    const today = new Date();
-    const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
+    // Calculate the exact week start date (same logic as in generateWeeklyMealPlan)
+    const weekStart = getWeekStartDate();
     
-    const q = query(
+    console.log('Looking for meal plan with weekStartDate:', weekStart);
+    
+    // First try to find the exact week start date
+    const exactQuery = query(
       collection(db, WEEKLY_MEAL_PLANS_COLLECTION),
       where('athleteId', '==', athleteId),
-      where('weekStartDate', '>=', Timestamp.fromDate(weekStart)),
-      where('weekStartDate', '<=', Timestamp.fromDate(weekEnd)),
-      orderBy('weekStartDate', 'desc'),
+      where('weekStartDate', '==', Timestamp.fromDate(weekStart)),
+      orderBy('createdAt', 'desc'),
       limit(1)
     );
     
-    const snapshot = await getDocs(q);
+    let snapshot = await getDocs(exactQuery);
+    
+    // If no exact match, try a range query for any plan in this week
+    if (snapshot.empty) {
+      console.log('No exact match found, trying range query...');
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+      
+      const rangeQuery = query(
+        collection(db, WEEKLY_MEAL_PLANS_COLLECTION),
+        where('athleteId', '==', athleteId),
+        where('weekStartDate', '>=', Timestamp.fromDate(weekStart)),
+        where('weekStartDate', '<=', Timestamp.fromDate(weekEnd)),
+        orderBy('weekStartDate', 'desc'),
+        limit(1)
+      );
+      
+      snapshot = await getDocs(rangeQuery);
+    }
     
     if (snapshot.empty) {
+      console.log('No meal plan found for current week');
       return { plan: null, success: true, error: null };
     }
+    
+    console.log('Found meal plan in Firestore');
     
     const doc = snapshot.docs[0];
     const data = doc.data();

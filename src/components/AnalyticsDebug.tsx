@@ -93,7 +93,7 @@ export default function AnalyticsDebug({ athleteId }: AnalyticsDebugProps) {
             <strong>Sample Sessions (First 3):</strong>
             <div className="ml-4 mt-2 space-y-2">
               {debugInfo.recentSessions.sessions.map((session: any, index: number) => (
-                <div key={index} className="bg-black p-3 rounded border">
+                <div key={`recent-session-${session.id || index}-${session.date || Date.now()}`} className="bg-black p-3 rounded border">
                   <p><strong>Date:</strong> {new Date(session.date).toLocaleDateString()}</p>
                   <p><strong>Sport:</strong> {session.sport}</p>
                   <p><strong>Duration:</strong> {session.duration} minutes</p>

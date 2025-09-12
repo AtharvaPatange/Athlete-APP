@@ -307,7 +307,7 @@ export default function ConsistencyCalendar({ athleteId }: ConsistencyCalendarPr
           {Array.from({ length: 8 }).map((_, monthIndex) => (
             <div key={monthIndex} className="flex flex-1 justify-center min-w-0">
               {dayLabels.map((day, dayIndex) => (
-                <div key={`${monthIndex}-${day}`} className="w-3.5 text-center font-medium mr-0.5">
+                <div key={`${monthIndex}-${dayIndex}-${day}`} className="w-3.5 text-center font-medium mr-0.5">
                   {day}
                 </div>
               ))}
@@ -334,14 +334,14 @@ export default function ConsistencyCalendar({ athleteId }: ConsistencyCalendarPr
                 
                 {/* Create rows for the month */}
                 {Array.from({ length: 6 }).map((_, weekIndex) => (
-                  <div key={weekIndex} className="flex mb-1 justify-center">
+                  <div key={`week-${monthInfo.index}-${weekIndex}`} className="flex mb-1 justify-center">
                     {Array.from({ length: 7 }).map((_, dayIndex) => {
                       const dayNumber = weekIndex * 7 + dayIndex - startingDayOfWeek + 1;
                       
                       if (dayNumber < 1 || dayNumber > daysInMonth) {
                         return (
                           <div
-                            key={`${monthInfo.index}-${weekIndex}-${dayIndex}`}
+                            key={`empty-${monthInfo.index}-${weekIndex}-${dayIndex}`}
                             className="w-3.5 h-3.5 mr-0.5"
                           />
                         );
@@ -351,7 +351,7 @@ export default function ConsistencyCalendar({ athleteId }: ConsistencyCalendarPr
                       
                       return (
                         <div
-                          key={`${monthInfo.index}-${weekIndex}-${dayIndex}`}
+                          key={`day-${monthInfo.index}-${weekIndex}-${dayIndex}`}
                           className={`w-3.5 h-3.5 mr-0.5 rounded-sm cursor-pointer border border-gray-200 ${
                             dayData ? getColorClass(dayData.level) : 'bg-gray-100'
                           }`}

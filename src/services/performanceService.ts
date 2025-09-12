@@ -13,6 +13,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { onTrainingSessionAdded } from './questProgressService';
 
 // Training Session Interface
 export interface TrainingSession {
@@ -75,6 +76,25 @@ export const createTrainingSession = async (sessionData: Omit<TrainingSession, '
     
     // Update performance summary after adding session
     await updatePerformanceSummary(sessionData.athleteId);
+    
+    // Create full session object for quest tracking
+    const fullSession: TrainingSession = {
+      id: docRef.id,
+      ...sessionData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Trigger quest progress update
+    try {
+      const questResult = await onTrainingSessionAdded(sessionData.athleteId, fullSession);
+      if (questResult.success && questResult.questUpdates.length > 0) {
+        console.log(`Quest progress updated for ${questResult.questUpdates.length} quests`);
+      }
+    } catch (questError) {
+      console.error('Error updating quest progress:', questError);
+      // Don't fail the session creation if quest update fails
+    }
     
     return { id: docRef.id, success: true, error: null };
   } catch (error: any) {
