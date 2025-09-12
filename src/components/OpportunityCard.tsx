@@ -57,11 +57,12 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
     return daysLeft <= 7;
   };
 
-  const getAvailabilityStatus = () => {
-    const spotsLeft = opportunity.maxApplicants - opportunity.currentApplicants;
-    if (spotsLeft <= 0) return { text: 'Full', color: 'text-red-600' };
-    if (spotsLeft <= 5) return { text: `${spotsLeft} spots left`, color: 'text-orange-600' };
-    return { text: `${spotsLeft} spots available`, color: 'text-green-600' };
+  const getEligibilityStatus = () => {
+    if (eligibilityCheck?.isEligible) {
+      return { text: 'Eligible', color: 'text-green-600' };
+    } else {
+      return { text: 'Not Eligible', color: 'text-red-600' };
+    }
   };
 
   return (
@@ -111,9 +112,9 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
           </p>
         </div>
         <div className="bg-gray-50 p-3 rounded-lg">
-          <p className="text-xs text-gray-500 mb-1">Availability</p>
-          <p className={`text-sm font-medium ${getAvailabilityStatus().color}`}>
-            {getAvailabilityStatus().text}
+          <p className="text-xs text-gray-500 mb-1">Eligibility</p>
+          <p className={`text-sm font-medium ${getEligibilityStatus().color}`}>
+            {getEligibilityStatus().text}
           </p>
         </div>
       </div>
@@ -176,11 +177,22 @@ const OpportunityCard: React.FC<OpportunityCardProps> = ({
           </button>
         ) : (
           <button
-            onClick={() => onApply(opportunity.id)}
+            onClick={() => {
+              const website = opportunity.provider.website;
+              if (website) {
+                // Open the provider's website in a new tab
+                window.open(website.startsWith('http') ? website : `https://${website}`, '_blank');
+              } else {
+                // Fallback: search for the opportunity on a government portal
+                const searchQuery = encodeURIComponent(`${opportunity.title} ${opportunity.provider.name}`);
+                window.open(`https://scholarships.gov.in/search?q=${searchQuery}`, '_blank');
+              }
+            }}
             disabled={loading || opportunity.currentApplicants >= opportunity.maxApplicants}
-            className="w-full bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="w-full bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? 'Applying...' : 'Apply Now'}
+            <span>{loading ? 'Opening...' : 'Apply Now'}</span>
+            <span className="text-xs">🔗</span>
           </button>
         )}
         <button className="px-4 py-2 border border-slate-300 text-slate-700 rounded-md text-sm font-medium hover:bg-slate-50 transition-colors">

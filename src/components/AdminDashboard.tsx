@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Area, AreaChart
 } from "recharts";
-import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { seedAdminUsers, seedAdminDemoData } from "@/services/seedAdminData";
 
@@ -47,8 +47,397 @@ interface FairnessReport {
 
 const COLORS = ['#182031', '#020817', '#374151', '#6B7280', '#9CA3AF', '#D1D5DB'];
 
+// Scholarship Management Form Component
+const ScholarshipManagementForm: React.FC = () => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    type: 'scholarship', // scholarship, sponsorship, government_scheme
+    amount: '',
+    currency: 'INR',
+    deadline: '',
+    provider: {
+      name: '',
+      type: 'government', // government, private, ngo, corporate
+      contact: {
+        email: '',
+        phone: '',
+        website: ''
+      }
+    },
+    eligibility: {
+      minAge: '',
+      maxAge: '',
+      sports: [] as string[],
+      achievements: [] as string[],
+      academicRequirements: '',
+      incomeRequirements: '',
+      residencyRequirements: ''
+    },
+    benefits: {
+      amount: '',
+      duration: '',
+      additionalBenefits: [] as string[]
+    },
+    applicationProcess: {
+      documentsRequired: [] as string[],
+      selectionCriteria: '',
+      contactInfo: ''
+    }
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+
+  const scholarshipTypes = [
+    { value: 'scholarship', label: 'Scholarship' },
+    { value: 'sponsorship', label: 'Sponsorship' },
+    { value: 'government_scheme', label: 'Government Scheme' }
+  ];
+
+  const providerTypes = [
+    { value: 'government', label: 'Government' },
+    { value: 'private', label: 'Private Organization' },
+    { value: 'ngo', label: 'NGO' },
+    { value: 'corporate', label: 'Corporate' }
+  ];
+
+  const sportsOptions = [
+    'Cricket', 'Football', 'Hockey', 'Badminton', 'Tennis', 'Wrestling', 'Boxing', 
+    'Athletics', 'Swimming', 'Weightlifting', 'Shooting', 'Archery', 'Table Tennis',
+    'Kabaddi', 'Volleyball', 'Basketball'
+  ];
+
+  const handleInputChange = (field: string, value: any, section?: string) => {
+    if (section) {
+      setFormData(prev => ({
+        ...prev,
+        [section]: {
+          ...(prev as any)[section],
+          [field]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const handleNestedInputChange = (section: string, subsection: string, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [section]: {
+        ...(prev as any)[section],
+        [subsection]: {
+          ...((prev as any)[section] as any)[subsection],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleArrayInput = (section: string, field: string, value: string) => {
+    const items = value.split(',').map(item => item.trim()).filter(item => item);
+    handleInputChange(field, items, section);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      // Create the scholarship opportunity document matching ScholarshipOpportunity interface
+      const opportunityData = {
+        title: formData.title,
+        description: formData.description,
+        type: formData.type as 'scholarship' | 'government_scheme' | 'sponsorship',
+        category: formData.eligibility.sports.length > 0 ? formData.eligibility.sports[0] : 'General Sports',
+        eligibility: {
+          minAge: parseInt(formData.eligibility.minAge) || 18,
+          maxAge: parseInt(formData.eligibility.maxAge) || 35,
+          regions: ['All India'], // Default to all India, can be made configurable
+          sports: formData.eligibility.sports,
+          incomeRequirement: formData.eligibility.incomeRequirements ? [formData.eligibility.incomeRequirements] : [],
+          disabilityFlag: false, // Can be made configurable
+          minPerformanceScore: 0
+        },
+        benefits: {
+          amount: parseFloat(formData.benefits.amount) || 0,
+          currency: 'INR',
+          type: 'one_time' as const,
+          additionalBenefits: formData.benefits.additionalBenefits
+        },
+        provider: {
+          name: formData.provider.name,
+          type: formData.provider.type as 'government' | 'private' | 'ngo' | 'corporate',
+          contact: formData.provider.contact.email || formData.provider.contact.phone || 'Contact provider',
+          website: formData.provider.contact.website
+        },
+        applicationDeadline: Timestamp.fromDate(new Date(formData.deadline)),
+        maxApplicants: 100, // Default, can be made configurable
+        currentApplicants: 0,
+        fairnessWeighting: {
+          ruralPreference: 20,
+          incomeWeighting: 30,
+          disabilityBonus: 25,
+          regionPriority: ['Rural', 'Semi-Urban', 'Urban']
+        },
+        status: 'active' as const,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      };
+
+      await addDoc(collection(db, 'scholarships'), opportunityData);
+      
+      setMessage({ type: 'success', text: 'Scholarship opportunity created successfully!' });
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        type: 'scholarship',
+        amount: '',
+        currency: 'INR',
+        deadline: '',
+        provider: {
+          name: '',
+          type: 'government',
+          contact: { email: '', phone: '', website: '' }
+        },
+        eligibility: {
+          minAge: '', maxAge: '', sports: [], achievements: [],
+          academicRequirements: '', incomeRequirements: '', residencyRequirements: ''
+        },
+        benefits: { amount: '', duration: '', additionalBenefits: [] },
+        applicationProcess: { documentsRequired: [], selectionCriteria: '', contactInfo: '' }
+      });
+
+    } catch (error) {
+      console.error('Error creating scholarship:', error);
+      setMessage({ type: 'error', text: 'Failed to create scholarship. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
+        <h3 className="text-xl font-semibold text-slate-800 mb-4">Create New Scholarship Opportunity</h3>
+        
+        {message && (
+          <div className={`p-4 rounded-lg mb-4 ${
+            message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' 
+            : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {message.text}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                placeholder="e.g., National Sports Scholarship 2024"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Type *</label>
+              <select
+                required
+                value={formData.type}
+                onChange={(e) => handleInputChange('type', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+              >
+                {scholarshipTypes.map(type => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+              <textarea
+                required
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                placeholder="Detailed description of the opportunity..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Amount (₹) *</label>
+              <input
+                type="number"
+                required
+                value={formData.benefits.amount}
+                onChange={(e) => handleInputChange('amount', e.target.value, 'benefits')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                placeholder="e.g., 50000"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Application Deadline *</label>
+              <input
+                type="date"
+                required
+                value={formData.deadline}
+                onChange={(e) => handleInputChange('deadline', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+              />
+            </div>
+          </div>
+
+          {/* Provider Information */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="text-lg font-semibold text-slate-800 mb-4">Provider Information</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Provider Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.provider.name}
+                  onChange={(e) => handleInputChange('name', e.target.value, 'provider')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  placeholder="e.g., Ministry of Sports"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Provider Type *</label>
+                <select
+                  required
+                  value={formData.provider.type}
+                  onChange={(e) => handleInputChange('type', e.target.value, 'provider')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                >
+                  {providerTypes.map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Contact Email</label>
+                <input
+                  type="email"
+                  value={formData.provider.contact.email}
+                  onChange={(e) => handleNestedInputChange('provider', 'contact', 'email', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  placeholder="contact@provider.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                <input
+                  type="url"
+                  value={formData.provider.contact.website}
+                  onChange={(e) => handleNestedInputChange('provider', 'contact', 'website', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  placeholder="https://provider.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Eligibility Criteria */}
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h4 className="text-lg font-semibold text-slate-800 mb-4">Eligibility Criteria</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Min Age</label>
+                <input
+                  type="number"
+                  value={formData.eligibility.minAge}
+                  onChange={(e) => handleInputChange('minAge', e.target.value, 'eligibility')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  placeholder="18"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Max Age</label>
+                <input
+                  type="number"
+                  value={formData.eligibility.maxAge}
+                  onChange={(e) => handleInputChange('maxAge', e.target.value, 'eligibility')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  placeholder="25"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Eligible Sports (comma-separated)</label>
+                <input
+                  type="text"
+                  value={formData.eligibility.sports.join(', ')}
+                  onChange={(e) => handleArrayInput('eligibility', 'sports', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  placeholder="Cricket, Football, Hockey"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Academic Requirements</label>
+                <input
+                  type="text"
+                  value={formData.eligibility.academicRequirements}
+                  onChange={(e) => handleInputChange('academicRequirements', e.target.value, 'eligibility')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  placeholder="Minimum 60% in 12th grade"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end space-x-4">
+            <button
+              type="button"
+              onClick={() => setFormData({
+                title: '', description: '', type: 'scholarship', amount: '', currency: 'INR', deadline: '',
+                provider: { name: '', type: 'government', contact: { email: '', phone: '', website: '' } },
+                eligibility: { minAge: '', maxAge: '', sports: [], achievements: [], academicRequirements: '', incomeRequirements: '', residencyRequirements: '' },
+                benefits: { amount: '', duration: '', additionalBenefits: [] },
+                applicationProcess: { documentsRequired: [], selectionCriteria: '', contactInfo: '' }
+              })}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`px-6 py-2 rounded-md font-medium ${
+                loading 
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-slate-800 text-white hover:bg-slate-700'
+              }`}
+            >
+              {loading ? 'Creating...' : 'Create Opportunity'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 export default function AdminDashboard({ adminId, adminRole }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'athletes' | 'fairness' | 'injuries' | 'allocations'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'athletes' | 'fairness' | 'injuries' | 'allocations' | 'scholarships'>('overview');
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     sport: 'all',
@@ -419,7 +808,8 @@ export default function AdminDashboard({ adminId, adminRole }: AdminDashboardPro
             { id: 'athletes', label: 'Athlete Stats', icon: '🏃‍♂️' },
             { id: 'fairness', label: 'Fairness Reports', icon: '⚖️' },
             { id: 'injuries', label: 'Injury Trends', icon: '🏥' },
-            { id: 'allocations', label: 'Allocations', icon: '💰' }
+            { id: 'allocations', label: 'Allocations', icon: '💰' },
+            { id: 'scholarships', label: 'Scholarships', icon: '🎓' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -650,6 +1040,11 @@ export default function AdminDashboard({ adminId, adminRole }: AdminDashboardPro
             </div>
           </div>
         </div>
+      )}
+
+      {/* Scholarships Tab */}
+      {activeTab === 'scholarships' && (
+        <ScholarshipManagementForm />
       )}
     </div>
   );

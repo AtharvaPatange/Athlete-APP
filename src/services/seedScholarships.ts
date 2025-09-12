@@ -1,14 +1,13 @@
 import { scholarshipService } from './scholarshipService';
 
 export const seedScholarships = async () => {
-  console.log('Starting to seed scholarship opportunities...');
+  console.log('Scholarship seeding disabled - only admin-created scholarships will be shown');
   
   try {
-    // Use the existing createSampleOpportunities method
-    await scholarshipService.createSampleOpportunities();
-    console.log('🎉 Successfully seeded all scholarship opportunities!');
+    // No sample scholarships created - admin will add scholarships via admin dashboard
+    console.log('🎉 Scholarship system ready for admin input only!');
   } catch (error) {
-    console.error('❌ Error seeding scholarships:', error);
+    console.error('❌ Error in scholarship setup:', error);
     throw error;
   }
 };

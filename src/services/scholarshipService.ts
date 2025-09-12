@@ -5,6 +5,7 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -207,37 +208,13 @@ export const scholarshipService = {
       }
       const athlete = athleteDoc.data();
 
-      // Check basic eligibility
+      // Check eligibility based on age only
       const eligibilityReasons: string[] = [];
       let isEligible = true;
 
-      // Age check
+      // Age check - only criteria for eligibility
       if (athlete.age < opportunity.eligibility.minAge || athlete.age > opportunity.eligibility.maxAge) {
         eligibilityReasons.push(`Age must be between ${opportunity.eligibility.minAge} and ${opportunity.eligibility.maxAge}`);
-        isEligible = false;
-      }
-
-      // Region check
-      if (!opportunity.eligibility.regions.includes(athlete.region) && !opportunity.eligibility.regions.includes('All')) {
-        eligibilityReasons.push(`Available only for regions: ${opportunity.eligibility.regions.join(', ')}`);
-        isEligible = false;
-      }
-
-      // Sport check
-      if (!opportunity.eligibility.sports.includes(athlete.sport) && !opportunity.eligibility.sports.includes('All')) {
-        eligibilityReasons.push(`Available only for sports: ${opportunity.eligibility.sports.join(', ')}`);
-        isEligible = false;
-      }
-
-      // Income check
-      if (!opportunity.eligibility.incomeRequirement.includes(athlete.income_band)) {
-        eligibilityReasons.push(`Income requirement: ${opportunity.eligibility.incomeRequirement.join(', ')}`);
-        isEligible = false;
-      }
-
-      // Disability flag check (if required)
-      if (opportunity.eligibility.disabilityFlag && !athlete.disability_flag) {
-        eligibilityReasons.push('This opportunity is reserved for athletes with disabilities');
         isEligible = false;
       }
 
@@ -330,11 +307,8 @@ export const scholarshipService = {
         throw new Error('You have already applied for this opportunity');
       }
 
-      // Get eligibility check
+      // Get eligibility check for fairness score
       const eligibilityCheck = await this.checkEligibility(opportunityId, athleteId);
-      if (!eligibilityCheck.isEligible) {
-        throw new Error('You are not eligible for this opportunity');
-      }
 
       // Create application
       const applicationData: Omit<ScholarshipApplication, 'id'> = {
@@ -448,117 +422,20 @@ export const scholarshipService = {
   },
 
   // Create sample opportunities (for testing)
-  async createSampleOpportunities(): Promise<void> {
-    const sampleOpportunities: Omit<ScholarshipOpportunity, 'id'>[] = [
-      {
-        title: "National Sports Talent Scholarship",
-        description: "Government scholarship program to support promising young athletes from rural and economically disadvantaged backgrounds.",
-        type: "scholarship",
-        category: "Multi-Sport",
-        eligibility: {
-          minAge: 14,
-          maxAge: 25,
-          regions: ["All"],
-          sports: ["All"],
-          incomeRequirement: ["Below 1 Lakh", "1-3 Lakhs"],
-          minPerformanceScore: 70
-        },
-        benefits: {
-          amount: 50000,
-          currency: "INR",
-          type: "yearly",
-          additionalBenefits: ["Training equipment", "Coaching support", "Travel allowance"]
-        },
-        provider: {
-          name: "Ministry of Youth Affairs and Sports",
-          type: "government",
-          contact: "sports.ministry@gov.in",
-          website: "https://yas.nic.in"
-        },
-        applicationDeadline: Timestamp.fromDate(new Date(2025, 11, 31)),
-        maxApplicants: 100,
-        currentApplicants: 0,
-        fairnessWeighting: {
-          ruralPreference: 15,
-          incomeWeighting: 100,
-          disabilityBonus: 10,
-          regionPriority: ["Northeast", "Tribal Areas", "Rural"]
-        },
-        status: "active",
-        requirements: [
-          "Valid sports performance certificate",
-          "Income certificate",
-          "Age proof",
-          "Residence certificate"
-        ],
-        documents: [
-          "Aadhar Card",
-          "Income Certificate",
-          "Sports Achievement Certificate",
-          "Bank Account Details"
-        ],
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-      },
-      {
-        title: "Corporate Athletics Sponsorship Program",
-        description: "Private sector initiative to sponsor elite athletes with demonstrated potential in international competitions.",
-        type: "sponsorship",
-        category: "Athletics",
-        eligibility: {
-          minAge: 18,
-          maxAge: 30,
-          regions: ["All"],
-          sports: ["Athletics", "Track and Field", "Marathon"],
-          incomeRequirement: ["Below 1 Lakh", "1-3 Lakhs", "3-5 Lakhs"],
-          minPerformanceScore: 85
-        },
-        benefits: {
-          amount: 200000,
-          currency: "INR",
-          type: "yearly",
-          additionalBenefits: ["International training", "Equipment", "Nutrition support"]
-        },
-        provider: {
-          name: "Tata Sports Excellence Program",
-          type: "corporate",
-          contact: "sports@tata.com",
-          website: "https://tata.com/sports"
-        },
-        applicationDeadline: Timestamp.fromDate(new Date(2025, 10, 15)),
-        maxApplicants: 20,
-        currentApplicants: 0,
-        fairnessWeighting: {
-          ruralPreference: 10,
-          incomeWeighting: 80,
-          disabilityBonus: 15,
-          regionPriority: ["Rural", "Small Town"]
-        },
-        status: "active",
-        requirements: [
-          "National level competition participation",
-          "Performance metrics report",
-          "Training history",
-          "Future goals statement"
-        ],
-        documents: [
-          "Competition certificates",
-          "Training records",
-          "Medical fitness certificate",
-          "Goal statement"
-        ],
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now()
-      }
-    ];
+  // Removed createSampleOpportunities - only admin-created scholarships will be shown,
 
+  // Method to clear all existing scholarships (admin use only)
+  async clearAllScholarships(): Promise<void> {
     try {
-      for (const opportunity of sampleOpportunities) {
-        await addDoc(collection(db, 'scholarships'), opportunity);
-      }
-      console.log('Sample opportunities created successfully');
+      const scholarshipsRef = collection(db, 'scholarships');
+      const snapshot = await getDocs(scholarshipsRef);
+      
+      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      console.log(`Cleared ${snapshot.docs.length} existing scholarships`);
     } catch (error) {
-      console.error('Error creating sample opportunities:', error);
+      console.error('Error clearing scholarships:', error);
       throw error;
     }
   }

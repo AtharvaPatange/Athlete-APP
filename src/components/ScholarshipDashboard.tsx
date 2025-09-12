@@ -26,14 +26,8 @@ export default function ScholarshipDashboard() {
       setIsLoading(true);
       const data = await scholarshipService.getActiveOpportunities();
       
-      // If no opportunities exist, create sample data
-      if (data.length === 0) {
-        await scholarshipService.createSampleOpportunities();
-        const newData = await scholarshipService.getActiveOpportunities();
-        setOpportunities(newData);
-      } else {
-        setOpportunities(data);
-      }
+      // Only show admin-created scholarships - no sample data creation
+      setOpportunities(data);
     } catch (error) {
       console.error("Error loading opportunities:", error);
       setOpportunities([]);
@@ -55,19 +49,9 @@ export default function ScholarshipDashboard() {
   };
 
   const handleApplyClick = async (opportunityId: string) => {
-    if (!user?.uid) {
-      alert("Please log in to apply for scholarships");
-      return;
-    }
-
-    try {
-      await scholarshipService.submitApplication(opportunityId, user.uid);
-      loadApplications(); // Refresh applications
-      loadOpportunities(); // Refresh opportunities to update counts
-      alert("Application submitted successfully!");
-    } catch (error: any) {
-      alert(error.message || "Failed to submit application");
-    }
+    // This function is no longer used since Apply button redirects to provider website
+    // Keeping it as a placeholder to maintain compatibility with OpportunityCard props
+    console.log(`Apply clicked for opportunity: ${opportunityId} - Redirecting to provider website`);
   };
 
   const handleRefreshAI = async () => {
@@ -161,7 +145,11 @@ export default function ScholarshipDashboard() {
               </div>
             ) : opportunities.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">No opportunities available</p>
+                <div className="mb-4">
+                  <span className="text-4xl mb-4 block">📋</span>
+                  <h3 className="text-lg font-medium text-gray-800 mb-2">No Scholarships Available</h3>
+                  <p className="text-gray-500 mb-4">Scholarships will appear here once added by administrators through the Admin Dashboard.</p>
+                </div>
                 <button
                   onClick={loadOpportunities}
                   className="px-4 py-2 bg-[#182031] text-white rounded-lg hover:bg-[#020817] transition-colors"
