@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import FirebaseStatus from "@/components/FirebaseStatus";
+import ChatbotPopup from "@/components/ChatbotPopup";
 
 
 const COLORS = {
@@ -343,6 +344,7 @@ export default function Home() {
         }
       `}</style>
     </div>
+    <ChatbotPopup />
     </main>
   );
 }

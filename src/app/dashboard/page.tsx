@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
 import PerformanceTabs from "@/components/PerformanceTabs";
 import TransparencyDashboard from "@/components/TransparencyDashboard";
 import AthleteQRCode from "@/components/AthleteQRCode";
+import ChatbotPopup from "@/components/ChatbotPopup";
 
 interface UserProfile {
   name: string;
@@ -395,6 +396,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </footer>
+
+      {/* Chatbot Popup */}
+      <ChatbotPopup />
     </div>
   );
 }
