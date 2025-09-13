@@ -2,8 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import FirebaseStatus from "@/components/FirebaseStatus";
 import ChatbotPopup from "@/components/ChatbotPopup";
+
 
 
 const COLORS = {
@@ -42,9 +44,14 @@ export default function Home() {
       <nav className="relative z-10 px-6 lg:px-8 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <span className="text-2xl font-bold" style={{ color: COLORS.text }}>
-              ATHLETEx
-            </span>
+            <Image
+              src="/AthleteXBlack.png"
+              alt="AthleteX Logo"
+              width={180}
+              height={48}
+              className="h-12 w-auto"
+              priority
+            />
           </div>
           
           <div className="hidden md:flex items-center space-x-8">
@@ -286,7 +293,6 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div className="md:col-span-2">
                 <div className="flex items-center space-x-3 mb-6">
-        
                   <span className="text-2xl font-bold" style={{ color: COLORS.text }}>
                     ATHLETEx
                   </span>

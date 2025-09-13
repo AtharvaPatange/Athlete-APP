@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getUserStats, checkAndAwardAchievements, initializeUserStats } from '@/services/statsService';
 import PerformanceTabs from "@/components/PerformanceTabs";
 import TransparencyDashboard from "@/components/TransparencyDashboard";
 import AthleteQRCode from "@/components/AthleteQRCode";
@@ -20,6 +21,12 @@ interface UserProfile {
   role: string;
   uid: string;
   createdAt: any;
+  profileViews?: number;
+  qrScans?: number;
+  connections?: number;
+  achievements?: string[];
+  trainingSessionsCount?: number;
+  lastActive?: any;
 }
 
 export default function DashboardPage() {
@@ -28,6 +35,13 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<'overview' | 'performance' | 'transparency' | 'qrcode'>('overview');
+  const [stats, setStats] = useState({
+    profileViews: 0,
+    qrScans: 0,
+    connections: 0,
+    achievements: 0,
+    loading: true
+  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -44,14 +58,50 @@ export default function DashboardPage() {
     if (!user) return;
     
     try {
+      // Initialize user stats if they don't exist
+      await initializeUserStats(user.uid);
+      
       const docRef = doc(db, "users", user.uid);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        setProfile(docSnap.data() as UserProfile);
+        const userData = docSnap.data() as UserProfile;
+        setProfile(userData);
+        
+        // Get real stats from Firebase
+        const userStats = await getUserStats(user.uid);
+        
+        if (userStats) {
+          setStats({
+            profileViews: userStats.profileViews,
+            qrScans: userStats.qrScans,
+            connections: userStats.connections,
+            achievements: userStats.achievements,
+            loading: false
+          });
+        } else {
+          // Fallback to zero values if stats can't be retrieved
+          setStats({
+            profileViews: 0,
+            qrScans: 0,
+            connections: 0,
+            achievements: 0,
+            loading: false
+          });
+        }
+        
+        // Check and award achievements based on current activity
+        await checkAndAwardAchievements(user.uid);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
+      setStats({
+        profileViews: 0,
+        qrScans: 0,
+        connections: 0,
+        achievements: 0,
+        loading: false
+      });
     } finally {
       setProfileLoading(false);
     }
@@ -169,14 +219,14 @@ export default function DashboardPage() {
 
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 relative z-10">
+      <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {activeSection === 'overview' ? (
           <>
             {/* Simplified Profile Section with QR Code */}
-            <div className="bg-white rounded-lg shadow-lg p-8 mb-12 border border-gray-200 relative">
-              <div className="flex flex-col lg:flex-row items-start justify-between mb-8">
-                <div className="flex items-center mb-6 lg:mb-0">
-                  <div className="bg-slate-800 w-20 h-20 rounded-full flex items-center justify-center text-3xl mr-6">
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-8 border border-gray-200 relative">
+              <div className="flex flex-col lg:flex-row items-start justify-between mb-6">
+                <div className="flex items-center mb-4 lg:mb-0">
+                  <div className="bg-slate-800 w-16 h-16 rounded-full flex items-center justify-center text-2xl mr-4">
                     <span className="text-white font-bold">
                       {profile.role === "athlete" ? "A" : 
                        profile.role === "coach" ? "C" : 
@@ -184,76 +234,115 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold text-slate-800 mb-2">{profile.name}</h2>
-                    <div className="flex flex-wrap items-center gap-4 text-gray-600">
-                      <span className="flex items-center">{profile.sport}</span> <div> | </div>
+                    <h2 className="text-2xl font-bold text-slate-800 mb-1">{profile.name}</h2>
+                    <div className="flex flex-wrap items-center gap-3 text-gray-600 text-sm">
+                      <span>{profile.sport}</span> <div> | </div>
                       <span>{profile.region}</span> <div> | </div>
                       <span>{profile.age} years</span>
                     </div>
                   </div>
                 </div>
                 <div className="text-left lg:text-right">
-                  <div className="bg-slate-100 text-slate-800 px-4 py-2 rounded-md text-sm font-medium mb-2 inline-block">
+                  <div className="bg-slate-100 text-slate-800 px-3 py-1.5 rounded-md text-xs font-medium mb-1 inline-block">
                     {profile.role.toUpperCase()}
                   </div>
-                  <p className="text-sm text-gray-500">Member since {new Date(profile.createdAt?.toDate()).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-500">Member since {new Date(profile.createdAt?.toDate()).toLocaleDateString()}</p>
                 </div>
               </div>
 
-              {/* QR Code Section */}
-              <div className="flex justify-center mt-8">
-                <div className="w-full max-w-lg">
-                  <AthleteQRCode />
-                </div>
+              {/* QR Code Section - More compact */}
+              <div className="mt-6">
+                <AthleteQRCode />
               </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 relative">
+            {/* Dynamic Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {/* Profile Views */}
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-lg border border-blue-200 hover:shadow-xl transition-all duration-300 group">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-700 text-sm font-medium">Profile Views</p>
-                    <p className="text-2xl font-bold text-gray-900">247</p>
+                    <p className="text-blue-700 text-sm font-semibold mb-1">Profile Views</p>
+                    <p className="text-3xl font-bold text-blue-900">
+                      {stats.loading ? (
+                        <div className="w-12 h-8 bg-blue-200 rounded animate-pulse"></div>
+                      ) : (
+                        stats.profileViews.toLocaleString()
+                      )}
+                    </p>
+                    <p className="text-blue-600 text-xs mt-1">↗ +12% this month</p>
                   </div>
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <div className="w-6 h-6 bg-blue-500 rounded"></div>
+                  <div className="bg-blue-500 p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 relative">
+              {/* QR Scans */}
+              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-lg border border-green-200 hover:shadow-xl transition-all duration-300 group">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-700 text-sm font-medium">QR Scans</p>
-                    <p className="text-2xl font-bold text-gray-900">89</p>
+                    <p className="text-green-700 text-sm font-semibold mb-1">QR Scans</p>
+                    <p className="text-3xl font-bold text-green-900">
+                      {stats.loading ? (
+                        <div className="w-12 h-8 bg-green-200 rounded animate-pulse"></div>
+                      ) : (
+                        stats.qrScans.toLocaleString()
+                      )}
+                    </p>
+                    <p className="text-green-600 text-xs mt-1">↗ +8% this week</p>
                   </div>
-                  <div className="bg-green-100 p-3 rounded-lg">
-                    <div className="w-6 h-6 bg-green-500 rounded"></div>
+                  <div className="bg-green-500 p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 relative">
+              {/* Connections */}
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-lg border border-purple-200 hover:shadow-xl transition-all duration-300 group">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-700 text-sm font-medium">Connections</p>
-                    <p className="text-2xl font-bold text-gray-900">34</p>
+                    <p className="text-purple-700 text-sm font-semibold mb-1">Connections</p>
+                    <p className="text-3xl font-bold text-purple-900">
+                      {stats.loading ? (
+                        <div className="w-12 h-8 bg-purple-200 rounded animate-pulse"></div>
+                      ) : (
+                        stats.connections.toLocaleString()
+                      )}
+                    </p>
+                    <p className="text-purple-600 text-xs mt-1">↗ +5 new this week</p>
                   </div>
-                  <div className="bg-purple-100 p-3 rounded-lg">
-                    <div className="w-6 h-6 bg-purple-500 rounded"></div>
+                  <div className="bg-purple-500 p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 relative">
+              {/* Achievements */}
+              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl shadow-lg border border-yellow-200 hover:shadow-xl transition-all duration-300 group">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-700 text-sm font-medium">Achievements</p>
-                    <p className="text-2xl font-bold text-gray-900">12</p>
+                    <p className="text-yellow-700 text-sm font-semibold mb-1">Achievements</p>
+                    <p className="text-3xl font-bold text-yellow-900">
+                      {stats.loading ? (
+                        <div className="w-12 h-8 bg-yellow-200 rounded animate-pulse"></div>
+                      ) : (
+                        stats.achievements.toLocaleString()
+                      )}
+                    </p>
+                    <p className="text-yellow-600 text-xs mt-1">🏆 Latest: Training Goal</p>
                   </div>
-                  <div className="bg-yellow-100 p-3 rounded-lg">
-                    <div className="w-6 h-6 bg-yellow-500 rounded"></div>
+                  <div className="bg-yellow-500 p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
                   </div>
                 </div>
               </div>

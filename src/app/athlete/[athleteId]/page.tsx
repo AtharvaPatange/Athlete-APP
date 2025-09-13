@@ -2,6 +2,8 @@
 import React, { useState, useEffect, use } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { incrementProfileViews, addConnection } from '@/services/statsService';
+import { useAuth } from '@/hooks/useAuth';
 
 interface AthleteProfile {
   id: string;
@@ -31,9 +33,12 @@ interface AthleteProfilePageProps {
 
 const AthleteProfilePage: React.FC<AthleteProfilePageProps> = ({ params }) => {
   const resolvedParams = use(params);
+  const { user } = useAuth();
   const [athlete, setAthlete] = useState<AthleteProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     loadAthleteProfile();
@@ -57,6 +62,9 @@ const AthleteProfilePage: React.FC<AthleteProfilePageProps> = ({ params }) => {
       const athleteDoc = querySnapshot.docs[0];
       const athleteData = athleteDoc.data();
 
+      // Track profile view
+      await incrementProfileViews(athleteDoc.id);
+
       const profile: AthleteProfile = {
         id: athleteDoc.id,
         name: athleteData.displayName || athleteData.name || 'Athlete',
@@ -79,6 +87,27 @@ const AthleteProfilePage: React.FC<AthleteProfilePageProps> = ({ params }) => {
       setError('Failed to load athlete profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConnect = async () => {
+    if (!user || !athlete || connecting) return;
+    
+    if (user.uid === athlete.id) {
+      alert("You cannot connect to yourself!");
+      return;
+    }
+
+    try {
+      setConnecting(true);
+      await addConnection(user.uid, athlete.id);
+      setConnected(true);
+      alert(`Connected with ${athlete.name}!`);
+    } catch (error) {
+      console.error('Error connecting with athlete:', error);
+      alert('Failed to connect. Please try again.');
+    } finally {
+      setConnecting(false);
     }
   };
 
@@ -246,6 +275,25 @@ const AthleteProfilePage: React.FC<AthleteProfilePageProps> = ({ params }) => {
               )}
             </div>
           </div>
+
+          {/* Connect Button */}
+          {user && user.uid !== athlete.id && (
+            <div className="text-center mt-6">
+              <button
+                onClick={handleConnect}
+                disabled={connecting || connected}
+                className={`px-8 py-3 rounded-xl font-bold text-white transition-all duration-200 transform hover:scale-105 ${
+                  connected 
+                    ? 'bg-green-500 cursor-not-allowed' 
+                    : connecting 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg'
+                }`}
+              >
+                {connecting ? 'Connecting...' : connected ? 'Connected!' : `Connect with ${athlete.name}`}
+              </button>
+            </div>
+          )}
 
           {/* Social Media & Contact */}
           {athlete.socialMedia && Object.keys(athlete.socialMedia).length > 0 && (

@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { useAuth } from '@/hooks/useAuth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { incrementQRScans } from '@/services/statsService';
 
 interface AthleteProfile {
   id: string;
@@ -111,9 +112,12 @@ const AthleteQRCode: React.FC = () => {
   };
 
   const shareQRCode = async () => {
-    if (!qrCodeUrl) return;
+    if (!qrCodeUrl || !user) return;
 
     try {
+      // Track QR scan when shared
+      await incrementQRScans(user.uid);
+      
       // Convert data URL to blob
       const response = await fetch(qrCodeUrl);
       const blob = await response.blob();
@@ -141,10 +145,22 @@ const AthleteQRCode: React.FC = () => {
     }
   };
 
-  const copyProfileLink = () => {
-    const profileUrl = `${window.location.origin}/athlete/${athleteId}`;
-    navigator.clipboard.writeText(profileUrl);
-    alert('Profile link copied to clipboard!');
+  const copyProfileLink = async () => {
+    if (!user) return;
+    
+    try {
+      // Track QR scan when link is copied
+      await incrementQRScans(user.uid);
+      
+      const profileUrl = `${window.location.origin}/athlete/${athleteId}`;
+      navigator.clipboard.writeText(profileUrl);
+      alert('Profile link copied to clipboard!');
+    } catch (error) {
+      console.error('Error copying profile link:', error);
+      const profileUrl = `${window.location.origin}/athlete/${athleteId}`;
+      navigator.clipboard.writeText(profileUrl);
+      alert('Profile link copied to clipboard!');
+    }
   };
 
   if (loading) {
@@ -159,62 +175,62 @@ const AthleteQRCode: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 items-start">
-      {/* QR Code Section - Left Side */}
-      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 flex-shrink-0">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+      {/* QR Code Section - Compact Left Side */}
+      <div className="lg:col-span-1 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         {isGenerating ? (
-          <div className="flex items-center justify-center h-64 w-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800"></div>
+          <div className="flex items-center justify-center h-48">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-800"></div>
           </div>
         ) : qrCodeUrl ? (
-          <div className="text-center space-y-4">
-            {/* Clean QR Code Container */}
-            <div className="bg-gray-50 p-4 rounded-xl border-2 border-gray-100 shadow-sm">
+          <div className="text-center space-y-3">
+            {/* Compact QR Code Container */}
+            <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
               <img 
                 src={qrCodeUrl} 
                 alt="Athlete QR Code" 
-                className="w-52 h-52 mx-auto rounded-lg shadow-sm"
+                className="w-40 h-40 mx-auto rounded-md"
               />
             </div>
             
-            {/* QR Code Label */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-slate-800">Scan to View Profile</h3>
-              <p className="text-sm text-gray-600">
-                ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">{athleteId}</span>
+            {/* Compact QR Code Label */}
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-slate-800">Scan to View Profile</h3>
+              <p className="text-xs text-gray-600">
+                ID: <span className="font-mono bg-gray-100 px-1 py-0.5 rounded text-xs">{athleteId}</span>
               </p>
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 w-64">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">📱</span>
+          <div className="text-center py-6">
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <span className="text-xl">📱</span>
             </div>
-            <p className="text-gray-500 mb-4">Generate your QR Code</p>
+            <p className="text-gray-500 mb-3 text-sm">Generate QR Code</p>
             <button
               onClick={() => athleteId && generateQRCode(athleteId)}
-              className="px-6 py-3 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors"
+              className="px-4 py-2 bg-slate-800 text-white rounded-md text-sm font-medium hover:bg-slate-700 transition-colors"
             >
-              Generate QR Code
+              Generate
             </button>
           </div>
         )}
       </div>
 
-      {/* Profile Information - Right Side */}
-      <div className="flex-1 space-y-6">
+      {/* Profile Information - Expanded Right Side */}
+      <div className="lg:col-span-2 space-y-4">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center">
-                <span className="text-white text-lg font-bold">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">
                   {athleteProfile?.name?.charAt(0)?.toUpperCase() || 'A'}
                 </span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Share My Profile</h2>
-                <p className="text-gray-600 text-sm">
+                <h2 className="text-lg font-bold text-slate-800">Share My Profile</h2>
+                <p className="text-gray-600 text-xs">
                   @{athleteProfile?.name?.toLowerCase().replace(/\s+/g, '_') || 'athlete'}
                 </p>
               </div>
@@ -222,7 +238,7 @@ const AthleteQRCode: React.FC = () => {
             
             <button
               onClick={copyProfileLink}
-              className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+              className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors flex items-center space-x-1"
             >
               <span>🔗</span>
               <span>Copy Link</span>
@@ -230,26 +246,26 @@ const AthleteQRCode: React.FC = () => {
           </div>
 
           {athleteProfile && (
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Sport</p>
-                <p className="font-semibold text-slate-800">{athleteProfile.sport}</p>
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+              <div className="text-center p-2 bg-gray-50 rounded-md">
+                <p className="text-xs text-gray-600">Sport</p>
+                <p className="font-semibold text-slate-800 text-sm">{athleteProfile.sport}</p>
               </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Region</p>
-                <p className="font-semibold text-slate-800">{athleteProfile.region}</p>
+              <div className="text-center p-2 bg-gray-50 rounded-md">
+                <p className="text-xs text-gray-600">Region</p>
+                <p className="font-semibold text-slate-800 text-sm">{athleteProfile.region}</p>
               </div>
             </div>
           )}
         </div>
 
         {/* Action Buttons */}
-        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-slate-800 mb-4">Share Options</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h3 className="text-base font-semibold text-slate-800 mb-3">Share Options</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button
               onClick={shareQRCode}
-              className="flex items-center justify-center space-x-3 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-lg transition-colors"
+              className="flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-md transition-colors text-sm"
             >
               <span>📤</span>
               <span>Share QR Code</span>
@@ -257,7 +273,7 @@ const AthleteQRCode: React.FC = () => {
             
             <button
               onClick={shareQRCode}
-              className="flex items-center justify-center space-x-3 border border-slate-300 text-slate-700 px-6 py-3 rounded-lg hover:bg-slate-50 transition-colors"
+              className="flex items-center justify-center space-x-2 border border-slate-300 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-50 transition-colors text-sm"
             >
               <span>💾</span>
               <span>Download</span>
@@ -266,12 +282,12 @@ const AthleteQRCode: React.FC = () => {
         </div>
 
         {/* Info Card */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
-            <span className="text-blue-500 text-lg">ℹ️</span>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-start space-x-2">
+            <span className="text-blue-500 text-base">ℹ️</span>
             <div>
-              <h4 className="font-semibold text-blue-800 mb-1">How it works</h4>
-              <p className="text-sm text-blue-700">
+              <h4 className="font-semibold text-blue-800 mb-1 text-sm">How it works</h4>
+              <p className="text-xs text-blue-700">
                 People can scan your QR code to instantly view your athlete profile, including your sport, achievements, and contact information.
               </p>
             </div>

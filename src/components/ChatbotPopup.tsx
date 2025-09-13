@@ -437,7 +437,8 @@ Focus on strategic, evidence-based coaching methods that help develop athletes a
     }
 
     let contextualInfo = ""
-    if (weatherData) {
+    // Only include weather context if the user is asking about weather
+    if (isWeatherQuery(text) && weatherData) {
       contextualInfo = `Current weather context: Temperature ${weatherData.temperature}°C, ${weatherData.description}, Humidity ${weatherData.humidity}%, Wind ${weatherData.windSpeed} m/s in ${weatherData.city}.`
     }
 
@@ -448,7 +449,7 @@ IMPORTANT LANGUAGE REQUIREMENT: ${languageInstructions[language as keyof typeof 
 ${contextualInfo}
 User query: ${text}
 ${weatherInfo ? `Weather Information:\n${weatherInfo}\n\n` : ''}
-Provide clear, practical guidance tailored to the ${userRole} role. If the query is weather-related, include relevant weather considerations for athletic performance or coaching decisions.
+Provide clear, practical guidance tailored to the ${userRole} role.${isWeatherQuery(text) ? ' Include relevant weather considerations for athletic performance or coaching decisions.' : ''}
 Please respond using markdown formatting with:
 - **Bold text** for important points
 - Bullet points for lists

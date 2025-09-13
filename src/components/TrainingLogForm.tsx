@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { addAchievement, checkAndAwardAchievements } from '@/services/statsService';
+import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { updateAthleteQuestProgress } from '@/services/questProgressService';
 
 interface FormData {
   sport: string;
@@ -21,6 +26,7 @@ interface FormErrors {
 }
 
 const TrainingSessionForm = () => {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     sport: '',
@@ -49,10 +55,10 @@ const TrainingSessionForm = () => {
   ];
 
   const intensityLevels = [
-    { id: 'low', label: 'Low', color: 'bg-green-100 text-green-800 border-green-200' },
-    { id: 'medium', label: 'Medium', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-    { id: 'high', label: 'High', color: 'bg-orange-100 text-orange-800 border-orange-200' },
-    { id: 'peak', label: 'Peak', color: 'bg-red-100 text-red-800 border-red-200' }
+    { id: 'low', label: 'Low', color: 'bg-green-100 text-green-800 border-green-200 placeholder:text-black' },
+    { id: 'medium', label: 'Medium', color: 'bg-yellow-100 text-yellow-800 border-yellow-200 placeholder:text-black' },
+    { id: 'high', label: 'High', color: 'bg-orange-100 text-orange-800 border-orange-200 placeholder:text-black' },
+    { id: 'peak', label: 'Peak', color: 'bg-red-100 text-red-800 border-red-200 placeholder:text-black' }
   ];
 
   const formatDate = (dateString: string) => {
@@ -108,10 +114,85 @@ const TrainingSessionForm = () => {
     }
   };
 
-  const handleSubmit = () => {
-    if (validateStep(currentStep)) {
+  const handleSubmit = async () => {
+    if (!user || !validateStep(currentStep)) return;
+
+    try {
+      // Save training session to Firestore with exact field structure
+      const trainingSession = {
+        athleteId: user.uid,
+        sport: formData.sport,
+        exerciseType: formData.exerciseType,
+        duration: parseInt(formData.duration) || 0,
+        distance: parseFloat(formData.distance) || 0,
+        intensity: formData.intensity,
+        date: new Date(formData.date),
+        notes: formData.notes,
+        heartRateAvg: parseInt(formData.heartRateAvg) || 0,
+        heartRateMax: parseInt(formData.heartRateMax) || 0,
+        caloriesBurned: parseInt(formData.caloriesBurned) || 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      console.log('💾 Saving training session to training_sessions:', trainingSession);
+
+      // Add to training_sessions collection (correct collection name)
+      const docRef = await addDoc(collection(db, 'training_sessions'), trainingSession);
+      
+      console.log('✅ Training session saved with ID:', docRef.id);
+      
+      // Verify the session was saved correctly
+      const savedDoc = await getDoc(docRef);
+      if (savedDoc.exists()) {
+        console.log('✅ Verification: Session saved correctly:', savedDoc.data());
+      } else {
+        console.error('❌ Verification: Session not found after saving!');
+      }
+
+      // Update user's training sessions count
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      const currentCount = userDoc.data()?.trainingSessionsCount || 0;
+      
+      await updateDoc(userRef, {
+        trainingSessionsCount: currentCount + 1,
+        lastTrainingSession: new Date()
+      });
+
+      // Award training-based achievements
+      await awardTrainingAchievements(currentCount + 1, formData);
+
+      // Update quest progress after logging training session
+      try {
+        console.log('🎯 Updating quest progress after training session...');
+        
+        // Wait a bit for the training session to be fully written to Firebase
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const questProgressResult = await updateAthleteQuestProgress(user.uid);
+        console.log('🎯 Quest progress result:', questProgressResult);
+        
+        if (questProgressResult.success && questProgressResult.updates.length > 0) {
+          console.log('✅ Quest progress updated:', questProgressResult.updates);
+          const completedQuests = questProgressResult.updates.filter(u => u.isCompleted);
+          if (completedQuests.length > 0) {
+            alert(`🏆 Congratulations! You completed ${completedQuests.length} quest(s)!\n\nCheck the Quests section to see your achievements!`);
+          } else {
+            const updatedQuests = questProgressResult.updates.length;
+            alert(`🎯 Quest progress updated! ${updatedQuests} quest(s) have new progress.\n\nCheck the Quests section to see your updated progress!`);
+          }
+        } else {
+          console.log('ℹ️ No quest progress updates found');
+        }
+      } catch (questError) {
+        console.error('Error updating quest progress:', questError);
+        // Don't fail the training session if quest update fails
+      }
+
       console.log('Training session data:', formData);
       alert('Training session logged successfully!');
+      
       // Reset form
       setFormData({
         sport: '',
@@ -126,6 +207,78 @@ const TrainingSessionForm = () => {
         caloriesBurned: ''
       });
       setCurrentStep(1);
+    } catch (error) {
+      console.error('Error logging training session:', error);
+      alert('Error saving training session. Please try again.');
+    }
+  };
+
+  const awardTrainingAchievements = async (sessionCount: number, trainingData: FormData) => {
+    if (!user) return;
+
+    try {
+      // First training session
+      if (sessionCount === 1) {
+        await addAchievement(user.uid, {
+          title: 'First Steps',
+          description: 'Logged your first training session',
+          type: 'training',
+          date: new Date(),
+          points: 10
+        });
+      }
+
+      // Training milestones
+      const milestones = [5, 10, 25, 50, 100];
+      if (milestones.includes(sessionCount)) {
+        await addAchievement(user.uid, {
+          title: `${sessionCount} Sessions Strong`,
+          description: `Completed ${sessionCount} training sessions`,
+          type: 'milestone',
+          date: new Date(),
+          points: sessionCount * 2
+        });
+      }
+
+      // Duration-based achievements
+      const duration = parseInt(trainingData.duration) || 0;
+      if (duration >= 60) {
+        const userRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userRef);
+        const achievements = userDoc.data()?.achievements || [];
+        
+        if (!achievements.includes('Endurance Warrior')) {
+          await addAchievement(user.uid, {
+            title: 'Endurance Warrior',
+            description: 'Completed a training session longer than 60 minutes',
+            type: 'performance',
+            date: new Date(),
+            points: 15
+          });
+        }
+      }
+
+      // Intensity-based achievements
+      if (trainingData.intensity === 'high') {
+        const userRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userRef);
+        const achievements = userDoc.data()?.achievements || [];
+        
+        if (!achievements.includes('High Intensity Hero')) {
+          await addAchievement(user.uid, {
+            title: 'High Intensity Hero',
+            description: 'Completed a high-intensity training session',
+            type: 'performance',
+            date: new Date(),
+            points: 12
+          });
+        }
+      }
+
+      // Check for additional achievements
+      await checkAndAwardAchievements(user.uid);
+    } catch (error) {
+      console.error('Error awarding achievements:', error);
     }
   };
 
@@ -150,11 +303,11 @@ const TrainingSessionForm = () => {
               className={`p-4 border-2 rounded-lg text-center transition-all hover:shadow-md ${
                 formData.exerciseType === type.id
                   ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-gray-300 hover:border-gray-400 bg-gray-50 hover:bg-gray-100'
               }`}
             >
               <div className="text-2xl mb-2">{type.icon}</div>
-              <div className="text-sm font-medium text-black">{type.label}</div>
+              <div className="text-sm font-medium text-gray-800">{type.label}</div>
             </button>
           ))}
         </div>
@@ -168,13 +321,13 @@ const TrainingSessionForm = () => {
               handleInputChange('sport', e.target.value);
               handleInputChange('exerciseType', 'custom');
             }}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-text-gray-900 ${
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900 text-gray-900 ${
               errors.sport ? 'border-red-300' : 'border-gray-300'
             }`}
           />
         </div>
         
-        {errors.exerciseType && <p className="mt-2 text-sm text-red-600">{errors.exerciseType}</p>}
+        {errors.exerciseType && <p className="mt-2 text-sm text-red-600 ">{errors.exerciseType}</p>}
       </div>
     </div>
   );
@@ -243,10 +396,10 @@ const TrainingSessionForm = () => {
               key={level.id}
               type="button"
               onClick={() => handleInputChange('intensity', level.id)}
-              className={`p-3 border-2 rounded-lg text-center transition-all hover:shadow-md ${
+              className={`p-3 border-2 rounded-lg text-center transition-all hover:shadow-md font-medium ${
                 formData.intensity === level.id
                   ? `${level.color} border-current`
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-gray-300 hover:border-gray-400 bg-gray-50 text-gray-800 hover:bg-gray-100'
               }`}
             >
               <div className="font-medium">{level.label}</div>

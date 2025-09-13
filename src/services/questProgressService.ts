@@ -49,7 +49,26 @@ const calculateDistanceProgress = (
   
   if (quest.requirements?.sport) {
     console.log('🏃 Filtering by sport:', quest.requirements.sport);
-    filteredSessions = sessions.filter(s => s.sport.toLowerCase() === quest.requirements!.sport!.toLowerCase());
+    const requiredSport = quest.requirements.sport.toLowerCase();
+    filteredSessions = sessions.filter(s => {
+      const sessionSport = s.sport?.toLowerCase() || '';
+      const sessionExerciseType = s.exerciseType?.toLowerCase() || '';
+      
+      // Match either sport field or exerciseType field
+      const matches = sessionSport === requiredSport || 
+                     sessionExerciseType === requiredSport ||
+                     sessionSport.includes(requiredSport) ||
+                     sessionExerciseType.includes(requiredSport);
+      
+      console.log('🔍 Session sport check:', {
+        sessionSport,
+        sessionExerciseType,
+        requiredSport,
+        matches
+      });
+      
+      return matches;
+    });
     console.log('📊 Sessions after sport filter:', filteredSessions.length);
   }
   
@@ -61,17 +80,43 @@ const calculateDistanceProgress = (
   
   // Calculate total distance since quest started
   const questStartDate = athleteQuest.startedAt;
-  const relevantSessions = filteredSessions.filter(s => s.date >= questStartDate);
+  console.log('📅 Quest start date:', questStartDate);
+  
+  const relevantSessions = filteredSessions.filter(s => {
+    const sessionDate = s.date instanceof Date ? s.date : new Date(s.date);
+    const isAfterQuestStart = sessionDate >= questStartDate;
+    
+    console.log('📅 Session date check:', {
+      sessionDate: sessionDate,
+      questStartDate: questStartDate,
+      isAfterQuestStart: isAfterQuestStart
+    });
+    
+    return isAfterQuestStart;
+  });
   
   console.log('📊 Relevant sessions since quest start:', relevantSessions.length);
   console.log('📋 Session details:', relevantSessions.map(s => ({ 
     date: s.date, 
     sport: s.sport, 
+    exerciseType: s.exerciseType,
     distance: s.distance,
     duration: s.duration
   })));
   
-  const totalDistance = relevantSessions.reduce((sum, session) => sum + (session.distance || 0), 0);
+  const totalDistance = relevantSessions.reduce((sum, session) => {
+    const distance = typeof session.distance === 'string' ? parseFloat(session.distance) : session.distance;
+    const validDistance = distance || 0;
+    
+    console.log('📊 Session distance calculation:', {
+      session: { sport: session.sport, exerciseType: session.exerciseType },
+      rawDistance: session.distance,
+      parsedDistance: validDistance
+    });
+    
+    return sum + validDistance;
+  }, 0);
+  
   const finalProgress = Math.min(totalDistance, quest.target);
   
   console.log('🎯 Total distance calculated:', totalDistance, 'km');
@@ -386,6 +431,17 @@ export const updateAthleteQuestProgress = async (athleteId: string): Promise<{
     
     console.log('✅ Retrieved', sessionsResult.sessions.length, 'training sessions for athlete');
     
+    // Debug: Log all training sessions
+    console.log('📋 All training sessions:', sessionsResult.sessions.map(s => ({
+      id: s.id,
+      sport: s.sport,
+      exerciseType: s.exerciseType,
+      date: s.date,
+      distance: s.distance,
+      duration: s.duration,
+      athleteId: s.athleteId
+    })));
+    
     const updates: QuestProgressUpdate[] = [];
     const batch = writeBatch(db);
     
@@ -402,6 +458,15 @@ export const updateAthleteQuestProgress = async (athleteId: string): Promise<{
           expiresAt: questDoc.data().quest.expiresAt.toDate()
         }
       } as AthleteQuest;
+      
+      console.log('🎯 Processing quest:', {
+        questTitle: athleteQuest.quest.title,
+        questType: athleteQuest.quest.type,
+        currentProgress: athleteQuest.progress,
+        target: athleteQuest.quest.target,
+        requirements: athleteQuest.quest.requirements,
+        startedAt: athleteQuest.startedAt
+      });
       
       // Calculate new progress
       const newProgress = calculateQuestProgress(sessionsResult.sessions, athleteQuest.quest, athleteQuest);

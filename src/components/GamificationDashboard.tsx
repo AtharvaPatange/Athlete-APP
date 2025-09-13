@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import QuestDashboard from "./QuestDashboard";
 import AchievementDashboard from "./AchievementDashboard";
 import Leaderboard from "./Leaderboard";
-import { Trophy, Target, Flame, Star } from "lucide-react";
+import { Trophy, Target, Flame, Star, Award, Crown, Zap, Shield, Sparkles } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 
 import { 
@@ -74,36 +74,66 @@ export default function GamificationDashboard({ athleteId, sport, region }: Gami
     }
   };
 
-  const tabs = [
+  const tabs: Array<{
+    id: 'quests' | 'achievements' | 'leaderboard';
+    label: string;
+    icon: any;
+    description: string;
+    gradient: string;
+    hoverGradient: string;
+  }> = [
     { 
-      id: 'quests', 
-      label: '🎯 Quests', 
-      description: 'Complete challenges to earn points and badges' 
+      id: 'quests' as const, 
+      label: 'Quests', 
+      icon: Target,
+      description: 'Complete challenges to earn points and badges',
+      gradient: 'from-emerald-500 to-teal-600',
+      hoverGradient: 'from-emerald-600 to-teal-700'
     },
     { 
-      id: 'achievements', 
-      label: '🏆 Achievements', 
-      description: 'View your progress and earned badges' 
+      id: 'achievements' as const, 
+      label: 'Achievements', 
+      icon: Trophy,
+      description: 'View your progress and earned badges',
+      gradient: 'from-amber-500 to-orange-600',
+      hoverGradient: 'from-amber-600 to-orange-700'
     },
     { 
-      id: 'leaderboard', 
-      label: '🏅 Leaderboard', 
-      description: 'See how you rank against other athletes' 
+      id: 'leaderboard' as const, 
+      label: 'Leaderboard', 
+      icon: Crown,
+      description: 'See how you rank against other athletes',
+      gradient: 'from-purple-500 to-indigo-600',
+      hoverGradient: 'from-purple-600 to-indigo-700'
     }
   ];
 
   if (loading) {
   return (
-    <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl shadow-lg p-8">
-      <div className="flex items-center justify-center h-64">
+    <div className="bg-gradient-to-br from-[#0F172A] via-[#182031] to-[#303644] rounded-2xl shadow-2xl p-8 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-10 left-10 w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute top-32 right-20 w-16 h-16 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-full blur-lg animate-pulse delay-1000"></div>
+        <div className="absolute bottom-20 left-32 w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full blur-lg animate-pulse delay-500"></div>
+      </div>
+      
+      <div className="flex items-center justify-center h-64 relative z-10">
         <div className="text-center">
-          {/* Fancy spinner */}
-          <div className="relative w-14 h-14 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-t-indigo-500 animate-spin"></div>
+          {/* Enhanced spinner with gradient */}
+          <div className="relative w-16 h-16 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full border-4 border-white/20"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-emerald-400 border-r-purple-400 border-b-amber-400 border-l-indigo-400 animate-spin"></div>
+            <div className="absolute inset-2 rounded-full border-2 border-white/30"></div>
+            <Sparkles className="w-6 h-6 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
           </div>
-          <p className="text-slate-700 font-medium">Initializing Gamification...</p>
-          <p className="text-slate-500 text-sm mt-2">This should only take a few seconds</p>
+          <h3 className="text-2xl font-bold text-white mb-2">Initializing Gamification...</h3>
+          <p className="text-gray-300 text-sm">Loading your quests and achievements</p>
+          <div className="mt-4 flex items-center justify-center space-x-2">
+            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-100"></div>
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-bounce delay-200"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -112,17 +142,31 @@ export default function GamificationDashboard({ athleteId, sport, region }: Gami
 
 if (error) {
   return (
-    <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl shadow-lg p-8">
-      <div className="flex items-center justify-center h-64">
+    <div className="bg-gradient-to-br from-red-50 via-rose-50 to-pink-50 rounded-2xl shadow-2xl p-8 border border-red-200 relative overflow-hidden">
+      {/* Error background pattern */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-8 right-8 w-24 h-24 bg-red-200 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-8 left-8 w-20 h-20 bg-rose-200 rounded-full blur-xl"></div>
+      </div>
+      
+      <div className="flex items-center justify-center h-64 relative z-10">
         <div className="text-center">
-          <AlertTriangle className="w-14 h-14 text-red-500 mx-auto mb-4 animate-pulse" />
-          <h3 className="text-xl font-bold text-red-600 mb-2">Loading Error</h3>
-          <p className="text-slate-600 mb-6">{error}</p>
+          <div className="relative mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
+              <AlertTriangle className="w-8 h-8 text-white animate-pulse" />
+            </div>
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center">
+              <Zap className="w-3 h-3 text-white" />
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-red-700 mb-3">Oops! Something went wrong</h3>
+          <p className="text-red-600 mb-6 max-w-md mx-auto leading-relaxed">{error}</p>
           <button
             onClick={initializeGamification}
-            className="px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 shadow-md hover:from-indigo-700 hover:to-purple-700 transition-all"
+            className="px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-red-500 to-rose-600 shadow-lg hover:from-red-600 hover:to-rose-700 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center space-x-2 mx-auto"
           >
-            Try Again
+            <Shield className="w-5 h-5" />
+            <span>Try Again</span>
           </button>
         </div>
       </div>
@@ -130,50 +174,119 @@ if (error) {
   );
 }
 return (
-  <div className="space-y-6" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-    {/* Welcome Banner */}
-    <div className="bg-gradient-to-r from-slate-800 via-slate-900 to-black rounded-xl shadow-xl p-6 text-white relative overflow-hidden">
-      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_left,_#6366f1,_transparent_60%)]"></div>
+  <div className="space-y-8" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    {/* Enhanced Welcome Banner */}
+    <div className="bg-gradient-to-br from-[#0F172A] via-[#182031] to-[#303644] rounded-2xl shadow-2xl p-8 text-white relative overflow-hidden group">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-8 right-8 w-32 h-32 bg-gradient-to-br from-emerald-400/30 to-teal-500/30 rounded-full blur-2xl animate-pulse"></div>
+        <div className="absolute bottom-8 left-8 w-24 h-24 bg-gradient-to-br from-purple-400/30 to-indigo-500/30 rounded-full blur-xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 w-16 h-16 bg-gradient-to-br from-amber-400/20 to-orange-500/20 rounded-full blur-lg animate-pulse delay-500"></div>
+      </div>
+      
+      {/* Floating sparkles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <Sparkles className="absolute top-12 left-24 w-4 h-4 text-emerald-300 animate-bounce delay-200" />
+        <Sparkles className="absolute top-20 right-32 w-3 h-3 text-purple-300 animate-bounce delay-700" />
+        <Sparkles className="absolute bottom-24 right-16 w-5 h-5 text-amber-300 animate-bounce delay-1200" />
+      </div>
+      
       <div className="flex items-center justify-between relative z-10">
         <div className="flex items-center">
-          <div className="bg-slate-700 bg-opacity-40 p-4 rounded-lg mr-4 shadow-inner">
-            <Trophy className="w-8 h-8 text-indigo-400" />
+          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-4 rounded-2xl mr-6 shadow-xl relative group-hover:scale-110 transition-transform duration-300">
+            <Trophy className="w-10 h-10 text-white" />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl"></div>
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gamification Hub</h1>
-            <p className="text-slate-300 text-sm">Challenge yourself, earn rewards, and climb the leaderboard!</p>
+            <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+              Gamification Hub
+            </h1>
+            <p className="text-gray-300 text-lg flex items-center">
+              <Zap className="w-5 h-5 text-amber-400 mr-2 animate-pulse" />
+              Challenge yourself, earn rewards, and climb the leaderboard!
+            </p>
           </div>
         </div>
 
         {progress && (
-          <div className="text-center bg-slate-700 bg-opacity-40 rounded-lg p-4 shadow-inner">
-            <p className="text-xs text-slate-300 uppercase">Your Level</p>
-            <p className="text-4xl font-extrabold text-indigo-400">{progress.level}</p>
-            <p className="text-sm text-slate-400">{progress.totalPoints.toLocaleString()} pts</p>
+          <div className="text-center bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/20 hover:scale-105 transition-transform duration-300">
+            <div className="flex items-center justify-center mb-2">
+              <Crown className="w-5 h-5 text-amber-400 mr-2" />
+              <p className="text-xs text-gray-300 uppercase font-bold tracking-wider">Your Level</p>
+            </div>
+            <p className="text-5xl font-extrabold text-transparent bg-gradient-to-br from-amber-300 to-orange-400 bg-clip-text mb-1">
+              {progress.level}
+            </p>
+            <div className="flex items-center justify-center">
+              <Star className="w-4 h-4 text-purple-400 mr-1" />
+              <p className="text-sm text-gray-400 font-semibold">{progress.totalPoints.toLocaleString()} pts</p>
+            </div>
           </div>
         )}
       </div>
     </div>
 
-    {/* Tab Navigation */}
-    <div className="bg-white rounded-xl shadow-lg p-3">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`p-4 rounded-lg text-left transition-all border ${
-              activeTab === tab.id
-                ? 'bg-gradient-to-r from-slate-800 to-black text-white border-slate-700 shadow-lg scale-[1.02]'
-                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50 border-slate-200'
-            }`}
-          >
-            <div className="font-semibold mb-1">{tab.label}</div>
-            <div className={`text-sm ${activeTab === tab.id ? 'text-slate-300' : 'text-slate-500'}`}>
-              {tab.description}
-            </div>
-          </button>
-        ))}
+    {/* Enhanced Tab Navigation */}
+    <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl p-6 border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {tabs.map((tab) => {
+          const IconComponent = tab.icon;
+          const isActive = activeTab === tab.id;
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`group relative p-6 rounded-2xl text-left transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+                isActive
+                  ? `bg-gradient-to-br ${tab.gradient} text-white shadow-2xl border-2 border-white/20`
+                  : 'text-gray-700 hover:text-gray-900 bg-gradient-to-br from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 border-2 border-gray-200 hover:border-gray-300 shadow-lg'
+              }`}
+            >
+              {/* Background glow for active tab */}
+              {isActive && (
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${tab.gradient} blur-xl opacity-50 -z-10 group-hover:opacity-70 transition-opacity`}></div>
+              )}
+              
+              <div className="flex items-center mb-3">
+                <div className={`p-3 rounded-xl mr-4 transition-all duration-300 ${
+                  isActive 
+                    ? 'bg-white/20 backdrop-blur-sm shadow-lg' 
+                    : 'bg-gray-200 group-hover:bg-gray-300'
+                }`}>
+                  <IconComponent className={`w-6 h-6 transition-all duration-300 ${
+                    isActive 
+                      ? 'text-white' 
+                      : 'text-gray-600 group-hover:text-gray-800'
+                  }`} />
+                </div>
+                <div className={`font-bold text-xl transition-all duration-300 ${
+                  isActive ? 'text-white' : 'text-gray-800'
+                }`}>
+                  {tab.label}
+                </div>
+              </div>
+              
+              <div className={`text-sm leading-relaxed transition-all duration-300 ${
+                isActive ? 'text-white/90' : 'text-gray-600'
+              }`}>
+                {tab.description}
+              </div>
+              
+              {/* Floating elements for active tab */}
+              {isActive && (
+                <>
+                  <Sparkles className="absolute top-4 right-4 w-4 h-4 text-white/60 animate-pulse" />
+                  <div className="absolute bottom-4 right-4 flex space-x-1">
+                    <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce delay-100"></div>
+                    <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce delay-200"></div>
+                  </div>
+                </>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
 
@@ -186,50 +299,95 @@ return (
       )}
     </div>
 
-    {/* Motivation Footer */}
-    <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-6 border border-slate-200 shadow-sm">
-      <div className="flex items-start">
-        <div className="bg-slate-200 p-3 rounded-lg mr-4">
-          <Star className="w-6 h-6 text-yellow-500" />
+    {/* Enhanced Motivation Footer */}
+    <div className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-8 border border-emerald-200 shadow-xl relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-6 right-8 w-20 h-20 bg-gradient-to-br from-emerald-300 to-teal-400 rounded-full blur-xl"></div>
+        <div className="absolute bottom-6 left-8 w-16 h-16 bg-gradient-to-br from-cyan-300 to-blue-400 rounded-full blur-lg"></div>
+      </div>
+      
+      <div className="flex items-start relative z-10">
+        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-4 rounded-2xl mr-6 shadow-xl">
+          <Star className="w-8 h-8 text-white" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl"></div>
         </div>
-        <div>
-          <h4 className="text-lg font-semibold text-slate-900 mb-2">Stay Motivated!</h4>
-          <div className="grid md:grid-cols-2 gap-4 text-sm text-slate-700">
-            <div>
-              <h5 className="font-medium text-slate-900 mb-1">Daily Goals:</h5>
-              <ul className="space-y-1">
-                <li className="flex items-center">
-                  <Flame className="w-4 h-4 text-green-500 mr-2" />
-                  Log at least one training session
+        <div className="flex-1">
+          <div className="flex items-center mb-4">
+            <h4 className="text-2xl font-bold text-gray-800 mr-3">Stay Motivated!</h4>
+            <Sparkles className="w-6 h-6 text-emerald-500 animate-pulse" />
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-8 text-sm">
+            {/* Daily Goals Section */}
+            <div className="bg-gradient-to-br from-white/80 to-emerald-50/80 backdrop-blur-sm p-6 rounded-xl border border-emerald-200 shadow-lg">
+              <div className="flex items-center mb-4">
+                <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-2 rounded-lg mr-3">
+                  <Flame className="w-5 h-5 text-white" />
+                </div>
+                <h5 className="text-lg font-bold text-gray-800">Daily Goals</h5>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-center group hover:scale-105 transition-transform">
+                  <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-1.5 rounded-lg mr-3 shadow-md">
+                    <Zap className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-gray-700 group-hover:text-gray-900 font-medium">Log at least one training session</span>
                 </li>
-                <li className="flex items-center">
-                  <Flame className="w-4 h-4 text-green-500 mr-2" />
-                  Check available quests
+                <li className="flex items-center group hover:scale-105 transition-transform">
+                  <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-1.5 rounded-lg mr-3 shadow-md">
+                    <Target className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-gray-700 group-hover:text-gray-900 font-medium">Check available quests</span>
                 </li>
-                <li className="flex items-center">
-                  <Flame className="w-4 h-4 text-green-500 mr-2" />
-                  Maintain your streak
+                <li className="flex items-center group hover:scale-105 transition-transform">
+                  <div className="bg-gradient-to-br from-green-400 to-emerald-500 p-1.5 rounded-lg mr-3 shadow-md">
+                    <Flame className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-gray-700 group-hover:text-gray-900 font-medium">Maintain your streak</span>
                 </li>
               </ul>
             </div>
-            <div>
-              <h5 className="font-medium text-slate-900 mb-1">Weekly Challenges:</h5>
-              <ul className="space-y-1">
-                <li className="flex items-center">
-                  <Target className="w-4 h-4 text-indigo-500 mr-2" />
-                  Complete 3 active quests
+            
+            {/* Weekly Challenges Section */}
+            <div className="bg-gradient-to-br from-white/80 to-purple-50/80 backdrop-blur-sm p-6 rounded-xl border border-purple-200 shadow-lg">
+              <div className="flex items-center mb-4">
+                <div className="bg-gradient-to-br from-purple-500 to-indigo-600 p-2 rounded-lg mr-3">
+                  <Award className="w-5 h-5 text-white" />
+                </div>
+                <h5 className="text-lg font-bold text-gray-800">Weekly Challenges</h5>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-center group hover:scale-105 transition-transform">
+                  <div className="bg-gradient-to-br from-indigo-400 to-purple-500 p-1.5 rounded-lg mr-3 shadow-md">
+                    <Target className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-gray-700 group-hover:text-gray-900 font-medium">Complete 3 active quests</span>
                 </li>
-                <li className="flex items-center">
-                  <Target className="w-4 h-4 text-indigo-500 mr-2" />
-                  Earn 100+ points
+                <li className="flex items-center group hover:scale-105 transition-transform">
+                  <div className="bg-gradient-to-br from-indigo-400 to-purple-500 p-1.5 rounded-lg mr-3 shadow-md">
+                    <Star className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-gray-700 group-hover:text-gray-900 font-medium">Earn 100+ points</span>
                 </li>
-                <li className="flex items-center">
-                  <Target className="w-4 h-4 text-indigo-500 mr-2" />
-                  Climb 5 spots on leaderboard
+                <li className="flex items-center group hover:scale-105 transition-transform">
+                  <div className="bg-gradient-to-br from-indigo-400 to-purple-500 p-1.5 rounded-lg mr-3 shadow-md">
+                    <Crown className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-gray-700 group-hover:text-gray-900 font-medium">Climb 5 spots on leaderboard</span>
                 </li>
               </ul>
             </div>
           </div>
+        </div>
+      </div>
+      
+      {/* Floating motivational elements */}
+      <div className="absolute top-8 left-1/2 transform -translate-x-1/2">
+        <div className="flex space-x-2">
+          <Sparkles className="w-4 h-4 text-emerald-400 animate-bounce delay-300" />
+          <Sparkles className="w-3 h-3 text-teal-400 animate-bounce delay-700" />
+          <Sparkles className="w-4 h-4 text-cyan-400 animate-bounce delay-1100" />
         </div>
       </div>
     </div>

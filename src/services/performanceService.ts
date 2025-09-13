@@ -104,7 +104,9 @@ export const createTrainingSession = async (sessionData: Omit<TrainingSession, '
 
 export const getTrainingSessions = async (athleteId: string, limitCount: number = 20) => {
   try {
-    // First try with just the athleteId filter to avoid index requirements
+    console.log('🔍 Fetching training sessions for athlete:', athleteId);
+    
+    // Query by athleteId (matches your Firebase structure)
     const q = query(
       collection(db, TRAINING_COLLECTION),
       where('athleteId', '==', athleteId)
@@ -115,14 +117,23 @@ export const getTrainingSessions = async (athleteId: string, limitCount: number 
     
     snapshot.forEach((doc) => {
       const data = doc.data();
+      console.log(`📋 Found session:`, {
+        sport: data.sport,
+        exerciseType: data.exerciseType,
+        distance: data.distance,
+        date: data.date?.toDate?.() || data.date
+      });
+      
       sessions.push({
         id: doc.id,
         ...data,
-        date: data.date.toDate(),
-        createdAt: data.createdAt.toDate(),
-        updatedAt: data.updatedAt.toDate()
+        date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now()),
+        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt || Date.now())
       } as TrainingSession);
     });
+    
+    console.log('📊 Total sessions found:', sessions.length);
     
     // Sort by date in JavaScript instead of Firestore
     sessions.sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -132,6 +143,7 @@ export const getTrainingSessions = async (athleteId: string, limitCount: number 
     
     return { sessions: limitedSessions, success: true, error: null };
   } catch (error: any) {
+    console.error('❌ Error fetching training sessions:', error);
     return { sessions: [], success: false, error: error.message };
   }
 };

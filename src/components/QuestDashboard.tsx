@@ -40,6 +40,22 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
     // Auto-sync quest progress on component mount
     autoSyncQuests();
     
+    // Set up periodic refresh to catch updates from training sessions
+    const refreshInterval = setInterval(() => {
+      console.log('🔄 Periodic quest progress refresh...');
+      autoSyncQuests();
+    }, 30000); // Refresh every 30 seconds
+
+    // Listen for page visibility changes to refresh when user returns
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔍 Page became visible, refreshing quest progress...');
+        autoSyncQuests();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     // Expose test functions globally in development
     if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
       (window as any).testQuestProgress = () => debugQuestProgress(athleteId);
@@ -48,15 +64,30 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
       console.log('  - window.testQuestProgress() - Full debug');
       console.log('  - window.refreshQuests() - Manual refresh');
     }
+
+    // Cleanup interval on unmount
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [athleteId]);
 
   const autoSyncQuests = async () => {
     try {
       const syncResult = await autoSyncQuestProgress(athleteId);
       if (syncResult.success && syncResult.hasUpdates) {
-        console.log('Auto-sync completed with updates');
+        console.log('✅ Auto-sync completed with updates');
         // Refresh data if there were updates
         await fetchQuestData();
+        
+        // Show a brief notification about the updates
+        setRecentUpdates([{ 
+          questId: 'sync', 
+          newProgress: 1, 
+          isCompleted: false 
+        }]);
+        setShowUpdateAnimation(true);
+        setTimeout(() => setShowUpdateAnimation(false), 2000);
       }
     } catch (error) {
       console.error('Auto-sync failed:', error);
@@ -85,11 +116,27 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
   };
 
   const handleStartQuest = async (quest: Quest) => {
+    // Check if the quest is already started or completed
+    const existingQuest = athleteQuests.find(aq => aq.questId === quest.id);
+    
+    if (existingQuest) {
+      if (existingQuest.status === 'active') {
+        alert(`Quest "${quest.title}" is already active! Check your Active quests tab to see your progress.`);
+        return;
+      } else if (existingQuest.status === 'completed') {
+        alert(`Quest "${quest.title}" has already been completed! Check your Completed quests tab to see your achievement.`);
+        return;
+      }
+    }
+
     const result = await startQuest(athleteId, quest);
     if (result.success) {
+      alert(`Quest "${quest.title}" started successfully! Track your progress in the Active tab.`);
       await fetchQuestData();
       // Automatically refresh progress for the new quest
       await handleRefreshProgress();
+    } else {
+      alert(`Failed to start quest "${quest.title}". Please try again.`);
     }
   };
 
@@ -140,13 +187,54 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
   };
 
   const handleDebugQuests = async () => {
-    console.log('🐛 Starting quest debug session...');
+    console.log('🐛 Starting comprehensive quest debug session...');
+    
+    // Debug training sessions first
+    try {
+      const { getTrainingSessions } = await import('@/services/performanceService');
+      const sessionsResult = await getTrainingSessions(athleteId, 50);
+      
+      console.log('📋 Training Sessions Debug:');
+      console.log('- Success:', sessionsResult.success);
+      console.log('- Total Sessions:', sessionsResult.sessions.length);
+      
+      sessionsResult.sessions.forEach((session, index) => {
+        console.log(`Session ${index + 1}:`, {
+          id: session.id,
+          sport: session.sport,
+          exerciseType: session.exerciseType,
+          date: session.date,
+          distance: session.distance,
+          duration: session.duration,
+          athleteId: session.athleteId
+        });
+      });
+    } catch (error) {
+      console.error('❌ Error fetching training sessions:', error);
+    }
+    
+    // Debug active quests
+    console.log('🎯 Active Quests Debug:');
+    athleteQuests.filter(aq => aq.status === 'active').forEach((quest, index) => {
+      console.log(`Active Quest ${index + 1}:`, {
+        title: quest.quest.title,
+        type: quest.quest.type,
+        target: quest.quest.target,
+        currentProgress: quest.progress,
+        requirements: quest.quest.requirements,
+        startedAt: quest.startedAt
+      });
+    });
+    
     await debugQuestProgress(athleteId);
     
     // Also try manual sync
     const syncResult = await manualQuestSync(athleteId);
     if (syncResult.success && syncResult.updates.length > 0) {
+      console.log('🔄 Manual sync found updates:', syncResult.updates);
       await fetchQuestData(); // Refresh the UI
+    } else {
+      console.log('ℹ️ Manual sync found no updates');
     }
   };
 
@@ -236,10 +324,10 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
             {process.env.NODE_ENV === 'development' && (
               <button
                 onClick={handleDebugQuests}
-                className="bg-red-500/20 backdrop-blur-sm p-3 rounded-lg border border-red-400/30 hover:bg-red-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95"
-                title="Debug quest progress (Dev only)"
+                className="bg-yellow-500/20 backdrop-blur-sm p-3 rounded-lg border border-yellow-400/30 hover:bg-yellow-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95"
+                title="Comprehensive debug (Dev only)"
               >
-                <span className="text-red-300 text-sm font-mono">🐛</span>
+                <span className="text-yellow-300 text-sm font-mono">� DEBUG</span>
               </button>
             )}
           </div>
