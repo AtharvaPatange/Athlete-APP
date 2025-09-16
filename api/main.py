@@ -13,7 +13,7 @@ from groq import Groq
 load_dotenv()
 
 # Initialize GROQ client
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = Groq(api_key= os.getenv("GROQ_API_KEY"))
 
 app = FastAPI(title="AthleteApp AI Recovery API", version="1.0.0")
 

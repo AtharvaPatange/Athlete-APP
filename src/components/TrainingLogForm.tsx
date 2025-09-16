@@ -321,7 +321,7 @@ const TrainingSessionForm = () => {
               handleInputChange('sport', e.target.value);
               handleInputChange('exerciseType', 'custom');
             }}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900 text-gray-900 ${
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900 ${
               errors.sport ? 'border-red-300' : 'border-gray-300'
             }`}
           />
@@ -347,7 +347,7 @@ const TrainingSessionForm = () => {
             placeholder="60"
             value={formData.duration}
             onChange={(e) => handleInputChange('duration', e.target.value)}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900 ${
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900 ${
               errors.duration ? 'border-red-300' : 'border-gray-300'
             }`}
           />
@@ -362,7 +362,7 @@ const TrainingSessionForm = () => {
             placeholder="5.0"
             value={formData.distance}
             onChange={(e) => handleInputChange('distance', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
           />
         </div>
 
@@ -372,7 +372,7 @@ const TrainingSessionForm = () => {
             type="date"
             value={formData.date}
             onChange={(e) => handleInputChange('date', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
         </div>
 
@@ -383,7 +383,7 @@ const TrainingSessionForm = () => {
             placeholder="300"
             value={formData.caloriesBurned}
             onChange={(e) => handleInputChange('caloriesBurned', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
           />
         </div>
       </div>
@@ -426,7 +426,7 @@ const TrainingSessionForm = () => {
             placeholder="140"
             value={formData.heartRateAvg}
             onChange={(e) => handleInputChange('heartRateAvg', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
           />
         </div>
 
@@ -437,7 +437,7 @@ const TrainingSessionForm = () => {
             placeholder="180"
             value={formData.heartRateMax}
             onChange={(e) => handleInputChange('heartRateMax', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
           />
         </div>
       </div>
@@ -449,7 +449,7 @@ const TrainingSessionForm = () => {
           placeholder="How did you feel? Any observations about your performance?"
           value={formData.notes}
           onChange={(e) => handleInputChange('notes', e.target.value)}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-900"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
         />
       </div>
     </div>
@@ -466,23 +466,23 @@ const TrainingSessionForm = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Session Info</h4>
-            <p><span className="text-gray-600">Sport:</span> <span className="font-medium">{formData.sport}</span></p>
-            <p><span className="text-gray-600">Activity:</span> <span className="font-medium">{exerciseTypes.find(t => t.id === formData.exerciseType)?.label}</span></p>
-            <p><span className="text-gray-600">Date:</span> <span className="font-medium">{formatDate(formData.date)}</span></p>
-            <p><span className="text-gray-600">Intensity:</span> <span className="font-medium capitalize">{formData.intensity}</span></p>
+            <p><span className="text-gray-600">Sport:</span> <span className="font-medium text-gray-900">{formData.sport}</span></p>
+            <p><span className="text-gray-600">Activity:</span> <span className="font-medium text-gray-900">{exerciseTypes.find(t => t.id === formData.exerciseType)?.label}</span></p>
+            <p><span className="text-gray-600">Date:</span> <span className="font-medium text-gray-900">{formatDate(formData.date)}</span></p>
+            <p><span className="text-gray-600">Intensity:</span> <span className="font-medium capitalize text-gray-900">{formData.intensity}</span></p>
           </div>
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Performance</h4>
-            <p><span className="text-gray-600">Duration:</span> <span className="font-medium">{formData.duration} min</span></p>
-            {formData.distance && <p><span className="text-gray-600">Distance:</span> <span className="font-medium">{formData.distance} km</span></p>}
-            {formData.caloriesBurned && <p><span className="text-gray-600">Calories:</span> <span className="font-medium">{formData.caloriesBurned} kcal</span></p>}
-            {formData.heartRateAvg && <p><span className="text-gray-600">Avg HR:</span> <span className="font-medium">{formData.heartRateAvg} bpm</span></p>}
+            <p><span className="text-gray-600">Duration:</span> <span className="font-medium text-gray-900">{formData.duration} min</span></p>
+            {formData.distance && <p><span className="text-gray-600">Distance:</span> <span className="font-medium text-gray-900">{formData.distance} km</span></p>}
+            {formData.caloriesBurned && <p><span className="text-gray-600">Calories:</span> <span className="font-medium text-gray-900">{formData.caloriesBurned} kcal</span></p>}
+            {formData.heartRateAvg && <p><span className="text-gray-600">Avg HR:</span> <span className="font-medium text-gray-900">{formData.heartRateAvg} bpm</span></p>}
           </div>
         </div>
         {formData.notes && (
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Notes</h4>
-            <p className="text-gray-700 bg-white p-3 rounded border">{formData.notes}</p>
+            <p className="text-gray-900 bg-white p-3 rounded border">{formData.notes}</p>
           </div>
         )}
       </div>

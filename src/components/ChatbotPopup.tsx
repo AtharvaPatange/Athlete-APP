@@ -24,41 +24,43 @@ type WeatherData = {
 
 type UserRole = "athlete" | "coach"
 
-const GEMINI_API_KEY = "AIzaSyAerBoGRKAl_AMK4uGDG1re1u86sNxa28o"
+const GEMINI_API_KEY = "AIzaSyDnSuVub63S7-auBBTbbk2EQnLvCNFSCeE"
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 const OPENWEATHER_API_KEY = "2bed468ad9cd7cec460b4ec6dfd2f58c"
 const OPENWEATHER_API_URL = "https://api.openweathermap.org/data/2.5/weather"
 
+// Fixed voice language codes and names
 const VOICE_LANG_CODES = {
   english: "en-US",
-  spanish: "es-ES",
+  spanish: "es-ES", 
   french: "fr-FR",
   german: "de-DE",
   hindi: "hi-IN",
-  marathi: "mr-IN",
-  gujarati: "gu-IN",
+  marathi: "mr-IN", // Note: Limited TTS support
+  gujarati: "gu-IN", // Note: Limited TTS support  
   bengali: "bn-IN",
   tamil: "ta-IN",
   japanese: "ja-JP"
 } as const
 
+// Updated with valid voice names from Google Cloud TTS
 const VOICE_NAMES = {
-  english: "en-US-Wavenet-D",
-  spanish: "es-ES-Wavenet-A",
-  french: "fr-FR-Wavenet-A",
-  german: "de-DE-Wavenet-A",
-  hindi: "hi-IN-Wavenet-A",
-  marathi: "mr-IN-Wavenet-A",
-  gujarati: "gu-IN-Wavenet-A",
-  bengali: "bn-IN-Wavenet-A",
-  tamil: "ta-IN-Wavenet-A",
-  japanese: "ja-JP-Wavenet-A"
+  english: "en-US-Neural2-D",
+  spanish: "es-ES-Neural2-A", 
+  french: "fr-FR-Neural2-A",
+  german: "de-DE-Neural2-A",
+  hindi: "hi-IN-Neural2-A",
+  marathi: "hi-IN-Neural2-A", // Fallback to Hindi for Marathi
+  gujarati: "hi-IN-Neural2-A", // Fallback to Hindi for Gujarati
+  bengali: "bn-IN-Neural2-A",
+  tamil: "ta-IN-Neural2-A", 
+  japanese: "ja-JP-Neural2-B"
 } as const
 
 const STT_LANG_CODES = {
   english: "en-US",
   spanish: "es-ES",
-  french: "fr-FR",
+  french: "fr-FR", 
   german: "de-DE",
   hindi: "hi-IN",
   marathi: "mr-IN",
@@ -408,16 +410,17 @@ Focus on strategic, evidence-based coaching methods that help develop athletes a
   }
 
   const getGeminiReply = async (text: string) => {
-    const languageInstructions = {
-      english: "Respond ENTIRELY in English language. Do not use any other language.",
-      spanish: "Respond ENTIRELY in Spanish language. Do not use any other language.",
-      french: "Respond ENTIRELY in French language. Do not use any other language.",
-      german: "Respond ENTIRELY in German language. Do not use any other language.",
-      hindi: "Respond ENTIRELY in Hindi language. Do not use any other language. Use Devanagari script.",
-      marathi: "Respond ENTIRELY in Marathi language. Do not use any other language. Use Devanagari script.",
-      gujarati: "Respond ENTIRELY in Gujarati language. Do not use any other language. Use Gujarati script.",
-      bengali: "Respond ENTIRELY in Bengali language. Do not use any other language. Use Bengali script.",
-      tamil: "Respond ENTIRELY in Tamil language. Do not use any other language. Use Tamil script.",
+    try {
+      const languageInstructions = {
+        english: "Respond ENTIRELY in English language. Do not use any other language.",
+        spanish: "Respond ENTIRELY in Spanish language. Do not use any other language.",
+        french: "Respond ENTIRELY in French language. Do not use any other language.",
+        german: "Respond ENTIRELY in German language. Do not use any other language.",
+        hindi: "Respond ENTIRELY in Hindi language. Do not use any other language. Use Devanagari script.",
+        marathi: "Respond ENTIRELY in Marathi language. Do not use any other language. Use Devanagari script.",
+        gujarati: "Respond ENTIRELY in Gujarati language. Do not use any other language. Use Gujarati script.",
+        bengali: "Respond ENTIRELY in Bengali language. Do not use any other language. Use Bengali script.",
+        tamil: "Respond ENTIRELY in Tamil language. Do not use any other language. Use Tamil script.",
       japanese: "Respond ENTIRELY in Japanese language. Do not use any other language. Use Japanese script."
     };
 
@@ -457,45 +460,117 @@ Please respond using markdown formatting with:
 - Proper spacing for readability
 CRITICAL: Your ENTIRE response must be in ${language} language only. Do not mix languages or use English words.`
     
+    console.log("Prompt being sent:", prompt) // Debug log
+    console.log("API URL:", `${GEMINI_API_URL}?key=${GEMINI_API_KEY.substring(0, 10)}...`) // Debug log (partial key)
+    
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
     })
+    
+    if (!response.ok) {
+      console.error("API Response Error:", response.status, response.statusText)
+      const errorData = await response.text()
+      console.error("Error details:", errorData)
+      throw new Error(`API request failed: ${response.status}`)
+    }
+    
     const data = await response.json()
+    console.log("API Response:", data) // Debug log
+    
     const fallbackMessages = {
       english: "Sorry, I couldn't process that.",
       hindi: "माफ़ करें, मैं इसे प्रोसेस नहीं कर सका।",
       marathi: "माफ करा, मी याला प्रक्रिया करू शकलो नाही.",
       gujarati: "માફ કરો, હું આને પ્રક્રિયા કરી શક્યો નથી."
     };
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? fallbackMessages[language as keyof typeof fallbackMessages]
+    
+    // Better response parsing with error handling
+    if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return data.candidates[0].content.parts[0].text
+    } else if (data?.error) {
+      console.error("API Error:", data.error)
+      return fallbackMessages[language as keyof typeof fallbackMessages]
+    } else {
+      console.error("Unexpected response format:", data)
+      return fallbackMessages[language as keyof typeof fallbackMessages]
+    }
+    } catch (error) {
+      console.error("Error in getGeminiReply:", error)
+      const fallbackMessages = {
+        english: "I'm experiencing technical difficulties. Please try again later or check your internet connection.",
+        hindi: "मुझे तकनीकी समस्याओं का सामना कर रहा हूं। कृपया बाद में पुनः प्रयास करें या अपना इंटरनेट कनेक्शन जांचें।",
+        marathi: "मला तांत्रिक अडचणींचा सामना करावा लागत आहे. कृपया नंतर पुन्हा प्रयत्न करा किंवा आपले इंटरनेट कनेक्शन तपासा.",
+        gujarati: "હું તકનીકી મુશ્કેલીઓ અનુભવી રહ્યો છું. કૃપા કરીને પછીથી ફરી પ્રયાસ કરો અથવા તમારું ઇન્ટરનેટ કનેક્શન તપાસો."
+      };
+      return fallbackMessages[language as keyof typeof fallbackMessages]
+    }
   }
 
+  // Fixed TTS function with proper error handling and text length limits
   const speak = async (text: string) => {
     try {
+      // Remove markdown formatting and limit text length to prevent 400 errors
+      const cleanText = text
+        .replace(/[#*_`\[\]]/g, '') // Remove markdown symbols
+        .replace(/\n+/g, ' ') // Replace multiple newlines with space
+        .trim()
+      
+      // Limit text to 500 characters to prevent API errors
+      const truncatedText = cleanText.length > 500 ? cleanText.substring(0, 500) + "..." : cleanText
+      
+      if (!truncatedText || truncatedText.length === 0) {
+        console.warn("No text to speak")
+        return
+      }
+
+      console.log("TTS Request text:", truncatedText)
+      console.log("TTS Language:", language)
+      console.log("TTS Voice:", VOICE_NAMES[language])
+
       const ttsResponse = await fetch(
         "https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyCpu960hVq_cy_dZYf1DUVNrBaWJnpBCuk",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
           body: JSON.stringify({
-            input: { text },
+            input: { text: truncatedText },
             voice: {
               languageCode: VOICE_LANG_CODES[language],
-              name: VOICE_NAMES[language],
+              name: VOICE_NAMES[language]
             },
-            audioConfig: { audioEncoding: "MP3" },
-          }),
-        },
+            audioConfig: { 
+              audioEncoding: "MP3",
+              speakingRate: 1.0,
+              pitch: 0.0
+            }
+          })
+        }
       )
-      const ttsData = await ttsResponse.json()
+      
+      const responseText = await ttsResponse.text()
+      console.log("TTS Response status:", ttsResponse.status)
+      console.log("TTS Response:", responseText)
+      
+      if (!ttsResponse.ok) {
+        console.error("TTS API Error:", responseText)
+        throw new Error(`TTS API error: ${ttsResponse.status}`)
+      }
+      
+      const ttsData = JSON.parse(responseText)
       if (ttsData?.audioContent) {
         const audio = new Audio("data:audio/mp3;base64," + ttsData.audioContent)
-        audio.play()
+        audio.play().catch(err => console.error("Audio play error:", err))
+      } else {
+        console.error("No audioContent in TTS response")
       }
     } catch (err) {
       console.error("TTS Error:", err)
+      // Don't show error to user unless it's critical
     }
   }
 
@@ -515,12 +590,14 @@ CRITICAL: Your ENTIRE response must be in ${language} language only. Do not mix 
     setChat((prev) => [...prev, userMessage])
     setLoading(true)
     try {
+      console.log("Sending message:", input) // Debug log
       const reply = await getGeminiReply(input)
+      console.log("Received reply:", reply) // Debug log
       const botMessage: ChatMessage = { sender: "bot", text: reply }
       setChat((prev) => [...prev, botMessage])
       await speak(reply)
     } catch (err) {
-      console.error(err)
+      console.error("Error in handleSend:", err)
       const errorMessages = {
         english: "Error while talking to the model or TTS.",
         hindi: "मॉडल या TTS से बात करते समय त्रुटि।",
