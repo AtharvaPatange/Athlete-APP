@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { scholarshipService, ScholarshipOpportunity, ScholarshipApplication } from "@/services/scholarshipService";
+import { scholarshipService, ScholarshipOpportunity, ScholarshipApplication, AthleteEligibilityCheck } from "@/services/scholarshipService";
 import { refreshScholarshipsWithAI } from "@/services/scholarshipAIService";
 import OpportunityCard from "./OpportunityCard";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,6 +12,7 @@ export default function ScholarshipDashboard() {
   const [applications, setApplications] = useState<(ScholarshipApplication & { opportunity: ScholarshipOpportunity })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [eligibilityById, setEligibilityById] = useState<Record<string, AthleteEligibilityCheck>>({});
 
   // Load data on component mount
   useEffect(() => {
@@ -20,6 +21,37 @@ export default function ScholarshipDashboard() {
       loadApplications();
     }
   }, [user]);
+
+  useEffect(() => {
+    // When opportunities or user changes, fetch eligibility from backend (age-only criteria)
+    const fetchEligibility = async () => {
+      if (!user?.uid || opportunities.length === 0) return;
+      const entries = await Promise.all(
+        opportunities.map(async (opp) => {
+          try {
+            const result = await scholarshipService.checkEligibility(opp.id, user.uid);
+            return [opp.id, result] as const;
+          } catch (e) {
+            return [opp.id, { isEligible: false, reasons: ["Could not determine eligibility"], fairnessScore: 0, fairnessBreakdown: {
+              baseScore: 0,
+              ruralBonus: 0,
+              incomeBonus: 0,
+              disabilityBonus: 0,
+              regionBonus: 0,
+              performanceScore: 0,
+              totalScore: 0,
+              explanation: [],
+              priorityRanking: 0
+            }} as AthleteEligibilityCheck] as const;
+          }
+        })
+      );
+      const map: Record<string, AthleteEligibilityCheck> = {};
+      entries.forEach(([id, res]) => { map[id] = res; });
+      setEligibilityById(map);
+    };
+    fetchEligibility();
+  }, [opportunities, user]);
 
   const loadOpportunities = async () => {
     try {
@@ -166,6 +198,7 @@ export default function ScholarshipDashboard() {
                       key={opportunity.id}
                       opportunity={opportunity}
                       onApply={handleApplyClick}
+                      eligibilityCheck={eligibilityById[opportunity.id]}
                       hasApplied={!!hasApplied}
                     />
                   );
