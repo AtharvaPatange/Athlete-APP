@@ -197,6 +197,12 @@ export default function DashboardPage() {
           >
             Transparency
           </button>
+          <button
+            onClick={() => router.push('/chat')}
+            className="py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300 flex items-center gap-1"
+          >
+            💬 Community
+          </button>
         </div>
       </div>
 
@@ -371,23 +377,36 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Coming Soon Features */}
-            {/* Coming Soon Features (Square Stack Style) */}
+            {/* Available and Coming Soon Features */}
             <div className="bg-white rounded-lg shadow-lg p-8 border border-gray-200 relative">
-              <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">Coming Soon</h2>
+              <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">Platform Features</h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Available Feature - Community Chat */}
+                <div 
+                  onClick={() => router.push('/chat')}
+                  className="text-center p-6 rounded-xl shadow-md border border-orange-200 bg-orange-50 cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <div className="bg-orange-100 p-4 w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center">
+                    <div className="text-2xl">💬</div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">Community Chat</h3>
+                  <p className="text-gray-600 text-sm mb-3">Connect with athletes, coaches, and get real-time support in our community chat.</p>
+                  <span className="inline-block bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-medium">Available Now</span>
+                </div>
+
+                {/* Coming Soon Features */}
                 {[
                   { title: "Goal Setting", desc: "Set and track your athletic goals with milestone tracking and achievements.", color: "bg-blue-100", icon: "bg-blue-500" },
                   { title: "Team Management", desc: "Create and manage teams, schedule training sessions, and coordinate with teammates.", color: "bg-green-100", icon: "bg-green-500" },
                   { title: "Event Calendar", desc: "Keep track of competitions, training sessions, and important athletic events.", color: "bg-purple-100", icon: "bg-purple-500" },
-                  { title: "Competitions", desc: "Register for competitions and track your performance against other athletes.", color: "bg-yellow-100", icon: "bg-yellow-500" },
                 ].map((item, i) => (
-                  <div key={i} className="text-center p-6 rounded-xl shadow-md border border-gray-100">
+                  <div key={i} className="text-center p-6 rounded-xl shadow-md border border-gray-100 opacity-75">
                     <div className={`${item.color} p-4 w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center`}>
                       <div className={`${item.icon} w-6 h-6 rounded-md`}></div>
                     </div>
                     <h3 className="text-lg font-semibold text-slate-800 mb-2">{item.title}</h3>
-                    <p className="text-gray-600 text-sm">{item.desc}</p>
+                    <p className="text-gray-600 text-sm mb-3">{item.desc}</p>
+                    <span className="inline-block bg-gray-400 text-white text-xs px-2 py-1 rounded-full">Coming Soon</span>
                   </div>
                 ))}
               </div>

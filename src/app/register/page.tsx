@@ -121,7 +121,18 @@ export default function RegisterPage() {
         uid: result.user.uid,
         createdAt: new Date()
       });
-      router.push("/dashboard");
+      
+      // Redirect based on role
+      switch (profile.role) {
+        case 'admin':
+          router.push("/admin");
+          break;
+        case 'coach':
+          router.push("/coach");
+          break;
+        default:
+          router.push("/dashboard");
+      }
     } catch (err: any) {
       setError("Failed to save profile");
     }
@@ -145,8 +156,18 @@ export default function RegisterPage() {
       const userDoc = await getDoc(doc(db, "users", result.user.uid));
       
       if (userDoc.exists()) {
-        // User already exists, redirect to dashboard
-        router.push("/dashboard");
+        // User already exists, redirect based on role
+        const userData = userDoc.data();
+        switch (userData.role) {
+          case 'admin':
+            router.push("/admin");
+            break;
+          case 'coach':
+            router.push("/coach");
+            break;
+          default:
+            router.push("/dashboard");
+        }
       } else {
         // Create a default profile for new Google users
         const defaultProfile = {

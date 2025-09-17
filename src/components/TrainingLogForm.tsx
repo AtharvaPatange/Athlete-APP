@@ -25,8 +25,16 @@ interface FormErrors {
   intensity?: string;
 }
 
-const TrainingSessionForm = () => {
+interface TrainingLogFormProps {
+  athleteId?: string;
+  onSessionAdded?: () => void;
+}
+
+const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps) => {
   const { user } = useAuth();
+  
+  // Use provided athleteId or fallback to current user's uid
+  const currentAthleteId = athleteId || user?.uid || '';
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     sport: '',
@@ -115,12 +123,12 @@ const TrainingSessionForm = () => {
   };
 
   const handleSubmit = async () => {
-    if (!user || !validateStep(currentStep)) return;
+    if (!user || !currentAthleteId || !validateStep(currentStep)) return;
 
     try {
       // Save training session to Firestore with exact field structure
       const trainingSession = {
-        athleteId: user.uid,
+        athleteId: currentAthleteId,
         sport: formData.sport,
         exerciseType: formData.exerciseType,
         duration: parseInt(formData.duration) || 0,
@@ -151,7 +159,7 @@ const TrainingSessionForm = () => {
       }
 
       // Update user's training sessions count
-      const userRef = doc(db, 'users', user.uid);
+      const userRef = doc(db, 'users', currentAthleteId);
       const userDoc = await getDoc(userRef);
       const currentCount = userDoc.data()?.trainingSessionsCount || 0;
       
@@ -170,7 +178,7 @@ const TrainingSessionForm = () => {
         // Wait a bit for the training session to be fully written to Firebase
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        const questProgressResult = await updateAthleteQuestProgress(user.uid);
+        const questProgressResult = await updateAthleteQuestProgress(currentAthleteId);
         console.log('🎯 Quest progress result:', questProgressResult);
         
         if (questProgressResult.success && questProgressResult.updates.length > 0) {
@@ -192,6 +200,11 @@ const TrainingSessionForm = () => {
 
       console.log('Training session data:', formData);
       alert('Training session logged successfully!');
+      
+      // Call the callback if provided
+      if (onSessionAdded) {
+        onSessionAdded();
+      }
       
       // Reset form
       setFormData({
@@ -219,7 +232,7 @@ const TrainingSessionForm = () => {
     try {
       // First training session
       if (sessionCount === 1) {
-        await addAchievement(user.uid, {
+        await addAchievement(currentAthleteId, {
           title: 'First Steps',
           description: 'Logged your first training session',
           type: 'training',
@@ -231,7 +244,7 @@ const TrainingSessionForm = () => {
       // Training milestones
       const milestones = [5, 10, 25, 50, 100];
       if (milestones.includes(sessionCount)) {
-        await addAchievement(user.uid, {
+        await addAchievement(currentAthleteId, {
           title: `${sessionCount} Sessions Strong`,
           description: `Completed ${sessionCount} training sessions`,
           type: 'milestone',
@@ -243,12 +256,12 @@ const TrainingSessionForm = () => {
       // Duration-based achievements
       const duration = parseInt(trainingData.duration) || 0;
       if (duration >= 60) {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, 'users', currentAthleteId);
         const userDoc = await getDoc(userRef);
         const achievements = userDoc.data()?.achievements || [];
         
         if (!achievements.includes('Endurance Warrior')) {
-          await addAchievement(user.uid, {
+          await addAchievement(currentAthleteId, {
             title: 'Endurance Warrior',
             description: 'Completed a training session longer than 60 minutes',
             type: 'performance',
@@ -260,12 +273,12 @@ const TrainingSessionForm = () => {
 
       // Intensity-based achievements
       if (trainingData.intensity === 'high') {
-        const userRef = doc(db, 'users', user.uid);
+        const userRef = doc(db, 'users', currentAthleteId);
         const userDoc = await getDoc(userRef);
         const achievements = userDoc.data()?.achievements || [];
         
         if (!achievements.includes('High Intensity Hero')) {
-          await addAchievement(user.uid, {
+          await addAchievement(currentAthleteId, {
             title: 'High Intensity Hero',
             description: 'Completed a high-intensity training session',
             type: 'performance',
@@ -276,7 +289,7 @@ const TrainingSessionForm = () => {
       }
 
       // Check for additional achievements
-      await checkAndAwardAchievements(user.uid);
+      await checkAndAwardAchievements(currentAthleteId);
     } catch (error) {
       console.error('Error awarding achievements:', error);
     }

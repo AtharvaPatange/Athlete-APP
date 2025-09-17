@@ -150,12 +150,39 @@ export const useAuth = () => {
     }
   };
 
+  const getUserRole = async (uid: string) => {
+    try {
+      const { doc, getDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      const userDoc = await getDoc(doc(db, "users", uid));
+      return userDoc.exists() ? userDoc.data()?.role : null;
+    } catch (error) {
+      console.error('Error getting user role:', error);
+      return null;
+    }
+  };
+
+  const getRedirectPath = (role: string | null) => {
+    switch (role) {
+      case 'admin':
+        return '/admin';
+      case 'coach':
+        return '/coach';
+      case 'athlete':
+        return '/dashboard';
+      default:
+        return '/dashboard';
+    }
+  };
+
   return {
     user,
     loading,
     signIn,
     signUp,
     signInWithGoogle,
-    logout
+    logout,
+    getUserRole,
+    getRedirectPath
   };
 };

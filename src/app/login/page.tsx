@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [loginType, setLoginType] = useState<'athlete' | 'admin'>('athlete');
+  const [loginType, setLoginType] = useState<'athlete' | 'coach' | 'admin'>('athlete');
 
   const handleChange = (e: any) => {
     const { name, value } = e.target;
@@ -42,6 +42,8 @@ export default function LoginPage() {
     // Redirect based on login type
     if (loginType === 'admin') {
       router.push("/admin");
+    } else if (loginType === 'coach') {
+      router.push("/coach");
     } else {
       router.push("/dashboard");
     }
@@ -68,6 +70,8 @@ export default function LoginPage() {
         // Redirect based on existing user role and login type selection
         if (userData.role === 'admin' || loginType === 'admin') {
           router.push("/admin");
+        } else if (userData.role === 'coach' || loginType === 'coach') {
+          router.push("/coach");
         } else {
           router.push("/dashboard");
         }
@@ -111,26 +115,36 @@ export default function LoginPage() {
 
         {/* Login Type Selector */}
         <div className="bg-white rounded-2xl shadow-lg p-2 border border-[#E0E4E9] mb-6">
-          <div className="flex space-x-1">
+          <div className="grid grid-cols-3 gap-1">
             <button
               onClick={() => setLoginType('athlete')}
-              className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
+              className={`flex items-center justify-center px-3 py-3 rounded-lg font-medium text-sm transition-all ${
                 loginType === 'athlete'
                   ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
-              🏃‍♂️ Athlete Login
+              🏃‍♂️ Athlete
+            </button>
+            <button
+              onClick={() => setLoginType('coach')}
+              className={`flex items-center justify-center px-3 py-3 rounded-lg font-medium text-sm transition-all ${
+                loginType === 'coach'
+                  ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
+                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              }`}
+            >
+              🏋️‍♂️ Coach
             </button>
             <button
               onClick={() => setLoginType('admin')}
-              className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
+              className={`flex items-center justify-center px-3 py-3 rounded-lg font-medium text-sm transition-all ${
                 loginType === 'admin'
                   ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
-              🏛️ Admin / Govt
+              🏛️ Admin
             </button>
           </div>
         </div>
