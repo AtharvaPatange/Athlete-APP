@@ -14,6 +14,7 @@ import { autoSyncQuestProgress, getAthleteQuestStats } from "@/services/questMan
 import { Trophy, Zap, Target, CheckCircle, Award, Star, Calendar, Clock, RefreshCw, Sparkles, TrendingUp, BarChart3 } from "lucide-react";
 import QuestCompletionAnimation from "./QuestCompletionAnimation";
 import { debugQuestProgress, manualQuestSync } from "@/utils/questDebugger";
+import { testQuestProgressFlow, testExistingQuestProgress, logTestRunningSession } from "@/utils/questTestHelper";
 
 interface QuestDashboardProps {
   athleteId: string;
@@ -58,11 +59,18 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
     
     // Expose test functions globally in development
     if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-      (window as any).testQuestProgress = () => debugQuestProgress(athleteId);
+      (window as any).testQuestProgress = () => testQuestProgressFlow(athleteId);
+      (window as any).testExistingQuests = () => testExistingQuestProgress(athleteId);
+      (window as any).logTestRun = (distance = 2.5) => logTestRunningSession(athleteId, distance);
       (window as any).refreshQuests = () => handleRefreshProgress();
+      (window as any).debugQuests = () => debugQuestProgress(athleteId);
+      
       console.log('🎯 Quest test functions available:');
-      console.log('  - window.testQuestProgress() - Full debug');
+      console.log('  - window.testQuestProgress() - Complete quest flow test');
+      console.log('  - window.testExistingQuests() - Update existing quests');
+      console.log('  - window.logTestRun(distance) - Log test running session');
       console.log('  - window.refreshQuests() - Manual refresh');
+      console.log('  - window.debugQuests() - Full debug info');
     }
 
     // Cleanup interval on unmount

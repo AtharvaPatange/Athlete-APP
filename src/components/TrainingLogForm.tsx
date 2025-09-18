@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { addAchievement, checkAndAwardAchievements } from '@/services/statsService';
-import { doc, getDoc, updateDoc, arrayUnion, collection, addDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { updateAthleteQuestProgress } from '@/services/questProgressService';
+import { createTrainingSession } from '@/services/performanceService';
 
 interface FormData {
   sport: string;
@@ -126,37 +126,31 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
     if (!user || !currentAthleteId || !validateStep(currentStep)) return;
 
     try {
-      // Save training session to Firestore with exact field structure
+      // Prepare training session data for the service
       const trainingSession = {
         athleteId: currentAthleteId,
         sport: formData.sport,
         exerciseType: formData.exerciseType,
         duration: parseInt(formData.duration) || 0,
         distance: parseFloat(formData.distance) || 0,
-        intensity: formData.intensity,
+        intensity: formData.intensity as 'low' | 'medium' | 'high' | 'peak',
         date: new Date(formData.date),
         notes: formData.notes,
         heartRateAvg: parseInt(formData.heartRateAvg) || 0,
         heartRateMax: parseInt(formData.heartRateMax) || 0,
-        caloriesBurned: parseInt(formData.caloriesBurned) || 0,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        caloriesBurned: parseInt(formData.caloriesBurned) || 0
       };
 
-      console.log('💾 Saving training session to training_sessions:', trainingSession);
+      console.log('💾 Saving training session:', trainingSession);
 
-      // Add to training_sessions collection (correct collection name)
-      const docRef = await addDoc(collection(db, 'training_sessions'), trainingSession);
+      // Use the proper service which handles quest progress automatically
+      const result = await createTrainingSession(trainingSession);
       
-      console.log('✅ Training session saved with ID:', docRef.id);
-      
-      // Verify the session was saved correctly
-      const savedDoc = await getDoc(docRef);
-      if (savedDoc.exists()) {
-        console.log('✅ Verification: Session saved correctly:', savedDoc.data());
-      } else {
-        console.error('❌ Verification: Session not found after saving!');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save training session');
       }
+
+      console.log('✅ Training session saved with ID:', result.id);
 
       // Update user's training sessions count
       const userRef = doc(db, 'users', currentAthleteId);
@@ -171,35 +165,8 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
       // Award training-based achievements
       await awardTrainingAchievements(currentCount + 1, formData);
 
-      // Update quest progress after logging training session
-      try {
-        console.log('🎯 Updating quest progress after training session...');
-        
-        // Wait a bit for the training session to be fully written to Firebase
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const questProgressResult = await updateAthleteQuestProgress(currentAthleteId);
-        console.log('🎯 Quest progress result:', questProgressResult);
-        
-        if (questProgressResult.success && questProgressResult.updates.length > 0) {
-          console.log('✅ Quest progress updated:', questProgressResult.updates);
-          const completedQuests = questProgressResult.updates.filter(u => u.isCompleted);
-          if (completedQuests.length > 0) {
-            alert(`🏆 Congratulations! You completed ${completedQuests.length} quest(s)!\n\nCheck the Quests section to see your achievements!`);
-          } else {
-            const updatedQuests = questProgressResult.updates.length;
-            alert(`🎯 Quest progress updated! ${updatedQuests} quest(s) have new progress.\n\nCheck the Quests section to see your updated progress!`);
-          }
-        } else {
-          console.log('ℹ️ No quest progress updates found');
-        }
-      } catch (questError) {
-        console.error('Error updating quest progress:', questError);
-        // Don't fail the training session if quest update fails
-      }
-
       console.log('Training session data:', formData);
-      alert('Training session logged successfully!');
+      alert('🏆 Training session logged successfully!\n\n🎯 Quest progress has been automatically updated!\n\nCheck the Gamification section to see your quest progress.');
       
       // Call the callback if provided
       if (onSessionAdded) {

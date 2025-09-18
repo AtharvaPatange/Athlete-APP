@@ -58,9 +58,6 @@ export default function Home() {
             <a href="#features" className="transition-colors hover:opacity-80" style={{ color: COLORS.textMuted }}>
               Features
             </a>
-            <a href="#pricing" className="transition-colors hover:opacity-80" style={{ color: COLORS.textMuted }}>
-              Pricing
-            </a>
             <a href="#contact" className="transition-colors hover:opacity-80" style={{ color: COLORS.textMuted }}>
               Contact
             </a>
@@ -119,7 +116,7 @@ export default function Home() {
                     color: COLORS.accent
                   }}
                 >
-                  ▶
+                  ▶️
                 </div>
                 <span style={{ color: COLORS.text }}>Watch Demo</span>
               </button>
@@ -159,6 +156,8 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Existing features */}
+            {/* Existing features with accent color theme icons */}
             <article
               className="group p-8 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer"
               style={{
@@ -171,7 +170,11 @@ export default function Home() {
                 className="w-16 h-16 rounded-xl mb-6 flex items-center justify-center group-hover:scale-110 transition-transform"
                 style={{ background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentLight})` }}
               >
-                <div className="w-8 h-8 bg-white rounded"></div>
+                {/* Performance Analytics Icon - White inner */}
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24">
+                  <path stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17v-2a4 4 0 014-4h10a4 4 0 014 4v2" />
+                  <circle cx="12" cy="7" r="4" stroke="#fff" strokeWidth="2" />
+                </svg>
               </div>
               <h3
                 className="text-2xl font-bold mb-4"
@@ -196,7 +199,11 @@ export default function Home() {
                 className="w-16 h-16 rounded-xl mb-6 flex items-center justify-center group-hover:scale-110 transition-transform"
                 style={{ background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentLight})` }}
               >
-                <div className="w-8 h-8 bg-white rounded-lg"></div>
+                {/* Digital Athlete ID Icon - White inner */}
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24">
+                  <rect x="4" y="4" width="16" height="16" rx="4" stroke="#fff" strokeWidth="2" />
+                  <path stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 8h.01M16 8h.01M8 16h.01M16 16h.01" />
+                </svg>
               </div>
               <h3
                 className="text-2xl font-bold mb-4"
@@ -221,7 +228,11 @@ export default function Home() {
                 className="w-16 h-16 rounded-xl mb-6 flex items-center justify-center group-hover:scale-110 transition-transform"
                 style={{ background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentLight})` }}
               >
-                <div className="w-8 h-8 bg-white rounded-full"></div>
+                {/* Elite Network Icon - White inner */}
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="4" stroke="#fff" strokeWidth="2" />
+                  <path stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.93 4.93a10 10 0 0114.14 0M4.93 19.07a10 10 0 0114.14 0" />
+                </svg>
               </div>
               <h3
                 className="text-2xl font-bold mb-4"
@@ -231,6 +242,83 @@ export default function Home() {
               </h3>
               <p style={{ color: COLORS.textMuted, lineHeight: '1.6' }}>
                 Connect with top-tier coaches, professional teams, and sports organizations worldwide to accelerate your athletic career.
+              </p>
+            </article>
+
+            {/* New features */}
+            {/* New features with accent color theme icons */}
+            <article
+              className="group p-8 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer"
+              style={{
+                backgroundColor: `${COLORS.cardBg}cc`,
+                border: `1px solid ${COLORS.border}`,
+                backdropFilter: 'blur(10px)'
+              }}
+            >
+              <div className="w-16 h-16 rounded-xl mb-6 flex items-center justify-center group-hover:scale-110 transition-transform"
+                style={{ background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentLight})` }}>
+                {/* Nutrition Icon - White inner */}
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24">
+                  <path stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v2m0 0a7 7 0 017 7c0 3.866-3.134 7-7 7s-7-3.134-7-7a7 7 0 017-7zm0 0v2m0 0a5 5 0 015 5c0 2.761-2.239 5-5 5s-5-2.239-5-5a5 5 0 015-5z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold mb-4" style={{ color: COLORS.text }}>
+                Nutrition & Diet Planning
+              </h3>
+              <p style={{ color: COLORS.textMuted, lineHeight: '1.6' }}>
+                Personalized meal plans and nutrition tracking to optimize your athletic performance.
+              </p>
+            </article>
+
+            <article
+              className="group p-8 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer"
+              style={{
+                backgroundColor: `${COLORS.cardBg}cc`,
+                border: `1px solid ${COLORS.border}`,
+                backdropFilter: 'blur(10px)'
+              }}
+            >
+              <div className="w-16 h-16 rounded-xl mb-6 flex items-center justify-center group-hover:scale-110 transition-transform"
+                style={{ background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentLight})` }}>
+                {/* Gamification Hub Icon - PS5 Controller */}
+                <svg className="w-8 h-8" viewBox="0 0 64 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="8" y="12" width="48" height="12" rx="6" stroke="#fff" strokeWidth="2" fill="none"/>
+                  <rect x="16" y="18" width="8" height="6" rx="3" stroke="#fff" strokeWidth="2" fill="#fff"/>
+                  <rect x="40" y="18" width="8" height="6" rx="3" stroke="#fff" strokeWidth="2" fill="#fff"/>
+                  <circle cx="24" cy="24" r="2" fill="#fff"/>
+                  <circle cx="40" cy="24" r="2" fill="#fff"/>
+                  <rect x="28" y="20" width="8" height="4" rx="2" stroke="#fff" strokeWidth="2" fill="none"/>
+                  <circle cx="32" cy="24" r="1" fill="#fff"/>
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold mb-4" style={{ color: COLORS.text }}>
+                Gamification Hub
+              </h3>
+              <p style={{ color: COLORS.textMuted, lineHeight: '1.6' }}>
+                Earn badges, complete challenges, and compete on leaderboards to stay motivated.
+              </p>
+            </article>
+
+            <article
+              className="group p-8 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer"
+              style={{
+                backgroundColor: `${COLORS.cardBg}cc`,
+                border: `1px solid ${COLORS.border}`,
+                backdropFilter: 'blur(10px)'
+              }}
+            >
+              <div className="w-16 h-16 rounded-xl mb-6 flex items-center justify-center group-hover:scale-110 transition-transform"
+                style={{ background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.accentLight})` }}>
+                {/* Injury Management Icon - White inner */}
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24">
+                  <path stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-1.414 1.414M6.343 17.657l-1.414-1.414M12 8v8m0 0a4 4 0 100-8 4 4 0 000 8zm0 0v2m0-2v-2" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold mb-4" style={{ color: COLORS.text }}>
+                Injury Management
+              </h3>
+              <p style={{ color: COLORS.textMuted, lineHeight: '1.6' }}>
+                Track injuries, recovery progress, and get expert advice for safe return to play.
               </p>
             </article>
           </div>

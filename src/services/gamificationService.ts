@@ -711,6 +711,19 @@ export const initializeDefaultQuests = async () => {
         isActive: true
       },
       {
+        title: "5K Runner",
+        description: "Run a total distance of 5km across running sessions",
+        type: "distance",
+        target: 5,
+        points: 100,
+        badge: "5k_runner_badge",
+        icon: "🏃‍♂️",
+        rarity: "bronze",
+        duration: 14,
+        requirements: { sport: "running" },
+        isActive: true
+      },
+      {
         title: "Distance Warrior",
         description: "Cover a total distance of 10km across all training sessions",
         type: "distance",
