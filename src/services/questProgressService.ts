@@ -16,7 +16,8 @@ import {
   QuestType, 
   updateQuestProgress,
   awardPoints,
-  updateAthleteProgress
+  updateAthleteProgress,
+  updateTierProgression
 } from './gamificationService';
 
 // Quest Progress Calculator Service
@@ -135,26 +136,48 @@ const calculateSessionProgress = (
   quest: Quest,
   athleteQuest: AthleteQuest
 ): number => {
+  console.log('🔍 Session Progress Debug:', {
+    totalSessions: sessions.length,
+    questTitle: quest.title,
+    questRequirements: quest.requirements,
+    questStartDate: athleteQuest.startedAt,
+    sessions: sessions.map(s => ({ sport: s.sport, date: s.date, exerciseType: s.exerciseType }))
+  });
+
   // Filter sessions based on quest requirements
   let filteredSessions = sessions;
   
   if (quest.requirements?.sport) {
     filteredSessions = sessions.filter(s => s.sport.toLowerCase() === quest.requirements!.sport!.toLowerCase());
+    console.log('🏃 Sport filtered sessions:', filteredSessions.length);
   }
   
   if (quest.requirements?.intensity) {
     filteredSessions = sessions.filter(s => s.intensity === quest.requirements!.intensity);
+    console.log('💪 Intensity filtered sessions:', filteredSessions.length);
   }
   
   if (quest.requirements?.minDuration) {
     filteredSessions = sessions.filter(s => s.duration >= quest.requirements!.minDuration!);
+    console.log('⏱️ Duration filtered sessions:', filteredSessions.length);
   }
   
-  // Count sessions since quest started
+  // Count sessions since quest started (with 24-hour lookback for better UX)
   const questStartDate = athleteQuest.startedAt;
-  const relevantSessions = filteredSessions.filter(s => s.date >= questStartDate);
+  const lookbackDate = new Date(questStartDate.getTime() - (24 * 60 * 60 * 1000)); // 24 hours before quest start
+  const relevantSessions = filteredSessions.filter(s => s.date >= lookbackDate);
   
-  return Math.min(relevantSessions.length, quest.target);
+  console.log('📅 Sessions after date filter:', {
+    questStartDate,
+    lookbackDate,
+    relevantSessionsCount: relevantSessions.length,
+    relevantSessions: relevantSessions.map(s => ({ sport: s.sport, date: s.date }))
+  });
+  
+  const progress = Math.min(relevantSessions.length, quest.target);
+  console.log('📊 Final session progress:', progress);
+  
+  return progress;
 };
 
 /**
@@ -364,6 +387,125 @@ const calculateIntensityProgress = (
 };
 
 /**
+ * Calculate progress for speed-based quests
+ * Tracks sessions that meet minimum speed requirements
+ */
+const calculateSpeedProgress = (
+  sessions: TrainingSession[], 
+  quest: Quest,
+  athleteQuest: AthleteQuest
+): number => {
+  const questStartDate = athleteQuest.startedAt;
+  
+  let filteredSessions = sessions.filter(s => s.date >= questStartDate);
+  
+  // Filter by sport if specified
+  if (quest.requirements?.sport) {
+    const requiredSport = quest.requirements.sport.toLowerCase();
+    filteredSessions = filteredSessions.filter(s => {
+      const sessionSport = s.sport?.toLowerCase() || '';
+      const sessionExerciseType = s.exerciseType?.toLowerCase() || '';
+      return sessionSport === requiredSport || 
+             sessionExerciseType === requiredSport ||
+             sessionSport.includes(requiredSport) ||
+             sessionExerciseType.includes(requiredSport);
+    });
+  }
+  
+  // Filter by minimum distance if specified
+  if (quest.requirements?.minDistance) {
+    filteredSessions = filteredSessions.filter(s => (s.distance || 0) >= quest.requirements!.minDistance!);
+  }
+  
+  // Calculate speed and filter by minimum speed
+  if (quest.requirements?.minSpeed) {
+    filteredSessions = filteredSessions.filter(s => {
+      if (!s.distance || !s.duration || s.distance === 0 || s.duration === 0) return false;
+      
+      // Calculate speed: distance (km) / time (hours)
+      const timeInHours = s.duration / 60;
+      const speed = s.distance / timeInHours;
+      
+      return speed >= quest.requirements!.minSpeed!;
+    });
+  }
+  
+  return Math.min(filteredSessions.length, quest.target);
+};
+
+/**
+ * Calculate progress for endurance-based quests
+ * Tracks cumulative metrics like calories burned
+ */
+const calculateEnduranceProgress = (
+  sessions: TrainingSession[], 
+  quest: Quest,
+  athleteQuest: AthleteQuest
+): number => {
+  const questStartDate = athleteQuest.startedAt;
+  
+  let filteredSessions = sessions.filter(s => s.date >= questStartDate);
+  
+  // Filter by sport if specified
+  if (quest.requirements?.sport) {
+    const requiredSport = quest.requirements.sport.toLowerCase();
+    filteredSessions = filteredSessions.filter(s => {
+      const sessionSport = s.sport?.toLowerCase() || '';
+      const sessionExerciseType = s.exerciseType?.toLowerCase() || '';
+      return sessionSport === requiredSport || 
+             sessionExerciseType === requiredSport ||
+             sessionSport.includes(requiredSport) ||
+             sessionExerciseType.includes(requiredSport);
+    });
+  }
+  
+  // Filter by minimum calories if specified
+  if (quest.requirements?.minCalories) {
+    filteredSessions = filteredSessions.filter(s => (s.caloriesBurned || 0) >= quest.requirements!.minCalories!);
+  }
+  
+  // Calculate total calories burned
+  const totalCalories = filteredSessions.reduce((sum, session) => {
+    return sum + (session.caloriesBurned || 0);
+  }, 0);
+  
+  return Math.min(totalCalories, quest.target);
+};
+
+/**
+ * Calculate progress for strength-based quests
+ * Tracks strength training sessions and metrics
+ */
+const calculateStrengthProgress = (
+  sessions: TrainingSession[], 
+  quest: Quest,
+  athleteQuest: AthleteQuest
+): number => {
+  const questStartDate = athleteQuest.startedAt;
+  
+  let filteredSessions = sessions.filter(s => s.date >= questStartDate);
+  
+  // Filter for strength/weightlifting sessions
+  filteredSessions = filteredSessions.filter(s => {
+    const sessionSport = s.sport?.toLowerCase() || '';
+    const sessionExerciseType = s.exerciseType?.toLowerCase() || '';
+    
+    return sessionSport.includes('weight') ||
+           sessionSport.includes('strength') ||
+           sessionExerciseType.includes('weight') ||
+           sessionExerciseType.includes('strength') ||
+           sessionExerciseType === 'weightlifting';
+  });
+  
+  // Filter by minimum duration if specified
+  if (quest.requirements?.minDuration) {
+    filteredSessions = filteredSessions.filter(s => s.duration >= quest.requirements!.minDuration!);
+  }
+  
+  return Math.min(filteredSessions.length, quest.target);
+};
+
+/**
  * Calculate progress based on quest type
  */
 export const calculateQuestProgress = (
@@ -386,6 +528,12 @@ export const calculateQuestProgress = (
       return calculateWeeklyProgress(sessions, quest, athleteQuest);
     case 'intensity':
       return calculateIntensityProgress(sessions, quest, athleteQuest);
+    case 'speed':
+      return calculateSpeedProgress(sessions, quest, athleteQuest);
+    case 'endurance':
+      return calculateEnduranceProgress(sessions, quest, athleteQuest);
+    case 'strength':
+      return calculateStrengthProgress(sessions, quest, athleteQuest);
     case 'monthly':
       // For monthly quests, use session progress but filter by month
       return calculateSessionProgress(sessions, quest, athleteQuest);
@@ -501,6 +649,22 @@ export const updateAthleteQuestProgress = async (athleteId: string): Promise<{
             questCompleted: true,
             streakUpdate: athleteQuest.quest.type === 'consistency'
           });
+          
+          // Update tier progression
+          try {
+            const tierResult = await updateTierProgression(athleteId, athleteQuest.quest);
+            if (tierResult.success) {
+              if (tierResult.medalAwarded) {
+                console.log(`🏅 Medal awarded for ${tierResult.medalAwarded} tier!`);
+              }
+              if (tierResult.tierUnlocked) {
+                console.log(`🔓 ${tierResult.tierUnlocked} tier unlocked!`);
+              }
+            }
+          } catch (tierError) {
+            console.error('Error updating tier progression:', tierError);
+            // Don't fail quest completion if tier update fails
+          }
         }
         
         // Add to batch update

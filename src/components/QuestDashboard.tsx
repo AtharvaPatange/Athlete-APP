@@ -7,11 +7,18 @@ import {
   Quest,
   AthleteQuest,
   getRarityColor,
-  BadgeRarity
+  BadgeRarity,
+  QuestTier,
+  QuestType,
+  getAvailableQuestsForAthlete,
+  getAthleteTierProgress,
+  AthleteTierProgress,
+  initializeAthleteTierProgress,
+  createQuest
 } from "@/services/gamificationService";
 import { updateAthleteQuestProgress, QuestProgressUpdate } from "@/services/questProgressService";
 import { autoSyncQuestProgress, getAthleteQuestStats } from "@/services/questManagementService";
-import { Trophy, Zap, Target, CheckCircle, Award, Star, Calendar, Clock, RefreshCw, Sparkles, TrendingUp, BarChart3 } from "lucide-react";
+import { Trophy, Zap, Target, CheckCircle, Award, Star, Calendar, Clock, RefreshCw, Sparkles, TrendingUp, BarChart3, Lock } from "lucide-react";
 import QuestCompletionAnimation from "./QuestCompletionAnimation";
 import { debugQuestProgress, manualQuestSync } from "@/utils/questDebugger";
 import { testQuestProgressFlow, testExistingQuestProgress, logTestRunningSession } from "@/utils/questTestHelper";
@@ -23,8 +30,10 @@ interface QuestDashboardProps {
 export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
   const [activeQuests, setActiveQuests] = useState<Quest[]>([]);
   const [athleteQuests, setAthleteQuests] = useState<AthleteQuest[]>([]);
+  const [tierProgress, setTierProgress] = useState<AthleteTierProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState<'available' | 'active' | 'completed'>('available');
+  const [selectedTier, setSelectedTier] = useState<QuestTier>('bronze');
   const [refreshing, setRefreshing] = useState(false);
   const [recentUpdates, setRecentUpdates] = useState<QuestProgressUpdate[]>([]);
   const [showUpdateAnimation, setShowUpdateAnimation] = useState(false);
@@ -35,6 +44,139 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
     icon: string;
   } | null>(null);
   const [showCompletionAnimation, setShowCompletionAnimation] = useState(false);
+
+  // Helper function to get available quests for current tier
+  const getAvailableTierQuests = () => {
+    if (!tierProgress) return [];
+    
+    // Only show quests from unlocked tiers, specifically the selected tier
+    const tierInfo = tierProgress.tiers[selectedTier];
+    if (!tierInfo || !tierInfo.isUnlocked) return [];
+    
+    return activeQuests.filter(quest => quest.tier === selectedTier);
+  };
+
+  // Helper function to check if tier is unlocked
+  const isTierUnlocked = (tier: QuestTier): boolean => {
+    if (!tierProgress) return tier === 'bronze';
+    return tierProgress.tiers[tier]?.isUnlocked || false;
+  };
+
+  // Helper function to check if tier is completed
+  const isTierCompleted = (tier: QuestTier): boolean => {
+    if (!tierProgress) return false;
+    return tierProgress.tiers[tier]?.isMedalAwarded || false;
+  };
+
+  // Helper function to get tier progress percentage
+  const getTierProgress = (tier: QuestTier): number => {
+    if (!tierProgress) return 0;
+    const tierInfo = tierProgress.tiers[tier];
+    if (!tierInfo) return 0;
+    return tierInfo.totalQuests > 0 ? (tierInfo.completedQuests / tierInfo.totalQuests) * 100 : 0;
+  };
+
+  // Setup quest system function
+  const handleSetupQuestSystem = async () => {
+    setLoading(true);
+    console.log('🚀 Setting up quest system...');
+    
+    try {
+      // Bronze tier quests that will be immediately available
+      const bronzeQuests = [
+        {
+          title: "First Steps",
+          description: "Complete your first training session and begin your athletic journey",
+          type: 'sessions' as QuestType,
+          target: 1,
+          points: 10,
+          duration: 7,
+          rarity: 'common' as BadgeRarity,
+          tier: 'bronze' as QuestTier,
+          questOrder: 1,
+          icon: "👟",
+          badge: "first-steps-badge",
+          isActive: true,
+          requirements: {}
+        },
+        {
+          title: "Distance Explorer", 
+          description: "Run a total distance of 5 kilometers across multiple sessions",
+          type: 'distance' as QuestType,
+          target: 5,
+          points: 15,
+          duration: 14,
+          rarity: 'common' as BadgeRarity,
+          tier: 'bronze' as QuestTier,
+          questOrder: 2,
+          icon: "🏃",
+          isActive: true,
+          requirements: { sport: 'running' }
+        },
+        {
+          title: "Consistency Builder",
+          description: "Log training sessions for 3 consecutive days",
+          type: 'consistency' as QuestType,
+          target: 3,
+          points: 20,
+          duration: 7,
+          rarity: 'uncommon' as BadgeRarity,
+          tier: 'bronze' as QuestTier,
+          questOrder: 3,
+          icon: "📅",
+          badge: "consistency-builder-badge",
+          isActive: true,
+          requirements: {}
+        },
+        {
+          title: "Time Commitment",
+          description: "Accumulate 2 hours of total training time",
+          type: 'duration' as QuestType,
+          target: 120,
+          points: 25,
+          duration: 14,
+          rarity: 'uncommon' as BadgeRarity,
+          tier: 'bronze' as QuestTier,
+          questOrder: 4,
+          icon: "⏱️",
+          isActive: true,
+          requirements: {}
+        }
+      ];
+
+      console.log('Creating Bronze tier quests...');
+      let createdCount = 0;
+      
+      for (const questData of bronzeQuests) {
+        try {
+          const result = await createQuest(questData);
+          if (result.success) {
+            createdCount++;
+            console.log(`✅ Created: ${questData.title}`);
+          } else {
+            console.error(`❌ Failed to create: ${questData.title}`, result.error);
+          }
+        } catch (error) {
+          console.error(`💥 Error creating ${questData.title}:`, error);
+        }
+      }
+
+      console.log('Initializing athlete tier progress...');
+      await initializeAthleteTierProgress(athleteId);
+      
+      console.log('Refreshing quest data...');
+      await fetchQuestData();
+      
+      console.log(`🎉 Setup complete! Created ${createdCount}/4 Bronze quests`);
+      alert(`Quest system setup complete!\nCreated ${createdCount}/4 Bronze tier quests.\nYou should now see available quests!`);
+      
+    } catch (error) {
+      console.error('💥 Quest setup failed:', error);
+      alert('Quest setup failed. Check console for details.');
+    }
+    
+    setLoading(false);
+  };
 
   useEffect(() => {
     fetchQuestData();
@@ -105,19 +247,30 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
   const fetchQuestData = async () => {
     setLoading(true);
     
-    const [questsResult, athleteQuestsResult] = await Promise.all([
-      getActiveQuests(),
-      getAthleteQuests(athleteId)
-    ]);
-    
-    if (questsResult.success) {
-      const startedQuestIds = athleteQuestsResult.athleteQuests.map(aq => aq.questId);
-      const availableQuests = questsResult.quests.filter(q => !startedQuestIds.includes(q.id!));
-      setActiveQuests(availableQuests);
-    }
-    
-    if (athleteQuestsResult.success) {
-      setAthleteQuests(athleteQuestsResult.athleteQuests);
+    try {
+      // Initialize tier progress if it doesn't exist
+      await initializeAthleteTierProgress(athleteId);
+      
+      const [tierResult, availableQuestsResult, athleteQuestsResult] = await Promise.all([
+        getAthleteTierProgress(athleteId),
+        getAvailableQuestsForAthlete(athleteId),
+        getAthleteQuests(athleteId)
+      ]);
+      
+      if (tierResult.success && tierResult.tierProgress) {
+        setTierProgress(tierResult.tierProgress);
+        setSelectedTier(tierResult.tierProgress.currentTier);
+      }
+      
+      if (availableQuestsResult.success) {
+        setActiveQuests(availableQuestsResult.quests);
+      }
+      
+      if (athleteQuestsResult.success) {
+        setAthleteQuests(athleteQuestsResult.athleteQuests);
+      }
+    } catch (error) {
+      console.error('Error fetching quest data:', error);
     }
     
     setLoading(false);
@@ -256,7 +409,7 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
       case 'silver': return <Award className="w-4 h-4 text-gray-400" />;
       case 'gold': return <Award className="w-4 h-4 text-yellow-500" />;
       case 'platinum': return <Award className="w-4 h-4 text-purple-500" />;
-      case 'legendary': return <Trophy className="w-4 h-4 text-orange-500" />;
+      case 'diamond': return <Trophy className="w-4 h-4 text-orange-500" />;
       default: return <Award className="w-4 h-4" />;
     }
   };
@@ -328,6 +481,18 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
               <RefreshCw className={`w-5 h-5 text-white ${refreshing ? 'animate-spin' : ''} group-hover:text-green-300 transition-colors`} />
             </button>
 
+            {/* Quest Setup button (only show if no quests available) */}
+            {activeQuests.length === 0 && (
+              <button
+                onClick={handleSetupQuestSystem}
+                disabled={loading}
+                className="bg-green-500/20 backdrop-blur-sm p-3 rounded-lg border border-green-400/30 hover:bg-green-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50"
+                title="Create tier-based quest system"
+              >
+                <span className="text-green-300 text-sm font-mono">🚀 SETUP QUESTS</span>
+              </button>
+            )}
+
             {/* Debug button (only in development) */}
             {process.env.NODE_ENV === 'development' && (
               <button
@@ -339,6 +504,75 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
               </button>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Tier Progression */}
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl shadow-xl p-6 border border-slate-700">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-white mb-2">Athlete Tier Progression</h2>
+          <p className="text-slate-300">Complete all quests in a tier to unlock the next level and earn medals</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          {(['bronze', 'silver', 'gold', 'platinum', 'diamond'] as QuestTier[]).map((tier, index) => {
+            const isUnlocked = isTierUnlocked(tier);
+            const isCompleted = isTierCompleted(tier);
+            const isCurrent = tierProgress ? tierProgress.currentTier === tier : tier === 'bronze';
+            
+            return (
+              <div
+                key={tier}
+                className={`relative p-4 rounded-lg border-2 transition-all duration-300 ${
+                  isCompleted
+                    ? 'bg-gradient-to-br from-yellow-400/20 to-amber-500/20 border-yellow-400 shadow-lg shadow-yellow-400/20'
+                    : isUnlocked
+                    ? isCurrent
+                      ? 'bg-gradient-to-br from-blue-500/20 to-indigo-600/20 border-blue-400 shadow-lg shadow-blue-400/20'
+                      : 'bg-gradient-to-br from-slate-600/20 to-slate-700/20 border-slate-500 hover:border-slate-400'
+                    : 'bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-slate-700 opacity-50'
+                }`}
+              >
+                {isCompleted && (
+                  <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-900 p-2 rounded-full shadow-lg">
+                    <Award className="w-5 h-5" />
+                  </div>
+                )}
+                
+                <div className="text-center">
+                  <div className="text-2xl mb-2">
+                    {tier === 'bronze' && '🥉'}
+                    {tier === 'silver' && '🥈'}
+                    {tier === 'gold' && '🥇'}
+                    {tier === 'platinum' && '💎'}
+                    {tier === 'diamond' && '💍'}
+                  </div>
+                  <h3 className={`font-bold capitalize mb-1 ${isUnlocked ? 'text-white' : 'text-slate-500'}`}>
+                    {tier}
+                  </h3>
+                  <p className={`text-xs ${isUnlocked ? 'text-slate-300' : 'text-slate-600'}`}>
+                    {isCompleted ? 'Completed!' : isUnlocked ? isCurrent ? 'Current Tier' : 'Available' : 'Locked'}
+                  </p>
+                  
+                  {isUnlocked && !isCompleted && (
+                    <div className="mt-2">
+                      <div className="w-full bg-slate-700 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-blue-400 to-indigo-500 h-2 rounded-full transition-all duration-500"
+                          style={{
+                            width: `${getTierProgress(tier)}%`
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {tierProgress?.tiers[tier]?.completedQuests || 0} / {tierProgress?.tiers[tier]?.totalQuests || 4} quests
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -377,8 +611,46 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
       <div className="grid gap-6">
         {selectedTab === 'available' && (
           <>
-            {activeQuests.length > 0 ? (
-              activeQuests.map((quest) => (
+            {/* Tier Selection */}
+            <div className="bg-white rounded-xl shadow-lg p-4 border border-slate-100 mb-4">
+              <h3 className="text-lg font-bold text-slate-800 mb-3">Select Tier</h3>
+              <div className="flex flex-wrap gap-2">
+                {(['bronze', 'silver', 'gold', 'platinum', 'diamond'] as QuestTier[]).map((tier) => {
+                  const isUnlocked = isTierUnlocked(tier);
+                  const isSelected = selectedTier === tier;
+                  
+                  return (
+                    <button
+                      key={tier}
+                      onClick={() => isUnlocked ? setSelectedTier(tier) : null}
+                      disabled={!isUnlocked}
+                      className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 transform ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-lg scale-105'
+                          : isUnlocked
+                          ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:scale-105'
+                          : 'bg-slate-50 text-slate-400 cursor-not-allowed opacity-50'
+                      }`}
+                    >
+                      <span className="mr-2">
+                        {tier === 'bronze' && '🥉'}
+                        {tier === 'silver' && '🥈'}
+                        {tier === 'gold' && '🥇'}
+                        {tier === 'platinum' && '💎'}
+                        {tier === 'diamond' && '💍'}
+                      </span>
+                      {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                      {!isUnlocked && (
+                        <Lock className="w-4 h-4 ml-2 inline" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {getAvailableTierQuests().length > 0 ? (
+              getAvailableTierQuests().map((quest) => (
                 <div key={quest.id} className="bg-white rounded-xl shadow-lg p-6 border border-slate-100 hover:border-[#0F172A]/20 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start flex-1">
@@ -386,10 +658,22 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
                       <div className="flex-1">
                         <div className="flex items-center mb-2">
                           <h3 className="text-xl font-bold text-[#0F172A] mr-3 group-hover:text-[#303644] transition-colors duration-300">{quest.title}</h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRarityColor(quest.rarity)} flex items-center gap-1`}>
-                            {getRarityIcon(quest.rarity)}
-                            {quest.rarity.toUpperCase()}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRarityColor(quest.rarity)} flex items-center gap-1`}>
+                              {getRarityIcon(quest.rarity)}
+                              {quest.rarity.toUpperCase()}
+                            </span>
+                            <span className="px-2 py-1 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-full text-xs font-medium flex items-center gap-1">
+                              <span>
+                                {selectedTier === 'bronze' && '🥉'}
+                                {selectedTier === 'silver' && '🥈'}
+                                {selectedTier === 'gold' && '🥇'}
+                                {selectedTier === 'platinum' && '💎'}
+                                {selectedTier === 'diamond' && '💍'}
+                              </span>
+                              {selectedTier.toUpperCase()}
+                            </span>
+                          </div>
                         </div>
                         <p className="text-[#303644] mb-4">{quest.description}</p>
                         
@@ -436,8 +720,18 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
             ) : (
               <div className="bg-white rounded-xl shadow-lg p-8 text-center border border-slate-100 hover:shadow-xl transition-shadow duration-300">
                 <Target className="w-16 h-16 text-[#303644]/50 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-[#0F172A] mb-2">No Available Quests</h3>
-                <p className="text-[#303644]">Check back later for new challenges!</p>
+                <h3 className="text-xl font-bold text-[#0F172A] mb-2">
+                  {!isTierUnlocked(selectedTier) 
+                    ? `${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)} Tier Locked`
+                    : `No Available ${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)} Quests`
+                  }
+                </h3>
+                <p className="text-[#303644]">
+                  {!isTierUnlocked(selectedTier)
+                    ? `Complete the previous tier to unlock ${selectedTier} quests!`
+                    : 'All quests in this tier are completed or in progress!'
+                  }
+                </p>
               </div>
             )}
           </>

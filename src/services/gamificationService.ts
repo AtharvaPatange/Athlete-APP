@@ -16,9 +16,10 @@ import {
 import { db } from '@/lib/firebase';
 
 // Quest Types and Interfaces
-export type QuestType = 'distance' | 'sessions' | 'duration' | 'consistency' | 'improvement' | 'social' | 'intensity' | 'weekly' | 'monthly';
+export type QuestType = 'distance' | 'sessions' | 'duration' | 'consistency' | 'improvement' | 'intensity' | 'weekly' | 'monthly' | 'speed' | 'endurance' | 'strength';
 export type QuestStatus = 'active' | 'completed' | 'expired' | 'paused';
-export type BadgeRarity = 'bronze' | 'silver' | 'gold' | 'platinum' | 'legendary';
+export type BadgeRarity = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+export type QuestTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
 
 export interface Quest {
   id?: string;
@@ -30,15 +31,21 @@ export interface Quest {
   badge?: string;
   icon: string;
   rarity: BadgeRarity;
+  tier: QuestTier;
+  questOrder: number; // Order within the tier
   duration: number; // days
   requirements?: {
     sport?: string;
     intensity?: 'low' | 'medium' | 'high' | 'peak';
     minDistance?: number;
     minDuration?: number;
+    minSpeed?: number; // km/h for speed-based quests
+    maxHeartRate?: number;
+    minCalories?: number;
     specificExercise?: string;
     timeFrame?: 'daily' | 'weekly' | 'monthly';
     consistencyDays?: number;
+    previousTierCompleted?: QuestTier;
   };
   createdAt: Date;
   expiresAt: Date;
@@ -75,6 +82,24 @@ export interface AthleteBadge {
   badge: Badge;
   earnedAt: Date;
   questId?: string;
+}
+
+export interface TierProgress {
+  tier: QuestTier;
+  totalQuests: number;
+  completedQuests: number;
+  isUnlocked: boolean;
+  isMedalAwarded: boolean;
+  medalAwardedAt?: Date;
+}
+
+export interface AthleteTierProgress {
+  id?: string;
+  athleteId: string;
+  currentTier: QuestTier;
+  tiers: Record<QuestTier, TierProgress>;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface AthleteProgress {
@@ -114,6 +139,7 @@ const ATHLETE_QUESTS_COLLECTION = 'athlete_quests';
 const BADGES_COLLECTION = 'badges';
 const ATHLETE_BADGES_COLLECTION = 'athlete_badges';
 const ATHLETE_PROGRESS_COLLECTION = 'athlete_progress';
+const ATHLETE_TIER_PROGRESS_COLLECTION = 'athlete_tier_progress';
 
 // Quest Management
 export const createQuest = async (questData: Omit<Quest, 'id' | 'createdAt' | 'expiresAt'>) => {
@@ -645,7 +671,7 @@ export const getRarityColor = (rarity: BadgeRarity): string => {
     case 'silver': return 'text-gray-600 bg-gray-50 border-gray-200';
     case 'gold': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
     case 'platinum': return 'text-purple-600 bg-purple-50 border-purple-200';
-    case 'legendary': return 'text-red-600 bg-red-50 border-red-200';
+    case 'diamond': return 'text-red-600 bg-red-50 border-red-200';
     default: return 'text-gray-600 bg-gray-50 border-gray-200';
   }
 };
@@ -698,119 +724,320 @@ export const initializeDefaultQuests = async () => {
     }
 
     const defaultQuests: Omit<Quest, 'id' | 'createdAt' | 'expiresAt'>[] = [
+      // ===========================================
+      // BRONZE TIER - Beginner Level (Unlocked by default)
+      // ===========================================
       {
         title: "First Steps",
         description: "Complete your first training session to begin your fitness journey",
         type: "sessions",
         target: 1,
-        points: 50,
+        points: 25,
         badge: "first_steps_badge",
         icon: "🚀",
         rarity: "bronze",
+        tier: "bronze",
+        questOrder: 1,
         duration: 30,
         isActive: true
       },
       {
-        title: "5K Runner",
+        title: "Rookie Runner",
+        description: "Run a total distance of 2km to show basic endurance",
+        type: "distance",
+        target: 2,
+        points: 50,
+        badge: "rookie_runner_badge",
+        icon: "🏃‍♀️",
+        rarity: "bronze",
+        tier: "bronze",
+        questOrder: 2,
+        duration: 14,
+        requirements: { sport: "running", minDistance: 0.5 },
+        isActive: true
+      },
+      {
+        title: "Time Keeper",
+        description: "Train for 60 minutes total across all sessions",
+        type: "duration",
+        target: 60,
+        points: 40,
+        badge: "time_keeper_badge",
+        icon: "⏰",
+        rarity: "bronze",
+        tier: "bronze",
+        questOrder: 3,
+        duration: 14,
+        requirements: { minDuration: 15 },
+        isActive: true
+      },
+      {
+        title: "Consistent Starter",
+        description: "Train for 3 days this week",
+        type: "weekly",
+        target: 3,
+        points: 60,
+        badge: "consistent_starter_badge",
+        icon: "📅",
+        rarity: "bronze",
+        tier: "bronze",
+        questOrder: 4,
+        duration: 7,
+        requirements: { timeFrame: "weekly" },
+        isActive: true
+      },
+
+      // ===========================================
+      // SILVER TIER - Intermediate Level
+      // ===========================================
+      {
+        title: "5K Achiever",
         description: "Run a total distance of 5km across running sessions",
         type: "distance",
         target: 5,
         points: 100,
-        badge: "5k_runner_badge",
-        icon: "🏃‍♂️",
-        rarity: "bronze",
-        duration: 14,
-        requirements: { sport: "running" },
-        isActive: true
-      },
-      {
-        title: "Distance Warrior",
-        description: "Cover a total distance of 10km across all training sessions",
-        type: "distance",
-        target: 10,
-        points: 150,
-        badge: "distance_warrior_badge",
+        badge: "5k_achiever_badge",
         icon: "🏃‍♂️",
         rarity: "silver",
+        tier: "silver",
+        questOrder: 1,
         duration: 14,
-        requirements: { minDistance: 1 },
-        isActive: true
-      },
-      {
-        title: "Training Streak",
-        description: "Train for 5 consecutive days without skipping",
-        type: "consistency",
-        target: 5,
-        points: 200,
-        badge: "streak_master_badge",
-        icon: "🔥",
-        rarity: "gold",
-        duration: 10,
-        requirements: { consistencyDays: 5 },
+        requirements: { sport: "running", minDistance: 1 },
         isActive: true
       },
       {
         title: "Endurance Builder",
-        description: "Accumulate 300 minutes of total training time",
+        description: "Accumulate 240 minutes (4 hours) of training time",
         type: "duration",
-        target: 300,
-        points: 175,
-        badge: "endurance_badge",
+        target: 240,
+        points: 125,
+        badge: "endurance_builder_badge",
         icon: "⏱️",
         rarity: "silver",
+        tier: "silver",
+        questOrder: 2,
         duration: 14,
         requirements: { minDuration: 30 },
         isActive: true
       },
       {
-        title: "Session Master",
-        description: "Complete 10 training sessions of any type",
-        type: "sessions",
-        target: 10,
-        points: 300,
-        badge: "session_master_badge",
-        icon: "💪",
-        rarity: "gold",
-        duration: 21,
-        isActive: true
-      },
-      {
-        title: "High Intensity Hero",
-        description: "Complete 3 high or peak intensity training sessions",
-        type: "sessions",
-        target: 3,
-        points: 125,
-        badge: "intensity_hero_badge",
+        title: "Intensity Warrior",
+        description: "Complete 5 high or peak intensity training sessions",
+        type: "intensity",
+        target: 5,
+        points: 150,
+        badge: "intensity_warrior_badge",
         icon: "⚡",
         rarity: "silver",
-        duration: 10,
+        tier: "silver",
+        questOrder: 3,
+        duration: 14,
         requirements: { intensity: "high" },
         isActive: true
       },
       {
-        title: "Weekly Warrior",
-        description: "Train at least 4 times in a single week",
+        title: "Weekly Champion",
+        description: "Train 5 times in a single week",
         type: "weekly",
-        target: 4,
-        points: 100,
-        badge: "weekly_warrior_badge",
-        icon: "📅",
-        rarity: "bronze",
+        target: 5,
+        points: 120,
+        badge: "weekly_champion_badge",
+        icon: "🏆",
+        rarity: "silver",
+        tier: "silver",
+        questOrder: 4,
         duration: 7,
         requirements: { timeFrame: "weekly" },
         isActive: true
       },
+
+      // ===========================================
+      // GOLD TIER - Advanced Level
+      // ===========================================
       {
-        title: "Marathon Distance",
-        description: "Cover a total distance of 42.2km (marathon distance)",
+        title: "10K Master",
+        description: "Run a total distance of 10km with consistent pacing",
+        type: "distance",
+        target: 10,
+        points: 200,
+        badge: "10k_master_badge",
+        icon: "🥇",
+        rarity: "gold",
+        tier: "gold",
+        questOrder: 1,
+        duration: 21,
+        requirements: { sport: "running", minDistance: 2 },
+        isActive: true
+      },
+      {
+        title: "Streak Master",
+        description: "Train for 7 consecutive days without skipping",
+        type: "consistency",
+        target: 7,
+        points: 250,
+        badge: "streak_master_badge",
+        icon: "🔥",
+        rarity: "gold",
+        tier: "gold",
+        questOrder: 2,
+        duration: 14,
+        requirements: { consistencyDays: 7 },
+        isActive: true
+      },
+      {
+        title: "Speed Demon",
+        description: "Complete 3 sessions with average speed above 10 km/h",
+        type: "speed",
+        target: 3,
+        points: 220,
+        badge: "speed_demon_badge",
+        icon: "💨",
+        rarity: "gold",
+        tier: "gold",
+        questOrder: 3,
+        duration: 14,
+        requirements: { minSpeed: 10, minDistance: 1 },
+        isActive: true
+      },
+      {
+        title: "Session Expert",
+        description: "Complete 15 training sessions of any type",
+        type: "sessions",
+        target: 15,
+        points: 300,
+        badge: "session_expert_badge",
+        icon: "💪",
+        rarity: "gold",
+        tier: "gold",
+        questOrder: 4,
+        duration: 21,
+        isActive: true
+      },
+
+      // ===========================================
+      // PLATINUM TIER - Expert Level
+      // ===========================================
+      {
+        title: "Half Marathon Hero",
+        description: "Run a total distance of 21km (half marathon)",
+        type: "distance",
+        target: 21,
+        points: 400,
+        badge: "half_marathon_badge",
+        icon: "🎖️",
+        rarity: "platinum",
+        tier: "platinum",
+        questOrder: 1,
+        duration: 30,
+        requirements: { sport: "running", minDistance: 5 },
+        isActive: true
+      },
+      {
+        title: "Iron Will",
+        description: "Train for 14 consecutive days",
+        type: "consistency",
+        target: 14,
+        points: 500,
+        badge: "iron_will_badge",
+        icon: "⚔️",
+        rarity: "platinum",
+        tier: "platinum",
+        questOrder: 2,
+        duration: 21,
+        requirements: { consistencyDays: 14 },
+        isActive: true
+      },
+      {
+        title: "Calorie Crusher",
+        description: "Burn 2500+ calories across training sessions",
+        type: "endurance",
+        target: 2500,
+        points: 450,
+        badge: "calorie_crusher_badge",
+        icon: "�",
+        rarity: "platinum",
+        tier: "platinum",
+        questOrder: 3,
+        duration: 21,
+        requirements: { minCalories: 200 },
+        isActive: true
+      },
+      {
+        title: "Versatile Athlete",
+        description: "Complete sessions in 4 different sports",
+        type: "sessions",
+        target: 4,
+        points: 350,
+        badge: "versatile_athlete_badge",
+        icon: "🎯",
+        rarity: "platinum",
+        tier: "platinum",
+        questOrder: 4,
+        duration: 21,
+        isActive: true
+      },
+
+      // ===========================================
+      // DIAMOND TIER - Elite Level
+      // ===========================================
+      {
+        title: "Marathon Legend",
+        description: "Run a total distance of 42.2km (full marathon distance)",
         type: "distance",
         target: 42.2,
-        points: 500,
-        badge: "marathon_badge",
-        icon: "🏅",
-        rarity: "legendary",
+        points: 1000,
+        badge: "marathon_legend_badge",
+        icon: "💎",
+        rarity: "diamond",
+        tier: "diamond",
+        questOrder: 1,
+        duration: 60,
+        requirements: { sport: "running", minDistance: 10 },
+        isActive: true
+      },
+      {
+        title: "Elite Endurance",
+        description: "Accumulate 20+ hours (1200 minutes) of training",
+        type: "duration",
+        target: 1200,
+        points: 800,
+        badge: "elite_endurance_badge",
+        icon: "👑",
+        rarity: "diamond",
+        tier: "diamond",
+        questOrder: 2,
         duration: 30,
-        requirements: { minDistance: 5 },
+        requirements: { minDuration: 45 },
+        isActive: true
+      },
+      {
+        title: "Speed Master",
+        description: "Complete 5 sessions with average speed above 15 km/h",
+        type: "speed",
+        target: 5,
+        points: 900,
+        badge: "speed_master_badge",
+        icon: "⚡",
+        rarity: "diamond",
+        tier: "diamond",
+        questOrder: 3,
+        duration: 30,
+        requirements: { minSpeed: 15, minDistance: 2 },
+        isActive: true
+      },
+      {
+        title: "Ultimate Champion",
+        description: "Train for 30 consecutive days",
+        type: "consistency",
+        target: 30,
+        points: 1500,
+        badge: "ultimate_champion_badge",
+        icon: "🏆",
+        rarity: "diamond",
+        tier: "diamond",
+        questOrder: 4,
+        duration: 45,
+        requirements: { consistencyDays: 30 },
         isActive: true
       }
     ];
@@ -835,6 +1062,219 @@ export const initializeDefaultQuests = async () => {
     return { success: true, error: null };
   } catch (error: any) {
     console.error('Error initializing default quests:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ===========================================
+// TIER PROGRESSION SYSTEM
+// ===========================================
+
+/**
+ * Initialize tier progress for a new athlete
+ */
+export const initializeAthleteTierProgress = async (athleteId: string): Promise<{
+  success: boolean;
+  error: string | null;
+}> => {
+  try {
+    // Check if tier progress already exists
+    const existingQuery = query(
+      collection(db, ATHLETE_TIER_PROGRESS_COLLECTION),
+      where('athleteId', '==', athleteId),
+      limit(1)
+    );
+    
+    const existingSnapshot = await getDocs(existingQuery);
+    if (!existingSnapshot.empty) {
+      return { success: true, error: null };
+    }
+
+    // Initialize tier progress with Bronze unlocked by default
+    const tierProgress: Omit<AthleteTierProgress, 'id'> = {
+      athleteId,
+      currentTier: 'bronze',
+      tiers: {
+        bronze: { tier: 'bronze', totalQuests: 4, completedQuests: 0, isUnlocked: true, isMedalAwarded: false },
+        silver: { tier: 'silver', totalQuests: 4, completedQuests: 0, isUnlocked: false, isMedalAwarded: false },
+        gold: { tier: 'gold', totalQuests: 4, completedQuests: 0, isUnlocked: false, isMedalAwarded: false },
+        platinum: { tier: 'platinum', totalQuests: 4, completedQuests: 0, isUnlocked: false, isMedalAwarded: false },
+        diamond: { tier: 'diamond', totalQuests: 4, completedQuests: 0, isUnlocked: false, isMedalAwarded: false }
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await addDoc(collection(db, ATHLETE_TIER_PROGRESS_COLLECTION), {
+      ...tierProgress,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    });
+
+    return { success: true, error: null };
+  } catch (error: any) {
+    console.error('Error initializing athlete tier progress:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Get athlete's tier progression
+ */
+export const getAthleteTierProgress = async (athleteId: string): Promise<{
+  tierProgress: AthleteTierProgress | null;
+  success: boolean;
+  error: string | null;
+}> => {
+  try {
+    const q = query(
+      collection(db, ATHLETE_TIER_PROGRESS_COLLECTION),
+      where('athleteId', '==', athleteId),
+      limit(1)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      // Initialize tier progress if it doesn't exist
+      await initializeAthleteTierProgress(athleteId);
+      return getAthleteTierProgress(athleteId); // Recursive call
+    }
+
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    
+    const tierProgress: AthleteTierProgress = {
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt.toDate(),
+      updatedAt: data.updatedAt.toDate()
+    } as AthleteTierProgress;
+
+    return { tierProgress, success: true, error: null };
+  } catch (error: any) {
+    console.error('Error getting athlete tier progress:', error);
+    return { tierProgress: null, success: false, error: error.message };
+  }
+};
+
+/**
+ * Get available quests for an athlete based on their tier progression
+ */
+export const getAvailableQuestsForAthlete = async (athleteId: string): Promise<{
+  quests: Quest[];
+  success: boolean;
+  error: string | null;
+}> => {
+  try {
+    // Get athlete's tier progress
+    const tierResult = await getAthleteTierProgress(athleteId);
+    if (!tierResult.success || !tierResult.tierProgress) {
+      return { quests: [], success: false, error: tierResult.error };
+    }
+
+    const tierProgress = tierResult.tierProgress;
+    
+    // Get all quests
+    const allQuestsResult = await getActiveQuests();
+    if (!allQuestsResult.success) {
+      return { quests: [], success: false, error: allQuestsResult.error };
+    }
+
+    // Get athlete's started/completed quests
+    const athleteQuestsResult = await getAthleteQuests(athleteId);
+    if (!athleteQuestsResult.success) {
+      return { quests: [], success: false, error: athleteQuestsResult.error };
+    }
+
+    const startedQuestIds = athleteQuestsResult.athleteQuests.map(aq => aq.questId);
+    
+    // Filter quests based on tier access and availability
+    const availableQuests = allQuestsResult.quests.filter(quest => {
+      // Skip if already started
+      if (startedQuestIds.includes(quest.id!)) return false;
+      
+      // Check if tier is unlocked
+      const questTier = quest.tier as QuestTier;
+      const tierInfo = tierProgress.tiers[questTier];
+      
+      return tierInfo?.isUnlocked === true;
+    });
+
+    // Sort by tier and quest order
+    const tierOrder: QuestTier[] = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
+    availableQuests.sort((a, b) => {
+      const aTierIndex = tierOrder.indexOf(a.tier as QuestTier);
+      const bTierIndex = tierOrder.indexOf(b.tier as QuestTier);
+      
+      if (aTierIndex !== bTierIndex) return aTierIndex - bTierIndex;
+      return a.questOrder - b.questOrder;
+    });
+
+    return { quests: availableQuests, success: true, error: null };
+  } catch (error: any) {
+    console.error('Error getting available quests for athlete:', error);
+    return { quests: [], success: false, error: error.message };
+  }
+};
+
+/**
+ * Update tier progression when a quest is completed
+ */
+export const updateTierProgression = async (athleteId: string, completedQuest: Quest): Promise<{
+  success: boolean;
+  error: string | null;
+  tierUnlocked?: QuestTier;
+  medalAwarded?: QuestTier;
+}> => {
+  try {
+    const tierResult = await getAthleteTierProgress(athleteId);
+    if (!tierResult.success || !tierResult.tierProgress) {
+      return { success: false, error: tierResult.error };
+    }
+
+    const tierProgress = tierResult.tierProgress;
+    const completedTier = completedQuest.tier as QuestTier;
+    
+    // Update completed quests count for the tier
+    const updatedTierInfo = { ...tierProgress.tiers[completedTier] };
+    updatedTierInfo.completedQuests += 1;
+    
+    let tierUnlocked: QuestTier | undefined;
+    let medalAwarded: QuestTier | undefined;
+    
+    // Check if tier medal should be awarded
+    if (updatedTierInfo.completedQuests >= updatedTierInfo.totalQuests && !updatedTierInfo.isMedalAwarded) {
+      updatedTierInfo.isMedalAwarded = true;
+      updatedTierInfo.medalAwardedAt = new Date();
+      medalAwarded = completedTier;
+      
+      // Unlock next tier
+      const tierOrder: QuestTier[] = ['bronze', 'silver', 'gold', 'platinum', 'diamond'];
+      const currentTierIndex = tierOrder.indexOf(completedTier);
+      const nextTier = tierOrder[currentTierIndex + 1];
+      
+      if (nextTier && !tierProgress.tiers[nextTier].isUnlocked) {
+        tierProgress.tiers[nextTier].isUnlocked = true;
+        tierProgress.currentTier = nextTier;
+        tierUnlocked = nextTier;
+      }
+    }
+    
+    // Update the tier progress in database
+    tierProgress.tiers[completedTier] = updatedTierInfo;
+    tierProgress.updatedAt = new Date();
+    
+    const tierDocRef = doc(db, ATHLETE_TIER_PROGRESS_COLLECTION, tierProgress.id!);
+    await updateDoc(tierDocRef, {
+      tiers: tierProgress.tiers,
+      currentTier: tierProgress.currentTier,
+      updatedAt: Timestamp.now()
+    });
+
+    return { success: true, error: null, tierUnlocked, medalAwarded };
+  } catch (error: any) {
+    console.error('Error updating tier progression:', error);
     return { success: false, error: error.message };
   }
 };
