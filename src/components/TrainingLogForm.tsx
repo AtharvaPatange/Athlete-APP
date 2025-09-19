@@ -4,6 +4,7 @@ import { addAchievement, checkAndAwardAchievements } from '@/services/statsServi
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { createTrainingSession } from '@/services/performanceService';
+import { Heart, Dumbbell, Zap, Target } from 'lucide-react';
 
 interface FormData {
   category: string; // 'cardio' | 'strength' | 'flexibility' | 'coordination'
@@ -85,28 +86,28 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
     { 
       id: 'cardio', 
       label: 'Cardio', 
-      icon: '❤️',
+      icon: Heart,
       description: 'Running, Cycling, etc.',
       exercises: ['Running', 'Cycling', 'Jogging', 'Treadmill']
     },
     { 
       id: 'strength', 
       label: 'Strength', 
-      icon: '💪',
+      icon: Dumbbell,
       description: 'Bodyweight & resistance exercises',
       exercises: ['Push-ups', 'Squats', 'Pull-ups', 'Deadlifts', 'Bench Press', 'Planks', 'Lunges', 'Burpees']
     },
     { 
       id: 'flexibility', 
       label: 'Flexibility & Balance', 
-      icon: '🧘‍♀️',
+      icon: Zap,
       description: 'Stretching, yoga, mobility drills',
       exercises: ['Yoga', 'Stretching', 'Balance Training', 'Mobility Work']
     },
     { 
       id: 'coordination', 
       label: 'Coordination', 
-      icon: '🎯',
+      icon: Target,
       description: 'Throwing, catching, agility drills',
       exercises: ['Agility Drills', 'Ball Handling', 'Throwing Practice', 'Catching Drills', 'Ladder Drills', 'Cone Drills', 'Reaction Training']
     }
@@ -349,7 +350,7 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-4">Exercise Category</label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {exerciseCategories.map((category) => (
               <button
                 key={category.id}
@@ -365,7 +366,9 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
                 }`}
               >
                 <div className="flex items-start space-x-4">
-                  <div className="text-3xl">{category.icon}</div>
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-700 to-blue-900 flex items-center justify-center text-white shadow-lg">
+                    <category.icon className="w-6 h-6" />
+                  </div>
                   <div className="flex-1">
                     <div className="text-lg font-semibold text-gray-900 mb-1">{category.label}</div>
                     <div className="text-sm text-gray-600">{category.description}</div>
@@ -600,7 +603,7 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
         </div>
 
         {/* Common Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
             <input
@@ -671,7 +674,7 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
         <p className="text-gray-600">Optional: Add heart rate and other performance data</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Average Heart Rate (bpm)</label>
           <input
@@ -690,6 +693,17 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
             placeholder="180"
             value={formData.heartRateMax}
             onChange={(e) => handleInputChange('heartRateMax', e.target.value)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Calories Burned</label>
+          <input
+            type="number"
+            placeholder="300"
+            value={formData.caloriesBurned}
+            onChange={(e) => handleInputChange('caloriesBurned', e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
           />
         </div>
@@ -755,7 +769,7 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Form Container */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="bg-white rounded-xl shadow-lg p-8">
           {/* Progress Header */}
           <div className="mb-8">
