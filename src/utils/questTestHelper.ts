@@ -77,6 +77,7 @@ export const testQuestProgressFlow = async (athleteId: string): Promise<QuestTes
       athleteId: athleteId,
       sport: 'Running',
       exerciseType: 'running',
+      category: 'cardio',
       duration: 30,
       distance: 2.5, // 2.5km run
       intensity: 'medium' as const,
@@ -211,6 +212,7 @@ export const logTestRunningSession = async (athleteId: string, distance: number 
       athleteId: athleteId,
       sport: 'Running',
       exerciseType: 'running',
+      category: 'cardio',
       duration: Math.round(distance * 6), // ~6 min per km
       distance: distance,
       intensity: 'medium' as const,

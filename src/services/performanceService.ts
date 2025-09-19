@@ -21,16 +21,35 @@ export interface TrainingSession {
   athleteId: string;
   date: Date;
   duration: number; // in minutes
-  distance?: number; // in km
   intensity: 'low' | 'medium' | 'high' | 'peak';
-  sport: string;
+  sport: string; // Keep for backward compatibility
   exerciseType: string;
+  category: string; // New: 'cardio' | 'strength' | 'flexibility' | 'coordination'
   notes?: string;
   caloriesBurned?: number;
   heartRateAvg?: number;
   heartRateMax?: number;
   createdAt: Date;
   updatedAt: Date;
+  
+  // Cardio specific fields
+  distance?: number; // in km
+  speed?: number; // in km/h
+  
+  // Strength specific fields
+  sets?: number;
+  reps?: number;
+  weight?: number; // in kg
+  restTime?: number; // in seconds
+  
+  // Flexibility specific fields
+  flexibilityType?: string;
+  targetAreas?: string[];
+  
+  // Coordination specific fields
+  skillLevel?: string;
+  coordinationType?: string;
+  accuracy?: number; // percentage 0-100
 }
 
 // Coach Feedback Interface

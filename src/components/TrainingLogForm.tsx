@@ -6,20 +6,38 @@ import { db } from '@/lib/firebase';
 import { createTrainingSession } from '@/services/performanceService';
 
 interface FormData {
-  sport: string;
+  category: string; // 'cardio' | 'strength' | 'flexibility' | 'coordination'
   exerciseType: string;
   duration: string;
-  distance: string;
   intensity: string;
   date: string;
   notes: string;
   heartRateAvg: string;
   heartRateMax: string;
   caloriesBurned: string;
+  
+  // Cardio specific fields
+  distance?: string;
+  speed?: string;
+  
+  // Strength specific fields
+  sets?: string;
+  reps?: string;
+  weight?: string;
+  restTime?: string;
+  
+  // Flexibility specific fields
+  flexibilityType?: string;
+  targetAreas?: string[];
+  
+  // Coordination specific fields
+  skillLevel?: string;
+  coordinationType?: string;
+  accuracy?: string;
 }
 
 interface FormErrors {
-  sport?: string;
+  category?: string;
   exerciseType?: string;
   duration?: string;
   intensity?: string;
@@ -37,29 +55,61 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
   const currentAthleteId = athleteId || user?.uid || '';
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
-    sport: '',
+    category: '',
     exerciseType: '',
     duration: '',
-    distance: '',
     intensity: '',
     date: new Date().toISOString().split('T')[0],
     notes: '',
     heartRateAvg: '',
     heartRateMax: '',
-    caloriesBurned: ''
+    caloriesBurned: '',
+    
+    // Optional category-specific fields
+    distance: '',
+    speed: '',
+    sets: '',
+    reps: '',
+    weight: '',
+    restTime: '',
+    flexibilityType: '',
+    targetAreas: [],
+    skillLevel: '',
+    coordinationType: '',
+    accuracy: ''
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const exerciseTypes = [
-    { id: 'running', label: 'Running', icon: '🏃‍♂️' },
-    { id: 'cycling', label: 'Cycling', icon: '🚴‍♂️' },
-    { id: 'swimming', label: 'Swimming', icon: '🏊‍♂️' },
-    { id: 'weightlifting', label: 'Weight Lifting', icon: '🏋️‍♂️' },
-    { id: 'cardio', label: 'Cardio', icon: '❤️' },
-    { id: 'flexibility', label: 'Flexibility', icon: '🧘‍♀️' },
-    { id: 'sports_practice', label: 'Sports Practice', icon: '⚽' },
-    { id: 'other', label: 'Other', icon: '🏃‍♀️' }
+  const exerciseCategories = [
+    { 
+      id: 'cardio', 
+      label: 'Cardio', 
+      icon: '❤️',
+      description: 'Running, Cycling, etc.',
+      exercises: ['Running', 'Cycling', 'Jogging', 'Treadmill']
+    },
+    { 
+      id: 'strength', 
+      label: 'Strength', 
+      icon: '💪',
+      description: 'Bodyweight & resistance exercises',
+      exercises: ['Push-ups', 'Squats', 'Pull-ups', 'Deadlifts', 'Bench Press', 'Planks', 'Lunges', 'Burpees']
+    },
+    { 
+      id: 'flexibility', 
+      label: 'Flexibility & Balance', 
+      icon: '🧘‍♀️',
+      description: 'Stretching, yoga, mobility drills',
+      exercises: ['Yoga', 'Stretching', 'Balance Training', 'Mobility Work']
+    },
+    { 
+      id: 'coordination', 
+      label: 'Coordination', 
+      icon: '🎯',
+      description: 'Throwing, catching, agility drills',
+      exercises: ['Agility Drills', 'Ball Handling', 'Throwing Practice', 'Catching Drills', 'Ladder Drills', 'Cone Drills', 'Reaction Training']
+    }
   ];
 
   const intensityLevels = [
@@ -83,11 +133,11 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
     const newErrors: FormErrors = {};
 
     if (step === 1) {
-      if (!formData.sport.trim()) {
-        newErrors.sport = 'Sport is required';
+      if (!formData.category.trim()) {
+        newErrors.category = 'Exercise category is required';
       }
       if (!formData.exerciseType) {
-        newErrors.exerciseType = 'Activity type is required';
+        newErrors.exerciseType = 'Specific exercise is required';
       }
     }
 
@@ -114,7 +164,7 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleInputChange = (field: keyof FormData, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (field in errors && errors[field as keyof FormErrors]) {
@@ -129,16 +179,29 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
       // Prepare training session data for the service
       const trainingSession = {
         athleteId: currentAthleteId,
-        sport: formData.sport,
+        sport: formData.category, // Using category as sport for backward compatibility
         exerciseType: formData.exerciseType,
+        category: formData.category,
         duration: parseInt(formData.duration) || 0,
-        distance: parseFloat(formData.distance) || 0,
+        distance: parseFloat(formData.distance || '0') || 0,
         intensity: formData.intensity as 'low' | 'medium' | 'high' | 'peak',
         date: new Date(formData.date),
         notes: formData.notes,
         heartRateAvg: parseInt(formData.heartRateAvg) || 0,
         heartRateMax: parseInt(formData.heartRateMax) || 0,
-        caloriesBurned: parseInt(formData.caloriesBurned) || 0
+        caloriesBurned: parseInt(formData.caloriesBurned) || 0,
+        
+        // Category-specific fields
+        speed: parseFloat(formData.speed || '0') || 0,
+        sets: parseInt(formData.sets || '0') || 0,
+        reps: parseInt(formData.reps || '0') || 0,
+        weight: parseFloat(formData.weight || '0') || 0,
+        restTime: parseInt(formData.restTime || '0') || 0,
+        flexibilityType: formData.flexibilityType || '',
+        targetAreas: formData.targetAreas || [],
+        skillLevel: formData.skillLevel || '',
+        coordinationType: formData.coordinationType || '',
+        accuracy: parseFloat(formData.accuracy || '0') || 0
       };
 
       console.log('💾 Saving training session:', trainingSession);
@@ -175,16 +238,28 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
       
       // Reset form
       setFormData({
-        sport: '',
+        category: '',
         exerciseType: '',
         duration: '',
-        distance: '',
         intensity: '',
         date: new Date().toISOString().split('T')[0],
         notes: '',
         heartRateAvg: '',
         heartRateMax: '',
-        caloriesBurned: ''
+        caloriesBurned: '',
+        
+        // Optional category-specific fields
+        distance: '',
+        speed: '',
+        sets: '',
+        reps: '',
+        weight: '',
+        restTime: '',
+        flexibilityType: '',
+        targetAreas: [],
+        skillLevel: '',
+        coordinationType: '',
+        accuracy: ''
       });
       setCurrentStep(1);
     } catch (error) {
@@ -262,134 +337,332 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
     }
   };
 
-  const renderStep1 = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">What did you train today?</h2>
-        <p className="text-gray-600">Choose your activity type</p>
-      </div>
+  const renderStep1 = () => {
+    const selectedCategory = exerciseCategories.find(cat => cat.id === formData.category);
+    
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">What type of training did you do?</h2>
+          <p className="text-gray-600">Choose your exercise category</p>
+        </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-4">Activity Type</label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          {exerciseTypes.map((type) => (
-            <button
-              key={type.id}
-              type="button"
-              onClick={() => {
-                handleInputChange('exerciseType', type.id);
-                handleInputChange('sport', type.label);
-              }}
-              className={`p-4 border-2 rounded-lg text-center transition-all hover:shadow-md ${
-                formData.exerciseType === type.id
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400 bg-gray-50 hover:bg-gray-100'
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-4">Exercise Category</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {exerciseCategories.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => {
+                  handleInputChange('category', category.id);
+                  handleInputChange('exerciseType', ''); // Reset exercise type when category changes
+                }}
+                className={`p-6 border-2 rounded-lg text-left transition-all hover:shadow-md ${
+                  formData.category === category.id
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-300 hover:border-gray-400 bg-gray-50 hover:bg-gray-100'
+                }`}
+              >
+                <div className="flex items-start space-x-4">
+                  <div className="text-3xl">{category.icon}</div>
+                  <div className="flex-1">
+                    <div className="text-lg font-semibold text-gray-900 mb-1">{category.label}</div>
+                    <div className="text-sm text-gray-600">{category.description}</div>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+          {errors.category && <p className="mt-2 text-sm text-red-600">{errors.category}</p>}
+        </div>
+
+        {selectedCategory && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-4">
+              Specific {selectedCategory.label} Exercise
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+              {selectedCategory.exercises.map((exercise) => (
+                <button
+                  key={exercise}
+                  type="button"
+                  onClick={() => handleInputChange('exerciseType', exercise)}
+                  className={`p-3 border-2 rounded-lg text-center transition-all hover:shadow-md ${
+                    formData.exerciseType === exercise
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-300 hover:border-gray-400 bg-gray-50 hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <div className="text-sm font-medium">{exercise}</div>
+                </button>
+              ))}
+            </div>
+            
+            <div className="mt-4">
+              <input
+                type="text"
+                placeholder="Or type a custom exercise here..."
+                value={formData.exerciseType}
+                onChange={(e) => handleInputChange('exerciseType', e.target.value)}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900 ${
+                  errors.exerciseType ? 'border-red-300' : 'border-gray-300'
+                }`}
+              />
+            </div>
+            
+            {errors.exerciseType && <p className="mt-2 text-sm text-red-600">{errors.exerciseType}</p>}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderStep2 = () => {
+    const renderCategorySpecificFields = () => {
+      switch (formData.category) {
+        case 'cardio':
+          return (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Distance (m)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="500"
+                  value={formData.distance}
+                  onChange={(e) => handleInputChange('distance', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Average Speed (km/h)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="10.0"
+                  value={formData.speed}
+                  onChange={(e) => handleInputChange('speed', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
+                />
+              </div>
+            </>
+          );
+
+        case 'strength':
+          return (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Sets</label>
+                <input
+                  type="number"
+                  placeholder="3"
+                  value={formData.sets}
+                  onChange={(e) => handleInputChange('sets', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Reps per Set</label>
+                <input
+                  type="number"
+                  placeholder="12"
+                  value={formData.reps}
+                  onChange={(e) => handleInputChange('reps', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Weight (kg)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  placeholder="20"
+                  value={formData.weight}
+                  onChange={(e) => handleInputChange('weight', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Rest Time (seconds)</label>
+                <input
+                  type="number"
+                  placeholder="60"
+                  value={formData.restTime}
+                  onChange={(e) => handleInputChange('restTime', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
+                />
+              </div>
+            </>
+          );
+
+        case 'flexibility':
+          return (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Flexibility Type</label>
+                <select
+                  value={formData.flexibilityType}
+                  onChange={(e) => handleInputChange('flexibilityType', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                >
+                  <option value="">Select type...</option>
+                  <option value="static">Static Stretching</option>
+                  <option value="dynamic">Dynamic Stretching</option>
+                  <option value="yoga">Yoga Flow</option>
+                  <option value="pilates">Pilates</option>
+                  <option value="mobility">Mobility Work</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Target Areas</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Upper Body', 'Lower Body', 'Core', 'Full Body', 'Back', 'Legs', 'Arms', 'Hips'].map((area) => (
+                    <label key={area} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.targetAreas?.includes(area) || false}
+                        onChange={(e) => {
+                          const currentAreas = formData.targetAreas || [];
+                          if (e.target.checked) {
+                            handleInputChange('targetAreas', [...currentAreas, area]);
+                          } else {
+                            handleInputChange('targetAreas', currentAreas.filter(a => a !== area));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{area}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          );
+
+        case 'coordination':
+          return (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Coordination Type</label>
+                <select
+                  value={formData.coordinationType}
+                  onChange={(e) => handleInputChange('coordinationType', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                >
+                  <option value="">Select type...</option>
+                  <option value="agility">Agility Drills</option>
+                  <option value="ball-handling">Ball Handling</option>
+                  <option value="throwing">Throwing Practice</option>
+                  <option value="catching">Catching Drills</option>
+                  <option value="reaction">Reaction Training</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Skill Level</label>
+                <select
+                  value={formData.skillLevel}
+                  onChange={(e) => handleInputChange('skillLevel', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                >
+                  <option value="">Select level...</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Accuracy (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  placeholder="75"
+                  value={formData.accuracy}
+                  onChange={(e) => handleInputChange('accuracy', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
+                />
+              </div>
+            </>
+          );
+
+        default:
+          return null;
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Session Details</h2>
+          <p className="text-gray-600">Tell us about your workout intensity and duration</p>
+        </div>
+
+        {/* Common Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+            <input
+              type="number"
+              placeholder="60"
+              value={formData.duration}
+              onChange={(e) => handleInputChange('duration', e.target.value)}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900 ${
+                errors.duration ? 'border-red-300' : 'border-gray-300'
               }`}
-            >
-              <div className="text-2xl mb-2">{type.icon}</div>
-              <div className="text-sm font-medium text-gray-800">{type.label}</div>
-            </button>
-          ))}
-        </div>
-        
-        <div className="mt-4">
-          <input
-            type="text"
-            placeholder="Or type a custom activity/sport here..."
-            value={formData.sport}
-            onChange={(e) => {
-              handleInputChange('sport', e.target.value);
-              handleInputChange('exerciseType', 'custom');
-            }}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900 ${
-              errors.sport ? 'border-red-300' : 'border-gray-300'
-            }`}
-          />
-        </div>
-        
-        {errors.exerciseType && <p className="mt-2 text-sm text-red-600 ">{errors.exerciseType}</p>}
-      </div>
-    </div>
-  );
+            />
+            {errors.duration && <p className="mt-1 text-sm text-red-600">{errors.duration}</p>}
+          </div>
 
-  const renderStep2 = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Session Details</h2>
-        <p className="text-gray-600">Tell us about your workout intensity and duration</p>
-      </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => handleInputChange('date', e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+            />
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
-          <input
-            type="number"
-            placeholder="60"
-            value={formData.duration}
-            onChange={(e) => handleInputChange('duration', e.target.value)}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900 ${
-              errors.duration ? 'border-red-300' : 'border-gray-300'
-            }`}
-          />
-          {errors.duration && <p className="mt-1 text-sm text-red-600">{errors.duration}</p>}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Calories Burned</label>
+            <input
+              type="number"
+              placeholder="300"
+              value={formData.caloriesBurned}
+              onChange={(e) => handleInputChange('caloriesBurned', e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
+            />
+          </div>
+
+          {/* Category-specific fields */}
+          {renderCategorySpecificFields()}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Distance (km)</label>
-          <input
-            type="number"
-            step="0.1"
-            placeholder="5.0"
-            value={formData.distance}
-            onChange={(e) => handleInputChange('distance', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-          <input
-            type="date"
-            value={formData.date}
-            onChange={(e) => handleInputChange('date', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Calories Burned</label>
-          <input
-            type="number"
-            placeholder="300"
-            value={formData.caloriesBurned}
-            onChange={(e) => handleInputChange('caloriesBurned', e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500 text-gray-900"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-4">Intensity Level</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {intensityLevels.map((level) => (
+              <button
+                key={level.id}
+                type="button"
+                onClick={() => handleInputChange('intensity', level.id)}
+                className={`p-3 border-2 rounded-lg text-center transition-all hover:shadow-md font-medium ${
+                  formData.intensity === level.id
+                    ? `${level.color} border-current`
+                    : 'border-gray-300 hover:border-gray-400 bg-gray-50 text-gray-800 hover:bg-gray-100'
+                }`}
+              >
+                <div className="font-medium">{level.label}</div>
+              </button>
+            ))}
+          </div>
+          {errors.intensity && <p className="mt-2 text-sm text-red-600">{errors.intensity}</p>}
         </div>
       </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-4">Intensity Level</label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {intensityLevels.map((level) => (
-            <button
-              key={level.id}
-              type="button"
-              onClick={() => handleInputChange('intensity', level.id)}
-              className={`p-3 border-2 rounded-lg text-center transition-all hover:shadow-md font-medium ${
-                formData.intensity === level.id
-                  ? `${level.color} border-current`
-                  : 'border-gray-300 hover:border-gray-400 bg-gray-50 text-gray-800 hover:bg-gray-100'
-              }`}
-            >
-              <div className="font-medium">{level.label}</div>
-            </button>
-          ))}
-        </div>
-        {errors.intensity && <p className="mt-2 text-sm text-red-600">{errors.intensity}</p>}
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderStep3 = () => (
     <div className="space-y-6">
@@ -446,15 +719,15 @@ const TrainingSessionForm = ({ athleteId, onSessionAdded }: TrainingLogFormProps
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Session Info</h4>
-            <p><span className="text-gray-600">Sport:</span> <span className="font-medium text-gray-900">{formData.sport}</span></p>
-            <p><span className="text-gray-600">Activity:</span> <span className="font-medium text-gray-900">{exerciseTypes.find(t => t.id === formData.exerciseType)?.label}</span></p>
+            <p><span className="text-gray-600">Category:</span> <span className="font-medium text-gray-900 capitalize">{formData.category}</span></p>
+            <p><span className="text-gray-600">Exercise:</span> <span className="font-medium text-gray-900">{formData.exerciseType}</span></p>
             <p><span className="text-gray-600">Date:</span> <span className="font-medium text-gray-900">{formatDate(formData.date)}</span></p>
             <p><span className="text-gray-600">Intensity:</span> <span className="font-medium capitalize text-gray-900">{formData.intensity}</span></p>
           </div>
           <div>
             <h4 className="font-medium text-gray-900 mb-2">Performance</h4>
             <p><span className="text-gray-600">Duration:</span> <span className="font-medium text-gray-900">{formData.duration} min</span></p>
-            {formData.distance && <p><span className="text-gray-600">Distance:</span> <span className="font-medium text-gray-900">{formData.distance} km</span></p>}
+            {formData.distance && <p><span className="text-gray-600">Distance:</span> <span className="font-medium text-gray-900">{formData.distance} m</span></p>}
             {formData.caloriesBurned && <p><span className="text-gray-600">Calories:</span> <span className="font-medium text-gray-900">{formData.caloriesBurned} kcal</span></p>}
             {formData.heartRateAvg && <p><span className="text-gray-600">Avg HR:</span> <span className="font-medium text-gray-900">{formData.heartRateAvg} bpm</span></p>}
           </div>

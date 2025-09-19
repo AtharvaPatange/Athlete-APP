@@ -18,7 +18,7 @@ interface AthleteStats {
   activeAthletes: number;
   newRegistrations: number;
   byDisability: { enabled: number; disabled: number };
-  bySport: { [key: string]: number };
+  byCategory: { [key: string]: number };
   byRegion: { [key: string]: number };
   byGender: { male: number; female: number; other: number };
 }
@@ -492,7 +492,7 @@ export default function AdminDashboard({ adminId, adminRole }: AdminDashboardPro
           enabled: athletes.filter((a: any) => !a.disability_flag).length,
           disabled: athletes.filter((a: any) => a.disability_flag).length
         },
-        bySport: {},
+        byCategory: {},
         byRegion: {},
         byGender: {
           male: athletes.filter((a: any) => a.gender === 'Male').length,
@@ -501,10 +501,50 @@ export default function AdminDashboard({ adminId, adminRole }: AdminDashboardPro
         }
       };
 
-      // Count by sport and region
+      // Count by category and region
       athletes.forEach((athlete: any) => {
-        if (athlete.sport) {
-          stats.bySport[athlete.sport] = (stats.bySport[athlete.sport] || 0) + 1;
+        // Use category or map from sport for backward compatibility
+        let category = athlete.category;
+        if (!category && athlete.sport) {
+          // Comprehensive mapping of exercises to the 4 main categories
+          const sportToCategory: Record<string, string> = {
+            'Running': 'cardio',
+            'Cycling': 'cardio', 
+            'Swimming': 'cardio',
+            'Jogging': 'cardio',
+            'Treadmill': 'cardio',
+            'Basketball': 'cardio',
+            'Soccer': 'cardio',
+            'Push-ups': 'strength',
+            'Squats': 'strength',
+            'Pull-ups': 'strength',
+            'Deadlifts': 'strength',
+            'Bench Press': 'strength',
+            'Planks': 'strength',
+            'Lunges': 'strength',
+            'Burpees': 'strength',
+            'Weightlifting': 'strength',
+            'Powerlifting': 'strength',
+            'Yoga': 'flexibility',
+            'Stretching': 'flexibility',
+            'Balance Training': 'flexibility',
+            'Mobility Work': 'flexibility',
+            'Pilates': 'flexibility',
+            'Agility Drills': 'coordination',
+            'Ball Handling': 'coordination',
+            'Throwing Practice': 'coordination',
+            'Catching Drills': 'coordination',
+            'Ladder Drills': 'coordination',
+            'Cone Drills': 'coordination',
+            'Reaction Training': 'coordination',
+            'Gymnastics': 'coordination',
+            'Martial Arts': 'coordination'
+          };
+          category = sportToCategory[athlete.sport] || 'cardio'; // default fallback
+        }
+        
+        if (category) {
+          stats.byCategory[category] = (stats.byCategory[category] || 0) + 1;
         }
         if (athlete.region) {
           stats.byRegion[athlete.region] = (stats.byRegion[athlete.region] || 0) + 1;
@@ -904,13 +944,24 @@ export default function AdminDashboard({ adminId, adminRole }: AdminDashboardPro
             </div>
           </div>
 
-          {/* Sports Distribution */}
+          {/* Exercise Categories Distribution */}
           <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-            <h3 className="text-xl font-semibold text-slate-800 mb-4">Athletes by Sport</h3>
+            <h3 className="text-xl font-semibold text-slate-800 mb-4">Athletes by Exercise Category</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={Object.entries(athleteStats.bySport).map(([sport, count]) => ({ sport, count }))}>
+              <BarChart data={Object.entries(athleteStats.byCategory).map(([category, count]) => {
+                const categoryDisplayNames: Record<string, string> = {
+                  'cardio': '❤️ Cardio',
+                  'strength': '💪 Strength',
+                  'flexibility': '🧘‍♀️ Flexibility & Balance',
+                  'coordination': '🎯 Coordination'
+                };
+                return { 
+                  category: categoryDisplayNames[category] || category, 
+                  count 
+                };
+              })}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="sport" />
+                <XAxis dataKey="category" />
                 <YAxis />
                 <Tooltip />
                 <Legend />

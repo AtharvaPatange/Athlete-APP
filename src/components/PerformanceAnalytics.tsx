@@ -86,14 +86,70 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
     }));
   };
 
-  const getSportDistribution = () => {
+  const getCategoryDistribution = () => {
+    // Create mapping to normalize all values to the 4 main categories
+    const categoryMapping: Record<string, string> = {
+      // Main categories (already correct)
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'flexibility': 'flexibility',
+      'coordination': 'coordination',
+      // For backward compatibility with old sport entries
+      'Running': 'cardio',
+      'Cycling': 'cardio', 
+      'Swimming': 'cardio',
+      'Jogging': 'cardio',
+      'Treadmill': 'cardio',
+      'Basketball': 'cardio',
+      'Soccer': 'cardio',
+      'Push-ups': 'strength',
+      'Squats': 'strength',
+      'Pull-ups': 'strength',
+      'Deadlifts': 'strength',
+      'Bench Press': 'strength',
+      'Planks': 'strength',
+      'Lunges': 'strength',
+      'Burpees': 'strength',
+      'Weightlifting': 'strength',
+      'Powerlifting': 'strength',
+      'Yoga': 'flexibility',
+      'Stretching': 'flexibility',
+      'Balance Training': 'flexibility',
+      'Mobility Work': 'flexibility',
+      'Pilates': 'flexibility',
+      'Agility Drills': 'coordination',
+      'Ball Handling': 'coordination',
+      'Throwing Practice': 'coordination',
+      'Catching Drills': 'coordination',
+      'Ladder Drills': 'coordination',
+      'Cone Drills': 'coordination',
+      'Reaction Training': 'coordination',
+      'Gymnastics': 'coordination',
+      'Martial Arts': 'coordination'
+    };
+
+    // Group sessions by normalized categories
     const distribution = sessions.reduce((acc, session) => {
-      acc[session.sport] = (acc[session.sport] || 0) + 1;
+      // Use category field if available, otherwise fall back to sport for backward compatibility
+      const rawCategory = session.category || session.sport || 'Other';
+      
+      // Normalize to one of the 4 main categories
+      const normalizedCategory = categoryMapping[rawCategory] || 'cardio'; // Default to cardio if unknown
+      
+      acc[normalizedCategory] = (acc[normalizedCategory] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    return Object.entries(distribution).map(([sport, count]) => ({
-      name: sport,
+    // Map to display names with icons
+    const categoryDisplayNames: Record<string, string> = {
+      'cardio': '❤️ Cardio',
+      'strength': '💪 Strength', 
+      'flexibility': '🧘‍♀️ Flexibility & Balance',
+      'coordination': '🎯 Coordination'
+    };
+
+    return Object.entries(distribution).map(([category, count]) => ({
+      name: categoryDisplayNames[category] || category,
       value: count,
       percentage: ((count / sessions.length) * 100).toFixed(1)
     }));
@@ -111,7 +167,7 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
 
   const chartData = getChartData();
   const intensityData = getIntensityDistribution();
-  const sportData = getSportDistribution();
+  const categoryData = getCategoryDistribution();
   const stats = getTotalStats();
 
   if (loading) {
@@ -203,7 +259,7 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
           </div>
           <div className="bg-purple-50 p-4 rounded-lg text-center">
             <p className="text-purple-600 text-sm font-medium">Total Distance</p>
-            <p className="text-2xl font-bold text-purple-900">{stats.totalDistance.toFixed(1)}km</p>
+            <p className="text-2xl font-bold text-purple-900">{Math.round(stats.totalDistance)}m</p>
           </div>
           <div className="bg-orange-50 p-4 rounded-lg text-center">
             <p className="text-orange-600 text-sm font-medium">Avg Duration</p>
@@ -211,7 +267,7 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
           </div>
           <div className="bg-pink-50 p-4 rounded-lg text-center">
             <p className="text-pink-600 text-sm font-medium">Avg Distance</p>
-            <p className="text-2xl font-bold text-pink-900">{stats.avgDistance.toFixed(1)}km</p>
+            <p className="text-2xl font-bold text-pink-900">{Math.round(stats.avgDistance)}m</p>
           </div>
         </div>
       </div>
@@ -236,7 +292,7 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
                 labelFormatter={(value) => timeRange === 'week' ? `Week of ${value}` : `Month ${value}`}
                 formatter={(value: any, name: string) => {
                   if (name === 'totalDuration') return [`${value} min`, 'Duration'];
-                  if (name === 'totalDistance') return [`${value} km`, 'Distance'];
+                  if (name === 'totalDistance') return [`${Math.round(value)} m`, 'Distance'];
                   if (name === 'avgIntensity') return [`${value.toFixed(1)}`, 'Avg Intensity'];
                   return [value, name];
                 }}
@@ -315,12 +371,12 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
           )}
         </div>
 
-        {/* Sport Distribution */}
+        {/* Exercise Category Distribution */}
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <h4 className="text-lg font-semibold text-gray-900 mb-4">Sport Distribution</h4>
-        {sportData.length > 0 ? (
+        <h4 className="text-lg font-semibold text-gray-900 mb-4">Exercise Category Distribution</h4>
+        {categoryData.length > 0 ? (
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={sportData}>
+            <BarChart data={categoryData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" /> 
               <XAxis dataKey="name" tick={{ fill: '#374151', fontSize: 12 }} />
               <YAxis tick={{ fill: '#374151', fontSize: 12 }} />
@@ -342,7 +398,7 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
                     barSize={40}
                     animationDuration={800}
                   >
-                    {sportData.map((_, index) => (
+                    {categoryData.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={["#3b82f6", "#a855f7", "#06b6d4", "#f59e0b", "#ef4444", "#10b981"][index % 6]} 
@@ -355,7 +411,7 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
     <div className="h-48 flex items-center justify-center text-gray-700">
       <div className="text-center">
         <div className="text-3xl mb-2">🏃‍♂️</div>
-        <p className="font-medium">No sport data available</p>
+        <p className="font-medium">No exercise data available</p>
       </div>
     </div>
   )}

@@ -23,7 +23,7 @@ interface AthleteStats {
   activeAthletes: number;
   newRegistrations: number;
   byDisability: { enabled: number; disabled: number };
-  bySport: { [key: string]: number };
+  byCategory: { [key: string]: number };
   byRegion: { [key: string]: number };
   byGender: { male: number; female: number; other: number };
 }
@@ -143,7 +143,7 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
           enabled: Math.floor(athleteProfiles.length * 0.85),
           disabled: Math.floor(athleteProfiles.length * 0.15)
         },
-        bySport: {},
+        byCategory: {},
         byRegion: {},
         byGender: {
           male: athleteProfiles.filter(a => a.gender?.toLowerCase() === 'male').length,
@@ -152,10 +152,57 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
         }
       };
 
-      // Group by sport
+      // Group by category (with backward compatibility for sport)
       athleteProfiles.forEach(athlete => {
-        const sport = athlete.sport || 'Other';
-        stats.bySport[sport] = (stats.bySport[sport] || 0) + 1;
+        // Map old sport values to new categories for backward compatibility
+        let category = athlete.category || athlete.sport || 'Other';
+        
+        // Comprehensive mapping of exercises to the 4 main categories
+        const categoryMapping: { [key: string]: string } = {
+          // Main categories (normalize naming)
+          'cardio': 'cardio',
+          'strength': 'strength', 
+          'flexibility': 'flexibility',
+          'flexibility_balance': 'flexibility', // Normalize this variant
+          'coordination': 'coordination',
+          // Exercise mappings
+          'Running': 'cardio',
+          'Cycling': 'cardio',
+          'Swimming': 'cardio',
+          'Jogging': 'cardio',
+          'Treadmill': 'cardio',
+          'Basketball': 'cardio',
+          'Soccer': 'cardio',
+          'Push-ups': 'strength',
+          'Squats': 'strength',
+          'Pull-ups': 'strength',
+          'Deadlifts': 'strength',
+          'Bench Press': 'strength',
+          'Planks': 'strength',
+          'Lunges': 'strength',
+          'Burpees': 'strength',
+          'Weightlifting': 'strength',
+          'Powerlifting': 'strength',
+          'Yoga': 'flexibility',
+          'Stretching': 'flexibility',
+          'Balance Training': 'flexibility',
+          'Mobility Work': 'flexibility',
+          'Pilates': 'flexibility',
+          'Agility Drills': 'coordination',
+          'Ball Handling': 'coordination',
+          'Throwing Practice': 'coordination',
+          'Catching Drills': 'coordination',
+          'Ladder Drills': 'coordination',
+          'Cone Drills': 'coordination',
+          'Reaction Training': 'coordination',
+          'Gymnastics': 'coordination',
+          'Martial Arts': 'coordination'
+        };
+        
+        // Map to one of the 4 main categories
+        category = categoryMapping[category] || 'cardio'; // Default to cardio if unknown
+        
+        stats.byCategory[category] = (stats.byCategory[category] || 0) + 1;
       });
 
       // Group by region
@@ -527,16 +574,27 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
             </ResponsiveContainer>
           </div>
 
-          {/* Sports Distribution */}
+          {/* Exercise Category Distribution */}
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl">
             <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
               <BarChart3 className="w-6 h-6 mr-3 text-cyan-400" />
-              Sports Distribution
+              Exercise Category Distribution
             </h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={Object.entries(athleteStats.bySport).map(([sport, count]) => ({ sport, count }))}>
+              <BarChart data={Object.entries(athleteStats.byCategory).map(([category, count]) => {
+                const categoryDisplayNames: { [key: string]: string } = {
+                  'cardio': '❤️ Cardio',
+                  'strength': '💪 Strength', 
+                  'flexibility_balance': '🧘‍♀️ Flexibility & Balance',
+                  'coordination': '🎯 Coordination'
+                };
+                return { 
+                  category: categoryDisplayNames[category] || category, 
+                  count 
+                };
+              })}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="sport" tick={{ fill: '#D1D5DB', fontSize: 12 }} />
+                <XAxis dataKey="category" tick={{ fill: '#D1D5DB', fontSize: 12 }} />
                 <YAxis tick={{ fill: '#9CA3AF', fontSize: 12 }} />
                 <Tooltip 
                   contentStyle={{ 

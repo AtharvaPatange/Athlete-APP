@@ -36,6 +36,7 @@ export interface Quest {
   duration: number; // days
   requirements?: {
     sport?: string;
+    category?: string; // Support for new 4-category system: cardio, strength, flexibility & balance, coordination
     intensity?: 'low' | 'medium' | 'high' | 'peak';
     minDistance?: number;
     minDuration?: number;
@@ -742,18 +743,18 @@ export const initializeDefaultQuests = async () => {
         isActive: true
       },
       {
-        title: "Rookie Runner",
-        description: "Run a total distance of 2km to show basic endurance",
-        type: "distance",
+        title: "Cardio Starter",
+        description: "Complete 2 cardio training sessions to build your endurance",
+        type: "sessions",
         target: 2,
         points: 50,
-        badge: "rookie_runner_badge",
-        icon: "🏃‍♀️",
+        badge: "cardio_starter_badge",
+        icon: "❤️",
         rarity: "bronze",
         tier: "bronze",
         questOrder: 2,
         duration: 14,
-        requirements: { sport: "running", minDistance: 0.5 },
+        requirements: { category: "cardio", minDuration: 10 },
         isActive: true
       },
       {
@@ -791,18 +792,18 @@ export const initializeDefaultQuests = async () => {
       // SILVER TIER - Intermediate Level
       // ===========================================
       {
-        title: "5K Achiever",
-        description: "Run a total distance of 5km across running sessions",
-        type: "distance",
+        title: "Strength Builder",
+        description: "Complete 5 strength training sessions to build muscle power",
+        type: "sessions",
         target: 5,
         points: 100,
-        badge: "5k_achiever_badge",
-        icon: "🏃‍♂️",
+        badge: "strength_builder_badge",
+        icon: "💪",
         rarity: "silver",
         tier: "silver",
         questOrder: 1,
         duration: 14,
-        requirements: { sport: "running", minDistance: 1 },
+        requirements: { category: "strength", minDuration: 20 },
         isActive: true
       },
       {
@@ -821,18 +822,18 @@ export const initializeDefaultQuests = async () => {
         isActive: true
       },
       {
-        title: "Intensity Warrior",
-        description: "Complete 5 high or peak intensity training sessions",
-        type: "intensity",
-        target: 5,
+        title: "Flexibility Master",
+        description: "Complete 4 flexibility & balance training sessions",
+        type: "sessions",
+        target: 4,
         points: 150,
-        badge: "intensity_warrior_badge",
-        icon: "⚡",
+        badge: "flexibility_master_badge",
+        icon: "🧘",
         rarity: "silver",
         tier: "silver",
         questOrder: 3,
         duration: 14,
-        requirements: { intensity: "high" },
+        requirements: { category: "flexibility & balance", minDuration: 15 },
         isActive: true
       },
       {
@@ -855,18 +856,18 @@ export const initializeDefaultQuests = async () => {
       // GOLD TIER - Advanced Level
       // ===========================================
       {
-        title: "10K Master",
-        description: "Run a total distance of 10km with consistent pacing",
-        type: "distance",
-        target: 10,
+        title: "Cardio Champion",
+        description: "Complete 8 cardio sessions with high intensity",
+        type: "sessions",
+        target: 8,
         points: 200,
-        badge: "10k_master_badge",
-        icon: "🥇",
+        badge: "cardio_champion_badge",
+        icon: "❤️‍🔥",
         rarity: "gold",
         tier: "gold",
         questOrder: 1,
         duration: 21,
-        requirements: { sport: "running", minDistance: 2 },
+        requirements: { category: "cardio", intensity: "high" },
         isActive: true
       },
       {
@@ -885,18 +886,18 @@ export const initializeDefaultQuests = async () => {
         isActive: true
       },
       {
-        title: "Speed Demon",
-        description: "Complete 3 sessions with average speed above 10 km/h",
-        type: "speed",
-        target: 3,
+        title: "Coordination Expert",
+        description: "Complete 5 coordination training sessions",
+        type: "sessions",
+        target: 5,
         points: 220,
-        badge: "speed_demon_badge",
-        icon: "💨",
+        badge: "coordination_expert_badge",
+        icon: "🎯",
         rarity: "gold",
         tier: "gold",
         questOrder: 3,
         duration: 14,
-        requirements: { minSpeed: 10, minDistance: 1 },
+        requirements: { category: "coordination", minDuration: 25 },
         isActive: true
       },
       {
@@ -918,18 +919,18 @@ export const initializeDefaultQuests = async () => {
       // PLATINUM TIER - Expert Level
       // ===========================================
       {
-        title: "Half Marathon Hero",
-        description: "Run a total distance of 21km (half marathon)",
-        type: "distance",
-        target: 21,
+        title: "Strength Elite",
+        description: "Complete 12 strength sessions with peak intensity",
+        type: "sessions",
+        target: 12,
         points: 400,
-        badge: "half_marathon_badge",
-        icon: "🎖️",
+        badge: "strength_elite_badge",
+        icon: "�️",
         rarity: "platinum",
         tier: "platinum",
         questOrder: 1,
         duration: 30,
-        requirements: { sport: "running", minDistance: 5 },
+        requirements: { category: "strength", intensity: "peak" },
         isActive: true
       },
       {
@@ -948,28 +949,28 @@ export const initializeDefaultQuests = async () => {
         isActive: true
       },
       {
-        title: "Calorie Crusher",
-        description: "Burn 2500+ calories across training sessions",
-        type: "endurance",
-        target: 2500,
+        title: "Balance Master",
+        description: "Complete 10 flexibility & balance sessions with focus on form",
+        type: "sessions",
+        target: 10,
         points: 450,
-        badge: "calorie_crusher_badge",
-        icon: "�",
+        badge: "balance_master_badge",
+        icon: "⚖️",
         rarity: "platinum",
         tier: "platinum",
         questOrder: 3,
         duration: 21,
-        requirements: { minCalories: 200 },
+        requirements: { category: "flexibility & balance", minDuration: 30 },
         isActive: true
       },
       {
-        title: "Versatile Athlete",
-        description: "Complete sessions in 4 different sports",
+        title: "Complete Athlete",
+        description: "Complete sessions in all 4 training categories",
         type: "sessions",
         target: 4,
         points: 350,
-        badge: "versatile_athlete_badge",
-        icon: "🎯",
+        badge: "complete_athlete_badge",
+        icon: "�",
         rarity: "platinum",
         tier: "platinum",
         questOrder: 4,
@@ -981,18 +982,18 @@ export const initializeDefaultQuests = async () => {
       // DIAMOND TIER - Elite Level
       // ===========================================
       {
-        title: "Marathon Legend",
-        description: "Run a total distance of 42.2km (full marathon distance)",
-        type: "distance",
-        target: 42.2,
+        title: "Elite Athlete",
+        description: "Master all 4 categories: complete 50 sessions across cardio, strength, flexibility & coordination",
+        type: "sessions",
+        target: 50,
         points: 1000,
-        badge: "marathon_legend_badge",
+        badge: "elite_athlete_badge",
         icon: "💎",
         rarity: "diamond",
         tier: "diamond",
         questOrder: 1,
         duration: 60,
-        requirements: { sport: "running", minDistance: 10 },
+        requirements: { minDuration: 30 },
         isActive: true
       },
       {
@@ -1011,18 +1012,18 @@ export const initializeDefaultQuests = async () => {
         isActive: true
       },
       {
-        title: "Speed Master",
-        description: "Complete 5 sessions with average speed above 15 km/h",
-        type: "speed",
-        target: 5,
+        title: "Coordination Legend",
+        description: "Complete 15 coordination sessions with perfect form and high intensity",
+        type: "sessions",
+        target: 15,
         points: 900,
-        badge: "speed_master_badge",
-        icon: "⚡",
+        badge: "coordination_legend_badge",
+        icon: "🎪",
         rarity: "diamond",
         tier: "diamond",
         questOrder: 3,
         duration: 30,
-        requirements: { minSpeed: 15, minDistance: 2 },
+        requirements: { category: "coordination", intensity: "high", minDuration: 40 },
         isActive: true
       },
       {
@@ -1038,6 +1039,168 @@ export const initializeDefaultQuests = async () => {
         questOrder: 4,
         duration: 45,
         requirements: { consistencyDays: 30 },
+        isActive: true
+      },
+
+      // ===========================================
+      // CATEGORY-SPECIFIC DEMONSTRATION QUESTS
+      // ===========================================
+      
+      // CARDIO CATEGORY EXAMPLES
+      {
+        title: "Cardio Newcomer",
+        description: "Complete your first cardio session (running, cycling, swimming, etc.)",
+        type: "sessions",
+        target: 1,
+        points: 30,
+        badge: "cardio_newcomer_badge",
+        icon: "💓",
+        rarity: "bronze",
+        tier: "bronze",
+        questOrder: 5,
+        duration: 7,
+        requirements: { category: "cardio" },
+        isActive: true
+      },
+      {
+        title: "Heart Rate Hero",
+        description: "Complete 3 high-intensity cardio sessions",
+        type: "sessions",
+        target: 3,
+        points: 120,
+        badge: "heart_rate_hero_badge",
+        icon: "💗",
+        rarity: "silver",
+        tier: "silver",
+        questOrder: 5,
+        duration: 14,
+        requirements: { category: "cardio", intensity: "high" },
+        isActive: true
+      },
+
+      // STRENGTH CATEGORY EXAMPLES
+      {
+        title: "Strength Starter",
+        description: "Begin your strength journey with your first strength training session",
+        type: "sessions",
+        target: 1,
+        points: 35,
+        badge: "strength_starter_badge",
+        icon: "💪",
+        rarity: "bronze",
+        tier: "bronze",
+        questOrder: 6,
+        duration: 7,
+        requirements: { category: "strength" },
+        isActive: true
+      },
+      {
+        title: "Power Builder",
+        description: "Complete 6 strength sessions to build muscle power",
+        type: "sessions",
+        target: 6,
+        points: 140,
+        badge: "power_builder_badge",
+        icon: "🏋️‍♂️",
+        rarity: "silver",
+        tier: "silver",
+        questOrder: 6,
+        duration: 21,
+        requirements: { category: "strength", minDuration: 25 },
+        isActive: true
+      },
+
+      // FLEXIBILITY & BALANCE CATEGORY EXAMPLES
+      {
+        title: "Flexibility Explorer",
+        description: "Discover flexibility training with your first session",
+        type: "sessions",
+        target: 1,
+        points: 25,
+        badge: "flexibility_explorer_badge",
+        icon: "🧘‍♀️",
+        rarity: "bronze",
+        tier: "bronze",
+        questOrder: 7,
+        duration: 7,
+        requirements: { category: "flexibility & balance" },
+        isActive: true
+      },
+      {
+        title: "Balance Achiever",
+        description: "Master balance with 4 flexibility & balance sessions",
+        type: "sessions",
+        target: 4,
+        points: 100,
+        badge: "balance_achiever_badge",
+        icon: "⚖️",
+        rarity: "silver",
+        tier: "silver",
+        questOrder: 7,
+        duration: 14,
+        requirements: { category: "flexibility & balance", minDuration: 20 },
+        isActive: true
+      },
+
+      // COORDINATION CATEGORY EXAMPLES  
+      {
+        title: "Coordination Beginner",
+        description: "Start improving your coordination with your first session",
+        type: "sessions",
+        target: 1,
+        points: 30,
+        badge: "coordination_beginner_badge",
+        icon: "🎯",
+        rarity: "bronze",
+        tier: "bronze",
+        questOrder: 8,
+        duration: 7,
+        requirements: { category: "coordination" },
+        isActive: true
+      },
+      {
+        title: "Agility Master",
+        description: "Complete 5 coordination training sessions for better agility",
+        type: "sessions",
+        target: 5,
+        points: 130,
+        badge: "agility_master_badge",
+        icon: "🏃‍♂️💨",
+        rarity: "silver",
+        tier: "silver",
+        questOrder: 8,
+        duration: 14,
+        requirements: { category: "coordination", minDuration: 20 },
+        isActive: true
+      },
+
+      // CROSS-CATEGORY QUESTS
+      {
+        title: "Well-Rounded Athlete",
+        description: "Train in 2 different categories this week",
+        type: "sessions",
+        target: 2,
+        points: 80,
+        badge: "well_rounded_athlete_badge",
+        icon: "🌟",
+        rarity: "bronze",
+        tier: "bronze",
+        questOrder: 9,
+        duration: 7,
+        isActive: true
+      },
+      {
+        title: "Category Explorer",
+        description: "Complete at least 1 session in each of the 4 training categories",
+        type: "sessions",
+        target: 4,
+        points: 200,
+        badge: "category_explorer_badge",
+        icon: "🗺️",
+        rarity: "gold",
+        tier: "gold",
+        questOrder: 5,
+        duration: 21,
         isActive: true
       }
     ];

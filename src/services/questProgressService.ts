@@ -20,6 +20,78 @@ import {
   updateTierProgression
 } from './gamificationService';
 
+/**
+ * Helper function to check if a training session matches a sport/category requirement
+ */
+const sessionMatchesSport = (session: TrainingSession, requiredSport: string): boolean => {
+  const required = requiredSport.toLowerCase();
+  const sessionSport = session.sport?.toLowerCase() || '';
+  const sessionExerciseType = session.exerciseType?.toLowerCase() || '';
+  const sessionCategory = (session as any).category?.toLowerCase() || '';
+  
+  // Direct exact matches (highest priority)
+  if (sessionCategory === required || sessionSport === required || sessionExerciseType === required) {
+    return true;
+  }
+  
+  // Flexible matching for partial matches
+  return sessionSport.includes(required) ||
+         sessionExerciseType.includes(required) ||
+         sessionCategory.includes(required);
+};
+
+/**
+ * Enhanced session matching that supports both sport/exercise type and new category system
+ */
+const sessionMatchesRequirement = (session: TrainingSession, quest: Quest): boolean => {
+  const requirements = quest.requirements;
+  if (!requirements) return true;
+  
+  // Check category requirement (new 4-category system)
+  if (requirements.category) {
+    const requiredCategory = requirements.category.toLowerCase();
+    const sessionCategory = (session as any).category?.toLowerCase() || '';
+    
+    // Exact category match
+    if (sessionCategory === requiredCategory) {
+      return true;
+    }
+    
+    // Handle flexible matching for category names
+    if (sessionCategory.includes(requiredCategory) || requiredCategory.includes(sessionCategory)) {
+      return true;
+    }
+    
+    // If no category field, fall back to mapping exercises to categories
+    if (!sessionCategory) {
+      const exerciseType = session.exerciseType?.toLowerCase() || '';
+      const sport = session.sport?.toLowerCase() || '';
+      
+      // Map exercises to categories for backward compatibility
+      const categoryMapping: Record<string, string[]> = {
+        'cardio': ['running', 'cycling', 'swimming', 'jogging', 'walking', 'hiking', 'dancing', 'aerobic'],
+        'strength': ['weight lifting', 'bodyweight', 'resistance', 'powerlifting', 'crossfit', 'strength training', 'gym'],
+        'flexibility & balance': ['yoga', 'pilates', 'stretching', 'tai chi', 'balance', 'flexibility'],
+        'coordination': ['martial arts', 'boxing', 'tennis', 'badminton', 'basketball', 'football', 'soccer', 'coordination']
+      };
+      
+      const mappedExercises = categoryMapping[requiredCategory] || [];
+      return mappedExercises.some(mapped => 
+        exerciseType.includes(mapped) || sport.includes(mapped)
+      );
+    }
+    
+    return false;
+  }
+  
+  // Check sport requirement (legacy support)
+  if (requirements.sport) {
+    return sessionMatchesSport(session, requirements.sport);
+  }
+  
+  return true;
+};
+
 // Quest Progress Calculator Service
 export interface QuestProgressUpdate {
   questId: string;
@@ -48,34 +120,15 @@ const calculateDistanceProgress = (
   // Filter sessions based on quest requirements
   let filteredSessions = sessions;
   
-  if (quest.requirements?.sport) {
-    console.log('🏃 Filtering by sport:', quest.requirements.sport);
-    const requiredSport = quest.requirements.sport.toLowerCase();
-    filteredSessions = sessions.filter(s => {
-      const sessionSport = s.sport?.toLowerCase() || '';
-      const sessionExerciseType = s.exerciseType?.toLowerCase() || '';
-      
-      // Match either sport field or exerciseType field
-      const matches = sessionSport === requiredSport || 
-                     sessionExerciseType === requiredSport ||
-                     sessionSport.includes(requiredSport) ||
-                     sessionExerciseType.includes(requiredSport);
-      
-      console.log('🔍 Session sport check:', {
-        sessionSport,
-        sessionExerciseType,
-        requiredSport,
-        matches
-      });
-      
-      return matches;
-    });
-    console.log('📊 Sessions after sport filter:', filteredSessions.length);
+  if (quest.requirements?.sport || quest.requirements?.category) {
+    console.log('🏃 Filtering by sport/category:', quest.requirements.sport || quest.requirements.category);
+    filteredSessions = sessions.filter(s => sessionMatchesRequirement(s, quest));
+    console.log(' Sessions after sport/category filter:', filteredSessions.length);
   }
   
   if (quest.requirements?.minDistance) {
     console.log('📏 Filtering by min distance:', quest.requirements.minDistance);
-    filteredSessions = sessions.filter(s => (s.distance || 0) >= quest.requirements!.minDistance!);
+    filteredSessions = filteredSessions.filter(s => (s.distance || 0) >= quest.requirements!.minDistance!);
     console.log('📊 Sessions after distance filter:', filteredSessions.length);
   }
   
@@ -147,9 +200,9 @@ const calculateSessionProgress = (
   // Filter sessions based on quest requirements
   let filteredSessions = sessions;
   
-  if (quest.requirements?.sport) {
-    filteredSessions = sessions.filter(s => s.sport.toLowerCase() === quest.requirements!.sport!.toLowerCase());
-    console.log('🏃 Sport filtered sessions:', filteredSessions.length);
+  if (quest.requirements?.sport || quest.requirements?.category) {
+    filteredSessions = sessions.filter(s => sessionMatchesRequirement(s, quest));
+    console.log('🏃 Sport/category filtered sessions:', filteredSessions.length);
   }
   
   if (quest.requirements?.intensity) {
@@ -192,12 +245,12 @@ const calculateDurationProgress = (
   // Filter sessions based on quest requirements
   let filteredSessions = sessions;
   
-  if (quest.requirements?.sport) {
-    filteredSessions = sessions.filter(s => s.sport.toLowerCase() === quest.requirements!.sport!.toLowerCase());
+  if (quest.requirements?.sport || quest.requirements?.category) {
+    filteredSessions = sessions.filter(s => sessionMatchesRequirement(s, quest));
   }
   
   if (quest.requirements?.intensity) {
-    filteredSessions = sessions.filter(s => s.intensity === quest.requirements!.intensity);
+    filteredSessions = filteredSessions.filter(s => s.intensity === quest.requirements!.intensity);
   }
   
   // Calculate total duration since quest started
@@ -221,8 +274,8 @@ const calculateConsistencyProgress = (
   // Filter sessions based on quest requirements
   let filteredSessions = sessions;
   
-  if (quest.requirements?.sport) {
-    filteredSessions = sessions.filter(s => s.sport.toLowerCase() === quest.requirements!.sport!.toLowerCase());
+  if (quest.requirements?.sport || quest.requirements?.category) {
+    filteredSessions = sessions.filter(s => sessionMatchesRequirement(s, quest));
   }
   
   // Get sessions since quest started
@@ -285,8 +338,8 @@ const calculateImprovementProgress = (
   // Filter sessions based on quest requirements
   let filteredSessions = sessions;
   
-  if (quest.requirements?.sport) {
-    filteredSessions = sessions.filter(s => s.sport.toLowerCase() === quest.requirements!.sport!.toLowerCase());
+  if (quest.requirements?.sport || quest.requirements?.category) {
+    filteredSessions = sessions.filter(s => sessionMatchesRequirement(s, quest));
   }
   
   // Get sessions since quest started
@@ -345,8 +398,8 @@ const calculateWeeklyProgress = (
   // Apply additional filters
   let filteredSessions = weekSessions;
   
-  if (quest.requirements?.sport) {
-    filteredSessions = weekSessions.filter(s => s.sport.toLowerCase() === quest.requirements!.sport!.toLowerCase());
+  if (quest.requirements?.sport || quest.requirements?.category) {
+    filteredSessions = weekSessions.filter(s => sessionMatchesRequirement(s, quest));
   }
   
   if (quest.requirements?.intensity) {
@@ -379,8 +432,8 @@ const calculateIntensityProgress = (
     }
   }
   
-  if (quest.requirements?.sport) {
-    filteredSessions = filteredSessions.filter(s => s.sport.toLowerCase() === quest.requirements!.sport!.toLowerCase());
+  if (quest.requirements?.sport || quest.requirements?.category) {
+    filteredSessions = filteredSessions.filter(s => sessionMatchesRequirement(s, quest));
   }
   
   return Math.min(filteredSessions.length, quest.target);

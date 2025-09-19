@@ -21,7 +21,7 @@ const QUEST_TIERS = {
       rarity: 'common' as BadgeRarity,
       tier: 'bronze' as QuestTier,
       icon: "👟",
-      badge: true,
+      badge: undefined,
       requirements: { level: 1 }
     },
     {
@@ -34,7 +34,7 @@ const QUEST_TIERS = {
       rarity: 'common' as BadgeRarity,
       tier: 'bronze' as QuestTier,
       icon: "🏃",
-      badge: false,
+      badge: undefined,
       requirements: { sport: 'running' }
     },
     {
@@ -47,7 +47,7 @@ const QUEST_TIERS = {
       rarity: 'uncommon' as BadgeRarity,
       tier: 'bronze' as QuestTier,
       icon: "📅",
-      badge: true,
+      badge: undefined,
       requirements: {}
     },
     {
@@ -60,7 +60,7 @@ const QUEST_TIERS = {
       rarity: 'uncommon' as BadgeRarity,
       tier: 'bronze' as QuestTier,
       icon: "⏱️",
-      badge: false,
+      badge: undefined,
       requirements: {}
     }
   ],
@@ -76,8 +76,8 @@ const QUEST_TIERS = {
       rarity: 'rare' as BadgeRarity,
       tier: 'silver' as QuestTier,
       icon: "⚡",
-      badge: true,
-      requirements: { sport: 'running', previousTierCompleted: 'bronze' }
+      badge: undefined,
+      requirements: { sport: 'running', previousTierCompleted: 'bronze' as QuestTier }
     },
     {
       title: "Endurance Builder",
@@ -89,8 +89,8 @@ const QUEST_TIERS = {
       rarity: 'rare' as BadgeRarity,
       tier: 'silver' as QuestTier,
       icon: "💪",
-      badge: false,
-      requirements: { previousTierCompleted: 'bronze' }
+      badge: undefined,
+      requirements: { previousTierCompleted: 'bronze' as QuestTier }
     },
     {
       title: "Distance Warrior",
@@ -102,8 +102,8 @@ const QUEST_TIERS = {
       rarity: 'rare' as BadgeRarity,
       tier: 'silver' as QuestTier,
       icon: "🏃‍♂️",
-      badge: true,
-      requirements: { sport: 'running', previousTierCompleted: 'bronze' }
+      badge: undefined,
+      requirements: { sport: 'running', previousTierCompleted: 'bronze' as QuestTier }
     },
     {
       title: "Weekly Warrior",
@@ -115,8 +115,8 @@ const QUEST_TIERS = {
       rarity: 'epic' as BadgeRarity,
       tier: 'silver' as QuestTier,
       icon: "🗓️",
-      badge: true,
-      requirements: { previousTierCompleted: 'bronze' }
+      badge: undefined,
+      requirements: { previousTierCompleted: 'bronze' as QuestTier }
     }
   ],
 
@@ -131,8 +131,8 @@ const QUEST_TIERS = {
       rarity: 'epic' as BadgeRarity,
       tier: 'gold' as QuestTier,
       icon: "🏆",
-      badge: true,
-      requirements: { sport: 'running', previousTierCompleted: 'silver' }
+      badge: undefined,
+      requirements: { sport: 'running', previousTierCompleted: 'silver' as QuestTier }
     },
     {
       title: "Marathon Preparation",
@@ -144,8 +144,8 @@ const QUEST_TIERS = {
       rarity: 'epic' as BadgeRarity,
       tier: 'gold' as QuestTier,
       icon: "🏃‍♀️",
-      badge: true,
-      requirements: { previousTierCompleted: 'silver' }
+      badge: undefined,
+      requirements: { previousTierCompleted: 'silver' as QuestTier }
     },
     {
       title: "Century Runner",
@@ -157,8 +157,8 @@ const QUEST_TIERS = {
       rarity: 'legendary' as BadgeRarity,
       tier: 'gold' as QuestTier,
       icon: "💯",
-      badge: true,
-      requirements: { sport: 'running', previousTierCompleted: 'silver' }
+      badge: undefined,
+      requirements: { sport: 'running', previousTierCompleted: 'silver' as QuestTier }
     },
     {
       title: "Strength Foundation",
@@ -170,8 +170,8 @@ const QUEST_TIERS = {
       rarity: 'epic' as BadgeRarity,
       tier: 'gold' as QuestTier,
       icon: "🏋️",
-      badge: false,
-      requirements: { sport: 'strength', previousTierCompleted: 'silver' }
+      badge: undefined,
+      requirements: { sport: 'strength', previousTierCompleted: 'silver' as QuestTier }
     }
   ],
 
@@ -186,8 +186,8 @@ const QUEST_TIERS = {
       rarity: 'legendary' as BadgeRarity,
       tier: 'platinum' as QuestTier,
       icon: "⚡🏃",
-      badge: true,
-      requirements: { sport: 'running', previousTierCompleted: 'gold' }
+      badge: undefined,
+      requirements: { sport: 'running', previousTierCompleted: 'gold' as QuestTier }
     },
     {
       title: "Ultra Endurance",
@@ -199,8 +199,8 @@ const QUEST_TIERS = {
       rarity: 'legendary' as BadgeRarity,
       tier: 'platinum' as QuestTier,
       icon: "🦾",
-      badge: true,
-      requirements: { previousTierCompleted: 'gold' }
+      badge: undefined,
+      requirements: { previousTierCompleted: 'gold' as QuestTier }
     },
     {
       title: "Distance Master",
@@ -212,8 +212,8 @@ const QUEST_TIERS = {
       rarity: 'legendary' as BadgeRarity,
       tier: 'platinum' as QuestTier,
       icon: "🌟",
-      badge: true,
-      requirements: { sport: 'running', previousTierCompleted: 'gold' }
+      badge: undefined,
+      requirements: { sport: 'running', previousTierCompleted: 'gold' as QuestTier }
     },
     {
       title: "Elite Athlete",
@@ -225,8 +225,8 @@ const QUEST_TIERS = {
       rarity: 'legendary' as BadgeRarity,
       tier: 'platinum' as QuestTier,
       icon: "👑",
-      badge: true,
-      requirements: { previousTierCompleted: 'gold' }
+      badge: undefined,
+      requirements: { previousTierCompleted: 'gold' as QuestTier }
     }
   ],
 
@@ -241,8 +241,8 @@ const QUEST_TIERS = {
       rarity: 'mythical' as BadgeRarity,
       tier: 'diamond' as QuestTier,
       icon: "💎⚡",
-      badge: true,
-      requirements: { sport: 'running', previousTierCompleted: 'platinum' }
+      badge: undefined,
+      requirements: { sport: 'running', previousTierCompleted: 'platinum' as QuestTier }
     },
     {
       title: "Iron Endurance",
@@ -254,8 +254,8 @@ const QUEST_TIERS = {
       rarity: 'mythical' as BadgeRarity,
       tier: 'diamond' as QuestTier,
       icon: "💎💪",
-      badge: true,
-      requirements: { previousTierCompleted: 'platinum' }
+      badge: undefined,
+      requirements: { previousTierCompleted: 'platinum' as QuestTier }
     },
     {
       title: "Legendary Distance",
@@ -267,8 +267,8 @@ const QUEST_TIERS = {
       rarity: 'mythical' as BadgeRarity,
       tier: 'diamond' as QuestTier,
       icon: "💎🏃",
-      badge: true,
-      requirements: { sport: 'running', previousTierCompleted: 'platinum' }
+      badge: undefined,
+      requirements: { sport: 'running', previousTierCompleted: 'platinum' as QuestTier }
     },
     {
       title: "Master Athlete",
@@ -280,8 +280,8 @@ const QUEST_TIERS = {
       rarity: 'mythical' as BadgeRarity,
       tier: 'diamond' as QuestTier,
       icon: "💎👑",
-      badge: true,
-      requirements: { previousTierCompleted: 'platinum' }
+      badge: undefined,
+      requirements: { previousTierCompleted: 'platinum' as QuestTier }
     }
   ]
 };
