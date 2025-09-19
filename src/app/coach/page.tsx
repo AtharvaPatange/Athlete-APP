@@ -18,7 +18,7 @@ interface UserProfile {
 }
 
 const CoachDashboard = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState("athletes");
@@ -92,7 +92,6 @@ const CoachDashboard = () => {
   ];
 
   const handleLogout = async () => {
-    const { logout } = await import("@/hooks/useAuth");
     await logout();
     router.push("/login");
   };

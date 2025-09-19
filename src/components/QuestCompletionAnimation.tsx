@@ -60,7 +60,7 @@ export default function QuestCompletionAnimation({
       case 'silver': return 'from-gray-300 via-gray-400 to-gray-500';
       case 'gold': return 'from-yellow-400 via-yellow-500 to-yellow-600';
       case 'platinum': return 'from-purple-400 via-purple-500 to-purple-600';
-      case 'legendary': return 'from-red-400 via-orange-500 to-yellow-500';
+      case 'diamond': return 'from-red-400 via-orange-500 to-yellow-500';
       default: return 'from-gray-400 via-gray-500 to-gray-600';
     }
   };
@@ -71,7 +71,7 @@ export default function QuestCompletionAnimation({
       case 'silver': return 'shadow-gray-400/50';
       case 'gold': return 'shadow-yellow-500/50';
       case 'platinum': return 'shadow-purple-500/50';
-      case 'legendary': return 'shadow-orange-500/50';
+      case 'diamond': return 'shadow-orange-500/50';
       default: return 'shadow-gray-500/50';
     }
   };

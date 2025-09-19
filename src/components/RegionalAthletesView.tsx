@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs, limit, startAfter } from "firebase/firestore";
 import AthleteProfileCard from "./AthleteProfileCard";
+import { User, MapPin, Trophy, Target, Calendar, MessageCircle, TrendingUp } from "lucide-react";
+import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, Line } from "recharts";
 
 interface Athlete {
   id: string;
@@ -18,7 +20,10 @@ interface Athlete {
     speed: number;
     strength: number;
     endurance: number;
+    agility?: number;
   };
+  achievements?: any[];
+  completedGoals?: number;
   lastActiveAt?: any;
   createdAt?: any;
 }

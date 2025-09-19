@@ -91,7 +91,7 @@ export default function AchievementDashboard({ athleteId }: AchievementDashboard
       case 'silver': return <Medal className="w-4 h-4 text-gray-400" />;
       case 'gold': return <Medal className="w-4 h-4 text-yellow-500" />;
       case 'platinum': return <Diamond className="w-4 h-4 text-purple-500" />;
-      case 'legendary': return <Crown className="w-4 h-4 text-orange-500" />;
+      case 'diamond': return <Crown className="w-4 h-4 text-orange-500" />;
       default: return <Award className="w-4 h-4" />;
     }
   };
@@ -132,7 +132,7 @@ export default function AchievementDashboard({ athleteId }: AchievementDashboard
   }, [progress?.totalPoints]);
 
   const badgesByRarity = useMemo(() => {
-    const rarities: BadgeRarity[] = ["bronze", "silver", "gold", "platinum", "legendary"];
+    const rarities: BadgeRarity[] = ["bronze", "silver", "gold", "platinum", "diamond"];
     return rarities.reduce((acc, rarity) => {
       acc[rarity] = getBadgesByRarity(rarity);
       return acc;
@@ -282,7 +282,7 @@ return (
 
       {/* Enhanced Rarity Overview */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        {(["bronze", "silver", "gold", "platinum", "legendary"] as BadgeRarity[]).map(
+        {(["bronze", "silver", "gold", "platinum", "diamond"] as BadgeRarity[]).map(
           (rarity) => {
             const rarityBadges = badgesByRarity[rarity] || [];
             
@@ -304,7 +304,7 @@ return (
                 border: "border-purple-200 bg-purple-50",
                 gradient: "from-purple-400 to-indigo-500"
               },
-              legendary: {
+              diamond: {
                 border: "border-orange-200 bg-orange-50",
                 gradient: "from-orange-400 to-red-500"
               }
@@ -338,7 +338,7 @@ return (
               silver: "border-gray-200 bg-gray-50", 
               gold: "border-yellow-200 bg-yellow-50",
               platinum: "border-purple-200 bg-purple-50",
-              legendary: "border-orange-200 bg-orange-50"
+              diamond: "border-orange-200 bg-orange-50"
             };
 
             const rarityClass = rarityStyles[athleteBadge.badge.rarity as keyof typeof rarityStyles] || rarityStyles.bronze;

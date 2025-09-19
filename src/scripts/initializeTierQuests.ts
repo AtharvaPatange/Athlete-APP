@@ -293,9 +293,15 @@ export const initializeTierQuests = async (): Promise<void> => {
   for (const [tierName, quests] of Object.entries(QUEST_TIERS)) {
     console.log(`📝 Creating ${tierName} tier quests...`);
     
-    for (const questData of quests) {
+    for (let i = 0; i < quests.length; i++) {
+      const questData = quests[i];
       try {
-        const result = await createQuest(questData);
+        const questWithMissingProps = {
+          ...questData,
+          questOrder: i + 1,
+          isActive: true
+        };
+        const result = await createQuest(questWithMissingProps);
         if (result.success) {
           console.log(`✅ Created quest: ${questData.title} (${tierName})`);
         } else {
