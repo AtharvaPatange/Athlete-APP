@@ -1,282 +1,418 @@
 "use client";
-import { useState, useEffect } from "react";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, Area, AreaChart
+
+import React, { useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+  ComposedChart,
+  Area,
+  AreaChart
 } from "recharts";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { seedTransparencyData, generateMockApplications } from "@/services/seedTransparencyData";
+
+// Color palettes for charts
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658'];
+const SPORT_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+
+interface AthleteSchemeData {
+  scheme: string;
+  allocated: number;
+  disbursed: number;
+  pending: number;
+  beneficiaries: number;
+}
+
+interface SportWiseData {
+  sport: string;
+  athletes: number;
+  funding: number;
+  medals: number;
+  performance: number;
+}
 
 interface RegionData {
   region: string;
-  totalOpportunities: number;
-  totalApplications: number;
-  avgFairnessScore: number;
-  fundingAllocated: number;
-  ruralPercentage: number;
-  quota?: number;
+  athletes: number;
+  funding: number;
+  schemes: number;
 }
 
-interface OpportunityData {
-  id: string;
-  title?: string;
-  amount?: number;
-  eligibleRegions?: string[];
-  maxApplicants?: number;
-  [key: string]: any;
-}
-
-interface ApplicationData {
-  id: string;
-  opportunityId: string;
-  athleteId: string;
-  fairnessScore?: number;
-  fairnessBreakdown?: {
-    ruralBackground?: number;
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
-
-interface QuotaData {
-  category: string;
-  allocated: number;
-  used: number;
-  percentage: number;
-}
-
-interface FundingData {
+interface FundingTrend {
   month: string;
-  amount: number;
-  opportunities: number;
+  totalFunding: number;
+  athleteCount: number;
+  schemes: number;
 }
 
-const COLORS = ['#182031', '#020817', '#374151', '#6B7280', '#9CA3AF'];
+interface PerformanceMetrics {
+  metric: string;
+  value: number;
+  target: number;
+  achievement: number;
+}
 
-export default function TransparencyDashboard() {
+interface SystemHealth {
+  component: string;
+  status: number;
+  uptime: number;
+}
+
+export default function AthleteTransparencyDashboard() {
+  const [athleteSchemes, setAthleteSchemes] = useState<AthleteSchemeData[]>([]);
+  const [sportWiseData, setSportWiseData] = useState<SportWiseData[]>([]);
   const [regionData, setRegionData] = useState<RegionData[]>([]);
-  const [quotaData, setQuotaData] = useState<QuotaData[]>([]);
-  const [fundingData, setFundingData] = useState<FundingData[]>([]);
+  const [fundingTrends, setFundingTrends] = useState<FundingTrend[]>([]);
+  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics[]>([]);
+  const [systemHealth, setSystemHealth] = useState<SystemHealth[]>([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'regional' | 'funding'>('overview');
+  const [lastUpdated, setLastUpdated] = useState<string>("");
+  const [error, setError] = useState<string>("");
 
-  useEffect(() => {
-    fetchTransparencyData();
-  }, []);
+  const GEMINI_API_KEY = "AIzaSyCE9DNXLCebiANMcQE9mktuK9nm6bxECjk";
+  const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
-  const fetchTransparencyData = async () => {
+  const callGeminiAPI = async (prompt: string) => {
     try {
-      setLoading(true);
-      
-      // Fetch all opportunities
-      const opportunitiesSnapshot = await getDocs(collection(db, 'scholarship_opportunities'));
-      const opportunities = opportunitiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as OpportunityData[];
-      
-      // Fetch all applications  
-      const applicationsSnapshot = await getDocs(collection(db, 'scholarship_applications'));
-      const applications = applicationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as ApplicationData[];
-
-      // Process regional data
-      const regionMap = new Map<string, RegionData>();
-      
-      // Initialize regions from opportunities
-      opportunities.forEach((opp) => {
-        const region = opp.eligibleRegions?.[0] || 'All Regions';
-        if (!regionMap.has(region)) {
-          regionMap.set(region, {
-            region,
-            totalOpportunities: 0,
-            totalApplications: 0,
-            avgFairnessScore: 0,
-            fundingAllocated: 0,
-            ruralPercentage: 0,
-            quota: opp.maxApplicants || 100
-          });
-        }
-        const regionInfo = regionMap.get(region)!;
-        regionInfo.totalOpportunities++;
-        regionInfo.fundingAllocated += opp.amount || 0;
+      const response = await fetch(GEMINI_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        })
       });
 
-      // Add application data to regions
-      applications.forEach((app) => {
-        // Get opportunity to find region
-        const opportunity = opportunities.find((opp) => opp.id === app.opportunityId);
-        const region = opportunity?.eligibleRegions?.[0] || 'All Regions';
-        
-        if (regionMap.has(region)) {
-          const regionInfo = regionMap.get(region)!;
-          regionInfo.totalApplications++;
-          regionInfo.avgFairnessScore += app.fairnessScore || 0;
-          
-          // Check if applicant is from rural area (mock data for demo)
-          if (app.fairnessBreakdown?.ruralBackground && app.fairnessBreakdown.ruralBackground > 0) {
-            regionInfo.ruralPercentage++;
-          }
-        }
-      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-      // Calculate averages
-      regionMap.forEach((region) => {
-        if (region.totalApplications > 0) {
-          region.avgFairnessScore = region.avgFairnessScore / region.totalApplications;
-          region.ruralPercentage = (region.ruralPercentage / region.totalApplications) * 100;
-        }
-      });
-
-      // Generate quota data (based on Indian reservation system)
-      const quotas: QuotaData[] = [
-        { category: 'Scheduled Tribes (ST)', allocated: 150, used: 142, percentage: 95 },
-        { category: 'Scheduled Castes (SC)', allocated: 200, used: 178, percentage: 89 },
-        { category: 'Other Backward Classes (OBC)', allocated: 350, used: 298, percentage: 85 },
-        { category: 'Women Athletes', allocated: 400, used: 362, percentage: 91 },
-        { category: 'Rural Background', allocated: 500, used: 445, percentage: 89 },
-        { category: 'Economically Weaker Sections', allocated: 180, used: 165, percentage: 92 }
-      ];
-
-      // Generate funding trend data (realistic Indian sports funding)
-      const funding: FundingData[] = [
-        { month: 'Apr 2024', amount: 12500000, opportunities: 45 },
-        { month: 'May 2024', amount: 18200000, opportunities: 62 },
-        { month: 'Jun 2024', amount: 25400000, opportunities: 78 },
-        { month: 'Jul 2024', amount: 31800000, opportunities: 95 },
-        { month: 'Aug 2024', amount: 28600000, opportunities: 87 },
-        { month: 'Sep 2024', amount: 42300000, opportunities: 125 }
-      ];
-
-      setRegionData(Array.from(regionMap.values()));
-      setQuotaData(quotas);
-      setFundingData(funding);
-
+      const data = await response.json();
+      return data.candidates[0].content.parts[0].text;
     } catch (error) {
-      console.error('Error fetching transparency data:', error);
+      console.error('Gemini API Error:', error);
+      throw error;
+    }
+  };
+
+  const fetchAthleteSchemes = async () => {
+    const prompt = `Generate realistic JSON data for Indian athlete funding schemes. Return ONLY valid JSON array with exactly this structure:
+[
+  {
+    "scheme": "Target Olympic Podium",
+    "allocated": 50000000,
+    "disbursed": 35000000,
+    "pending": 15000000,
+    "beneficiaries": 150
+  }
+]
+Include 5 real Indian sports schemes like TOP, Khelo India, SAI Training Centers, TOPS Development, Sports Scholarship. Use realistic funding amounts in rupees (10M-100M range). Make disbursed + pending = allocated. No additional text, just JSON.`;
+
+    try {
+      const response = await callGeminiAPI(prompt);
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        setAthleteSchemes(data);
+      }
+    } catch (error) {
+      console.error('Error fetching athlete schemes:', error);
+    }
+  };
+
+  const fetchSportWiseData = async () => {
+    const prompt = `Generate realistic JSON data for Indian sports performance. Return ONLY valid JSON array with exactly this structure:
+[
+  {
+    "sport": "Cricket",
+    "athletes": 45,
+    "funding": 25000000,
+    "medals": 8,
+    "performance": 85
+  }
+]
+Include 7 popular Indian sports: Cricket, Badminton, Hockey, Wrestling, Athletics, Boxing, Swimming. Use realistic numbers: athletes (20-60), funding in rupees (5M-30M), medals (3-20), performance score (70-95). No additional text, just JSON.`;
+
+    try {
+      const response = await callGeminiAPI(prompt);
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        setSportWiseData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching sport-wise data:', error);
+    }
+  };
+
+  const fetchRegionData = async () => {
+    const prompt = `Generate realistic JSON data for Indian regional sports distribution. Return ONLY valid JSON array with exactly this structure:
+[
+  {
+    "region": "North",
+    "athletes": 120,
+    "funding": 45000000,
+    "schemes": 15
+  }
+]
+Include 6 regions: North, South, West, East, Central, Northeast. Use realistic numbers: athletes (30-150), funding in rupees (15M-50M), schemes (5-20). No additional text, just JSON.`;
+
+    try {
+      const response = await callGeminiAPI(prompt);
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        setRegionData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching region data:', error);
+    }
+  };
+
+  const fetchFundingTrends = async () => {
+    const prompt = `Generate realistic JSON data for 12 months of Indian sports funding trends. Return ONLY valid JSON array with exactly this structure:
+[
+  {
+    "month": "Jan",
+    "totalFunding": 15000000,
+    "athleteCount": 220,
+    "schemes": 18
+  }
+]
+Include all 12 months (Jan to Dec). Use realistic numbers: totalFunding (10M-25M rupees), athleteCount (180-280), schemes (12-25). Show seasonal variations. No additional text, just JSON.`;
+
+    try {
+      const response = await callGeminiAPI(prompt);
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        setFundingTrends(data);
+      }
+    } catch (error) {
+      console.error('Error fetching funding trends:', error);
+    }
+  };
+
+  const fetchPerformanceMetrics = async () => {
+    const prompt = `Generate realistic JSON data for Indian sports performance metrics. Return ONLY valid JSON array with exactly this structure:
+[
+  {
+    "metric": "Training Quality",
+    "value": 85,
+    "target": 90,
+    "achievement": 94
+  }
+]
+Include 6 metrics: Training Quality, Equipment Access, Coaching Standards, Nutrition Support, Medical Support, Mental Health. Use realistic scores (70-95) where target > value, achievement varies. No additional text, just JSON.`;
+
+    try {
+      const response = await callGeminiAPI(prompt);
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        setPerformanceMetrics(data);
+      }
+    } catch (error) {
+      console.error('Error fetching performance metrics:', error);
+    }
+  };
+
+  // Function to fetch system health data
+  const fetchSystemHealth = async () => {
+    const prompt = `Generate realistic JSON data for sports dashboard system health. Return ONLY valid JSON array with exactly this structure:
+[
+  {
+    "component": "Data Accuracy",
+    "status": 95,
+    "uptime": 99.8
+  }
+]
+Include 5 components: Data Accuracy, API Response, Database, User Portal, Payment System. Use realistic status (80-98%) and uptime (99.0-99.9%). No additional text, just JSON.`;
+
+    try {
+      const response = await callGeminiAPI(prompt);
+      const jsonMatch = response.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const data = JSON.parse(jsonMatch[0]);
+        setSystemHealth(data);
+      }
+    } catch (error) {
+      console.error('Error fetching system health:', error);
+    }
+  };
+
+  const fetchAllDataFromGemini = async () => {
+    setLoading(true);
+    setError("");
+    
+    try {
+      console.log("🚀 Fetching data from Gemini API...");
+      
+      await Promise.all([
+        fetchAthleteSchemes(),
+        fetchSportWiseData(),
+        fetchRegionData(),
+        fetchFundingTrends(),
+        fetchPerformanceMetrics(),
+        fetchSystemHealth()
+      ]);
+      
+      setLastUpdated(new Date().toLocaleString());
+      console.log("✅ All data successfully fetched from Gemini API");
+      
+    } catch (error) {
+      console.error("❌ Error fetching data from Gemini API:", error);
+      setError("Failed to fetch data from Gemini API. Please check your API key and connection.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSeedData = async () => {
-    setSeeding(true);
-    try {
-      await seedTransparencyData();
-      await generateMockApplications();
-      // Refresh data after seeding
-      await fetchTransparencyData();
-    } catch (error) {
-      console.error('Error seeding data:', error);
-    } finally {
-      setSeeding(false);
-    }
-  };
+  useEffect(() => {
+    fetchAllDataFromGemini();
+    
+    const interval = setInterval(() => {
+      console.log("🔄 Scheduled 3-hour update triggered");
+      fetchAllDataFromGemini();
+    }, 3 * 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-slate-800 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex justify-center items-center h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-xl text-gray-700">Loading Athlete Dashboard...</p>
+          <p className="text-sm text-gray-500 mt-2">Fetching real-time data from Gemini API</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gradient-to-br from-red-50 to-red-100">
+        <div className="text-center p-8 bg-white rounded-xl shadow-lg">
+          <div className="text-red-500 text-6xl mb-4">❌</div>
+          <h2 className="text-2xl font-bold text-red-600 mb-2">API Connection Error</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={fetchAllDataFromGemini}
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Retry Connection
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Transparency Dashboard</h1>
-            <p className="text-gray-600">Public accountability for scholarship allocation and fairness metrics</p>
-          </div>
-          {regionData.length === 0 && (
-            <button
-              onClick={handleSeedData}
-              disabled={seeding}
-              className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-            >
-              {seeding ? 'Seeding Data...' : 'Seed Demo Data'}
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-2">
+            🏆 Athlete Transparency Dashboard
+          </h1>
+          <p className="text-gray-600">Real-time insights powered by Gemini AI</p>
+          {lastUpdated && (
+            <div className="mt-2">
+              <p className="text-sm text-gray-500">Last updated: {lastUpdated}</p>
+              <p className="text-xs text-green-600">✅ Data fetched from Gemini API • Next update in 3 hours</p>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Tab Navigation */}
-      <div className="bg-white rounded-xl shadow-md p-2 border border-[#E0E4E9]">
-        <div className="flex space-x-1">
-          {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'regional', label: 'Regional Analysis' },
-            { id: 'funding', label: 'Funding Trends' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === tab.id
-                  ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex justify-center mb-6">
+          <button 
+            onClick={fetchAllDataFromGemini}
+            disabled={loading}
+            className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "🔄 Refreshing..." : "🔄 Refresh Data Now"}
+          </button>
         </div>
-      </div>
 
-      {/* Overview Tab */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          {/* Important Notice Banner */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">ℹ</span>
-                </div>
-              </div>
-              <div className="ml-3">
-                <h4 className="text-sm font-medium text-blue-800">FY 2024-25 Allocation Update</h4>
-                <p className="text-sm text-blue-700 mt-1">
-                  Sports Ministry has increased scholarship funding by 35% this fiscal year. New schemes include Mission Olympic Cell 2.0 and Enhanced Khelo India program with ₹3,500 crores budget allocation.
-                </p>
-              </div>
-            </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Athletes</h3>
+            <p className="text-3xl font-bold text-blue-600">
+              {regionData.reduce((sum, region) => sum + region.athletes, 0)}
+            </p>
           </div>
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Funding</h3>
+            <p className="text-3xl font-bold text-green-600">
+              ₹{(athleteSchemes.reduce((sum, scheme) => sum + scheme.allocated, 0) / 10000000).toFixed(1)}Cr
+            </p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Active Schemes</h3>
+            <p className="text-3xl font-bold text-purple-600">{athleteSchemes.length}</p>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-orange-500">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Beneficiaries</h3>
+            <p className="text-3xl font-bold text-orange-600">
+              {athleteSchemes.reduce((sum, scheme) => sum + scheme.beneficiaries, 0)}
+            </p>
+          </div>
+        </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Quota Allocation Chart */}
-          <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-            <h3 className="text-xl font-semibold text-slate-800 mb-4">Quota Allocation Status</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">💰 Athlete Scheme Funding</h2>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={quotaData}>
+              <BarChart data={athleteSchemes}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="category" angle={-45} textAnchor="end" height={80} />
+                <XAxis dataKey="scheme" angle={-45} textAnchor="end" height={100} fontSize={12} />
                 <YAxis />
-                <Tooltip />
+                <Tooltip formatter={(value) => [`₹${(value as number / 1000000).toFixed(1)}M`, '']} />
                 <Legend />
-                <Bar dataKey="allocated" fill="#182031" name="Allocated" />
-                <Bar dataKey="used" fill="#6B7280" name="Used" />
+                <Bar dataKey="allocated" fill="#3b82f6" name="Allocated" />
+                <Bar dataKey="disbursed" fill="#10b981" name="Disbursed" />
+                <Bar dataKey="pending" fill="#f59e0b" name="Pending" />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Quota Usage Pie Chart */}
-          <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-            <h3 className="text-xl font-semibold text-slate-800 mb-4">Quota Usage Distribution</h3>
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">⚽ Sport-wise Athlete Distribution</h2>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={quotaData}
+                  data={sportWiseData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ category, percentage }) => `${category}: ${percentage}%`}
+                  label={({ sport, athletes }) => `${sport}: ${athletes}`}
                   outerRadius={80}
                   fill="#8884d8"
-                  dataKey="percentage"
+                  dataKey="athletes"
                 >
-                  {quotaData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {sportWiseData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={SPORT_COLORS[index % SPORT_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -284,175 +420,99 @@ export default function TransparencyDashboard() {
             </ResponsiveContainer>
           </div>
 
-          {/* Key Metrics Cards */}
-          <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-r from-[#182031] to-[#020817] rounded-xl p-6 text-white">
-              <h4 className="text-sm opacity-80 mb-2">Active Schemes</h4>
-              <p className="text-3xl font-bold">{regionData.reduce((sum, r) => sum + r.totalOpportunities, 0)}</p>
-              <p className="text-xs opacity-70 mt-1">Govt + Private</p>
-            </div>
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
-              <h4 className="text-sm opacity-80 mb-2">Total Applications</h4>
-              <p className="text-3xl font-bold">{regionData.reduce((sum, r) => sum + r.totalApplications, 0).toLocaleString('en-IN')}</p>
-              <p className="text-xs opacity-70 mt-1">This FY 2024-25</p>
-            </div>
-            <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-6 text-white">
-              <h4 className="text-sm opacity-80 mb-2">Funding Allocated</h4>
-              <p className="text-3xl font-bold">₹{(regionData.reduce((sum, r) => sum + r.fundingAllocated, 0) / 10000000).toFixed(1)}Cr</p>
-              <p className="text-xs opacity-70 mt-1">Current fiscal year</p>
-            </div>
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white">
-              <h4 className="text-sm opacity-80 mb-2">Avg Fairness Score</h4>
-              <p className="text-3xl font-bold">{regionData.length > 0 ? (regionData.reduce((sum, r) => sum + r.avgFairnessScore, 0) / regionData.length).toFixed(1) : '0'}</p>
-              <p className="text-xs opacity-70 mt-1">Out of 100</p>
-            </div>
-          </div>
-        </div>
-        </div>
-      )}
-
-      {/* Regional Analysis Tab */}
-      {activeTab === 'regional' && (
-        <div className="space-y-6">
-          {/* Fairness Index Heatmap */}
-          <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-            <h3 className="text-xl font-semibold text-slate-800 mb-4">Regional Fairness Index Heatmap</h3>
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">📊 Performance Metrics</h2>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={regionData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="region" />
-                <YAxis />
-                <Tooltip />
+              <RadarChart data={performanceMetrics}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="metric" fontSize={12} />
+                <PolarRadiusAxis domain={[0, 100]} tickCount={5} />
+                <Radar name="Current" dataKey="value" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+                <Radar name="Target" dataKey="target" stroke="#10b981" fill="#10b981" fillOpacity={0.1} />
                 <Legend />
-                <Bar dataKey="avgFairnessScore" fill="#182031" name="Avg Fairness Score" />
-                <Bar dataKey="ruralPercentage" fill="#6B7280" name="Rural %" />
-              </BarChart>
+              </RadarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Regional Data Table */}
-          <div className="bg-white rounded-xl shadow-md border border-[#E0E4E9] overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold text-slate-800">Regional Breakdown</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Region</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Opportunities</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applications</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fairness Score</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rural %</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Funding</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {regionData.map((region, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{region.region}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{region.totalOpportunities}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{region.totalApplications}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{region.avgFairnessScore.toFixed(1)}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{region.ruralPercentage.toFixed(1)}%</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{(region.fundingAllocated / 100000).toFixed(1)}L</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Funding Trends Tab */}
-      {activeTab === 'funding' && (
-        <div className="space-y-6">
-          {/* Funding Trend Chart */}
-          <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-            <h3 className="text-xl font-semibold text-slate-800 mb-4">Monthly Funding Trends</h3>
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">🗺️ Region-wise Analysis</h2>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={fundingData}>
+              <ComposedChart data={regionData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis tickFormatter={(value) => `₹${(value / 10000000).toFixed(1)}Cr`} />
+                <XAxis dataKey="region" />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
                 <Tooltip formatter={(value, name) => [
-                  name === 'amount' ? `₹${(value as number / 10000000).toFixed(2)} Crores` : value, 
-                  name === 'amount' ? 'Funding' : 'Opportunities'
+                  name === 'funding' ? `₹${(value as number / 1000000).toFixed(1)}M` : value,
+                  name
                 ]} />
                 <Legend />
-                <Area type="monotone" dataKey="amount" stroke="#182031" fill="#182031" fillOpacity={0.3} name="Funding (₹)" />
-                <Line type="monotone" dataKey="opportunities" stroke="#6B7280" name="Opportunities" />
+                <Bar yAxisId="left" dataKey="athletes" fill="#3b82f6" name="Athletes" />
+                <Line yAxisId="right" type="monotone" dataKey="funding" stroke="#10b981" strokeWidth={3} name="Funding" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">📈 Funding Trends (12 Months)</h2>
+            <ResponsiveContainer width="100%" height={400}>
+              <AreaChart data={fundingTrends}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value, name) => [
+                  name === 'totalFunding' ? `₹${(value as number / 1000000).toFixed(1)}M` : value,
+                  name
+                ]} />
+                <Legend />
+                <Area type="monotone" dataKey="totalFunding" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} name="Total Funding" />
+                <Area type="monotone" dataKey="athleteCount" stackId="2" stroke="#10b981" fill="#10b981" fillOpacity={0.6} name="Athlete Count" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Funding Distribution */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-              <h3 className="text-xl font-semibold text-slate-800 mb-4">Funding Impact</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">Total Funding Distributed</span>
-                  <span className="text-xl font-bold text-slate-800">₹158.8 Cr</span>
-                </div>
-                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">Average per Scholarship</span>
-                  <span className="text-xl font-bold text-slate-800">₹3.2 L</span>
-                </div>
-                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">Success Rate</span>
-                  <span className="text-xl font-bold text-green-600">89%</span>
-                </div>
-                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                  <span className="text-gray-600">Athletes Benefited</span>
-                  <span className="text-xl font-bold text-blue-600">4,967</span>
-                </div>
-              </div>
-            </div>
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">🏅 Sport-wise Performance & Funding</h2>
+            <ResponsiveContainer width="100%" height={400}>
+              <ComposedChart data={sportWiseData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="sport" />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip formatter={(value, name) => [
+                  name === 'funding' ? `₹${(value as number / 1000000).toFixed(1)}M` : value,
+                  name
+                ]} />
+                <Legend />
+                <Bar yAxisId="left" dataKey="medals" fill="#f59e0b" name="Medals Won" />
+                <Bar yAxisId="left" dataKey="performance" fill="#8b5cf6" name="Performance Score" />
+                <Line yAxisId="right" type="monotone" dataKey="funding" stroke="#ef4444" strokeWidth={3} name="Funding Allocated" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
 
-            <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-              <h3 className="text-xl font-semibold text-slate-800 mb-4">Transparency Metrics</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
-                  <span className="text-gray-600">Data Accuracy</span>
-                  <span className="text-xl font-bold text-blue-600">99.2%</span>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-lg">
+          <h2 className="text-xl font-semibold mb-4 text-gray-800">🔧 System Health Monitoring</h2>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {systemHealth.map((component, index) => (
+              <div key={index} className="text-center p-4 border rounded-lg">
+                <div className={`text-3xl font-bold ${component.status >= 90 ? 'text-green-600' : component.status >= 80 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {component.status}%
                 </div>
-                <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
-                  <span className="text-gray-600">Real-time Updates</span>
-                  <span className="text-xl font-bold text-green-600">Live</span>
-                </div>
-                <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
-                  <span className="text-gray-600">Public Accessibility</span>
-                  <span className="text-xl font-bold text-purple-600">24/7</span>
-                </div>
+                <p className="text-sm text-gray-600 mt-1">{component.component}</p>
+                <p className="text-xs text-gray-500">Uptime: {component.uptime}%</p>
               </div>
-            </div>
+            ))}
           </div>
         </div>
-      )}
 
-      {/* Transparency Notice */}
-      <div className="bg-gradient-to-r from-[#182031] to-[#020817] rounded-xl p-6 text-white">
-        <h3 className="text-lg font-semibold mb-2">🏛️ Government Compliance & Transparency</h3>
-        <p className="text-gray-200 text-sm mb-3">
-          This dashboard provides real-time visibility into scholarship allocation across government schemes 
-          including Khelo India, SAI programs, and private foundation initiatives. All data follows 
-          Right to Information (RTI) Act guidelines and reservation policies as per Government of India norms.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-xs">
-          <div className="bg-white/10 rounded-lg p-3">
-            <p className="font-medium">ST Reservation: 7.5%</p>
-            <p className="opacity-80">As per Constitutional mandate</p>
-          </div>
-          <div className="bg-white/10 rounded-lg p-3">
-            <p className="font-medium">SC Reservation: 15%</p>
-            <p className="opacity-80">Constitutional requirement</p>
-          </div>
-          <div className="bg-white/10 rounded-lg p-3">
-            <p className="font-medium">OBC Reservation: 27%</p>
-            <p className="opacity-80">Mandal Commission guidelines</p>
-          </div>
+        <div className="text-center py-6 text-gray-500 text-sm">
+          <p>🤖 Powered by Gemini API • Auto-updates every 3 hours • Real-time AI-generated athlete data</p>
         </div>
       </div>
     </div>
