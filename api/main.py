@@ -41,6 +41,7 @@ class InjuryInput(BaseModel):
     description: str
     diagnosis: Optional[str] = None
     symptoms: List[str] = []
+    medicalImages: Optional[List[str]] = []
 
 class RecoveryMilestone(BaseModel):
     title: str
@@ -157,8 +158,8 @@ async def generate_recovery_milestones(injury: InjuryInput):
         # Create prompt for Llama 3.3
         prompt = create_recovery_prompt(injury)
         
-        # Call GROQ API
-        response = await call_groq_api(prompt)
+        # Call GROQ API with images if provided
+        response = await call_groq_api(prompt, injury.medicalImages if injury.medicalImages else None)
         
         # Parse and validate response
         recovery_plan = parse_groq_response(response, injury)
@@ -185,7 +186,27 @@ You are a sports medicine expert and physical therapy specialist. Create a compr
 - Severity: {injury.severity}
 - Description: {injury.description}
 - Medical Diagnosis: {diagnosis_text}
-- Symptoms: {symptoms_text}
+- Symptoms: {symptoms_text}"""
+
+    # Add medical images analysis if provided
+    if injury.medicalImages:
+        prompt += f"""
+
+**Medical Images Provided:**
+- Number of images: {len(injury.medicalImages)}
+- Image URLs for analysis: {', '.join(injury.medicalImages)}
+
+IMPORTANT: These medical images (X-rays, MRI scans, CT scans, or clinical photos) provide visual evidence of the injury. 
+Consider the visual findings when creating the recovery plan. Look for:
+- Bone fractures, alignment, or structural damage
+- Soft tissue swelling, inflammation, or tears  
+- Joint positioning and space
+- Healing progression indicators
+- Any complications or concerning findings
+
+Adjust the recovery timeline and recommendations based on what you observe in these images."""
+
+    prompt += f"""
 
 **Task:** Generate a detailed recovery plan with specific milestones, following these guidelines:
 
@@ -194,23 +215,24 @@ You are a sports medicine expert and physical therapy specialist. Create a compr
 3. **Progressive Loading:** Ensure gradual progression from rest to full activity
 4. **Evidence-Based:** Use sports medicine best practices
 5. **Athlete-Specific:** Consider the athletic context
+6. **Image-Informed:** If medical images are provided, incorporate visual findings into your recommendations
 
 **Output Format (JSON):**
-{{
+{{{{
   "milestones": [
-    {{
+    {{{{
       "title": "Milestone name",
       "description": "Detailed description of what the athlete should achieve",
       "targetDate": "2024-XX-XX",
       "estimatedDuration": number_of_days,
       "priority": "high|medium|low",
       "category": "rest|mobility|strength|activity"
-    }}
+    }}}}
   ],
   "totalEstimatedDays": total_recovery_days,
   "recommendations": ["General recommendation 1", "General recommendation 2"],
   "warnings": ["Warning or red flag 1", "Warning or red flag 2"]
-}}
+}}}}
 
 **Severity Guidelines:**
 - Minor: 1-2 weeks recovery, focus on activity modification
@@ -228,7 +250,7 @@ Generate 5-8 progressive milestones with realistic timelines. Start response wit
     
     return prompt
 
-async def call_groq_api(prompt: str) -> str:
+async def call_groq_api(prompt: str, images: List[str] = None) -> str:
     """Call GROQ API with Llama 3.3 70B model"""
     
     if not GROQ_API_KEY:
@@ -239,18 +261,40 @@ async def call_groq_api(prompt: str) -> str:
         "Content-Type": "application/json"
     }
     
+    # Create messages
+    messages = [
+        {
+            "role": "system",
+            "content": "You are an expert sports medicine physician and certified athletic trainer with 15+ years of experience in injury rehabilitation. Provide evidence-based, progressive recovery plans tailored to athletes. Always respond with valid JSON format."
+        }
+    ]
+    
+    # If images are provided, add them to the user message
+    if images:
+        user_content = [
+            {"type": "text", "text": prompt}
+        ]
+        # Add image URLs - Note: GROQ Llama models don't support vision yet,
+        # but we include URLs in text for context and future compatibility
+        for image_url in images:
+            user_content.append({
+                "type": "text", 
+                "text": f"\n[Medical Image URL: {image_url}] - Analyze this medical image if possible"
+            })
+        
+        messages.append({
+            "role": "user",
+            "content": user_content[0]["text"] + "".join([item["text"] for item in user_content[1:]])
+        })
+    else:
+        messages.append({
+            "role": "user",
+            "content": prompt
+        })
+    
     payload = {
         "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are an expert sports medicine physician and certified athletic trainer with 15+ years of experience in injury rehabilitation. Provide evidence-based, progressive recovery plans tailored to athletes. Always respond with valid JSON format."
-            },
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
+        "messages": messages,
         "temperature": 0.3,  # Lower temperature for more consistent medical advice
         "max_tokens": 2000,
         "top_p": 0.9

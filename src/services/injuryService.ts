@@ -35,6 +35,7 @@ export interface Injury {
   causedBy?: string;
   treatmentPlan?: string;
   restrictions: string[];
+  medicalImages?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -374,7 +375,8 @@ export const generateRecoveryMilestones = async (injury: Injury): Promise<Omit<R
         severity: injury.severity,
         description: injury.description,
         diagnosis: injury.diagnosis,
-        symptoms: injury.symptoms
+        symptoms: injury.symptoms,
+        medicalImages: injury.medicalImages || []
       }),
     });
     

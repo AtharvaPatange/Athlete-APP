@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getUserStats, checkAndAwardAchievements, initializeUserStats } from '@/services/statsService';
 import PerformanceTabs from "@/components/PerformanceTabs";
@@ -10,6 +10,7 @@ import TransparencyDashboard from "@/components/TransparencyDashboard";
 import AthleteQRCode from "@/components/AthleteQRCode";
 import ChatbotPopup from "@/components/ChatbotPopup";
 import ConsistencyCalendar from "@/components/ConsistencyCalendar";
+import { Camera } from "lucide-react";
 
 interface UserProfile {
   name: string;
@@ -22,6 +23,7 @@ interface UserProfile {
   role: string;
   uid: string;
   createdAt: any;
+  profileImage?: string;
   profileViews?: number;
   qrScans?: number;
   connections?: number;
@@ -43,6 +45,7 @@ export default function DashboardPage() {
     achievements: 0,
     loading: true
   });
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -105,6 +108,64 @@ export default function DashboardPage() {
       });
     } finally {
       setProfileLoading(false);
+    }
+  };
+
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'sachin');
+    formData.append('cloud_name', 'drxliiejo');
+
+    const response = await fetch('https://api.cloudinary.com/v1_1/drxliiejo/image/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image');
+    }
+
+    const data = await response.json();
+    return data.secure_url;
+  };
+
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file.');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB.');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      // Upload to Cloudinary
+      const imageUrl = await uploadToCloudinary(file);
+
+      // Update Firebase user document
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        profileImage: imageUrl
+      });
+
+      // Update local state
+      setProfile(prev => prev ? { ...prev, profileImage: imageUrl } : null);
+
+      console.log('Profile image updated successfully');
+    } catch (error) {
+      console.error('Error uploading profile image:', error);
+      alert('Failed to upload profile image. Please try again.');
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -233,12 +294,40 @@ export default function DashboardPage() {
             <div className="bg-white rounded-lg shadow-lg p-6 mb-8 border border-gray-200 relative">
               <div className="flex flex-col lg:flex-row items-start justify-between mb-6">
                 <div className="flex items-center mb-4 lg:mb-0">
-                  <div className="bg-slate-800 w-16 h-16 rounded-full flex items-center justify-center text-2xl mr-4">
-                    <span className="text-white font-bold">
-                      {profile.role === "athlete" ? "A" : 
-                       profile.role === "coach" ? "C" : 
-                       profile.role === "admin" ? "AD" : "U"}
-                    </span>
+                  <div className="relative group">
+                    <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center text-2xl mr-4">
+                      {profile.profileImage ? (
+                        <img 
+                          src={profile.profileImage} 
+                          alt={profile.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white font-bold">
+                          {profile.role === "athlete" ? "A" : 
+                           profile.role === "coach" ? "C" : 
+                           profile.role === "admin" ? "AD" : "U"}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {/* Upload overlay */}
+                    <div className="absolute inset-0 w-16 h-16 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer mr-4">
+                      <Camera className="w-5 h-5 text-white" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={isUploadingImage}
+                      />
+                    </div>
+                    
+                    {isUploadingImage && (
+                      <div className="absolute inset-0 w-16 h-16 rounded-full bg-black bg-opacity-75 flex items-center justify-center mr-4">
+                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-800 mb-1">{profile.name}</h2>

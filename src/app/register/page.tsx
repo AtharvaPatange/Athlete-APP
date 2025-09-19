@@ -182,7 +182,8 @@ export default function RegisterPage() {
           role: "athlete",
           uid: result.user.uid,
           createdAt: new Date(),
-          signUpMethod: "google"
+          signUpMethod: "google",
+          profileImage: result.user.photoURL || ""
         };
 
         await setDoc(doc(db, "users", result.user.uid), defaultProfile);

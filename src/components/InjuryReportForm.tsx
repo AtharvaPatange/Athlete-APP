@@ -80,11 +80,14 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
     symptoms: initialData?.symptoms || [],
     causedBy: initialData?.causedBy || '',
     treatmentPlan: initialData?.treatmentPlan || '',
-    restrictions: initialData?.restrictions || []
+    restrictions: initialData?.restrictions || [],
+    medicalImages: [] as string[]
   });
 
   const [customSymptom, setCustomSymptom] = useState('');
   const [customRestriction, setCustomRestriction] = useState('');
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -150,6 +153,54 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
     }));
   };
 
+  const uploadToCloudinary = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'sachin');
+    formData.append('cloud_name', 'drxliiejo');
+
+    const response = await fetch('https://api.cloudinary.com/v1_1/drxliiejo/image/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to upload image');
+    }
+
+    const data = await response.json();
+    return data.secure_url;
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    setIsUploading(true);
+    try {
+      const uploadPromises = Array.from(files).map(file => uploadToCloudinary(file));
+      const imageUrls = await Promise.all(uploadPromises);
+      setUploadedImages(prev => [...prev, ...imageUrls]);
+      setFormData(prev => ({
+        ...prev,
+        medicalImages: [...prev.medicalImages, ...imageUrls]
+      }));
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      alert('Failed to upload images. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeImage = (imageUrl: string) => {
+    setUploadedImages(prev => prev.filter(url => url !== imageUrl));
+    setFormData(prev => ({
+      ...prev,
+      medicalImages: prev.medicalImages.filter(url => url !== imageUrl)
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -170,7 +221,8 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
         symptoms: formData.symptoms,
         causedBy: formData.causedBy || undefined,
         treatmentPlan: formData.treatmentPlan || undefined,
-        restrictions: formData.restrictions
+        restrictions: formData.restrictions,
+        medicalImages: formData.medicalImages
       };
 
       const result = await reportInjury(injuryData);
@@ -444,6 +496,68 @@ export default function InjuryReportForm({ onSubmitSuccess, onCancel, initialDat
             <Plus size={16} />
           </button>
         </div>
+      </div>
+
+      {/* Image Upload Section */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Medical Images (Optional)
+        </label>
+        <p className="text-sm text-gray-500 mb-4">
+          Upload images of X-rays, MRI scans, physical examination photos, or other relevant medical documentation
+        </p>
+        
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+          <div className="text-center">
+            <input
+              type="file"
+              id="injury-images"
+              multiple
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+              disabled={isUploading}
+            />
+            <label
+              htmlFor="injury-images"
+              className={`cursor-pointer inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
+                isUploading 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}
+            >
+              {isUploading ? 'Uploading...' : 'Choose Images'}
+            </label>
+            <p className="text-sm text-gray-500 mt-2">
+              Supports: JPG, PNG, GIF (Max 10MB per image)
+            </p>
+          </div>
+        </div>
+
+        {/* Display uploaded images */}
+        {uploadedImages.length > 0 && (
+          <div className="mt-4">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Uploaded Images:</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {uploadedImages.map((imageUrl, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={imageUrl}
+                    alt={`Injury documentation ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(imageUrl)}
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Review Summary */}
