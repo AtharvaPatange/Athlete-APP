@@ -271,12 +271,6 @@ export default function LoginPage() {
                 )}
                 Google
               </button>
-              <button 
-                disabled
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg bg-gray-100 text-sm font-medium text-gray-400 cursor-not-allowed"
-              >
-                Apple (Soon)
-              </button>
             </div>
           </div>
 

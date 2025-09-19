@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc, onSnapshot, getDoc } from 'firebase/firestore';
 import {
   getRecoveryMilestones,
   addRecoveryProgress,
@@ -28,6 +30,9 @@ export default function RecoveryTracker({ injury, onUpdateInjury }: RecoveryTrac
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'milestones' | 'progress' | 'verification'>('milestones');
   const [isGeneratingMilestones, setIsGeneratingMilestones] = useState(false);
+  const [coachVerificationStatus, setCoachVerificationStatus] = useState<'not_required' | 'pending' | 'verified'>('not_required');
+  const [verificationRequested, setVerificationRequested] = useState(false);
+  const [isRequestingVerification, setIsRequestingVerification] = useState(false);
 
   // Progress form state
   const [progressForm, setProgressForm] = useState({
@@ -44,6 +49,51 @@ export default function RecoveryTracker({ injury, onUpdateInjury }: RecoveryTrac
   useEffect(() => {
     loadRecoveryData();
   }, [injury.id]);
+
+  // Listen for coach verification status changes
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setCoachVerificationStatus(data.coach_verification_status || 'not_required');
+        setVerificationRequested(data.recovery_verification_requested || false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user?.uid]);
+
+  // Request coach verification
+  const requestCoachVerification = async () => {
+    if (!user?.uid || isRequestingVerification) return;
+
+    setIsRequestingVerification(true);
+    try {
+      // Get current athlete data to check for assigned coach
+      const athleteDoc = await getDoc(doc(db, "users", user.uid));
+      const athleteData = athleteDoc.data();
+      const assignedCoach = athleteData?.assigned_coach;
+
+      // Update athlete verification request status
+      await updateDoc(doc(db, "users", user.uid), {
+        recovery_verification_requested: true,
+        coach_verification_status: 'pending',
+        verification_request_date: new Date(),
+        assigned_coach: assignedCoach || null
+      });
+      
+      console.log(`Verification requested by athlete ${user.uid} for coach ${assignedCoach}`);
+      
+      setVerificationRequested(true);
+      setCoachVerificationStatus('pending');
+    } catch (error) {
+      console.error("Error requesting coach verification:", error);
+    } finally {
+      setIsRequestingVerification(false);
+    }
+  };
 
   const loadRecoveryData = async () => {
     if (!injury.id) return;
@@ -524,40 +574,149 @@ export default function RecoveryTracker({ injury, onUpdateInjury }: RecoveryTrac
         <div>
           <h3 className="text-xl font-semibold text-gray-900 mb-6">Coach Verification</h3>
           
-          {verifications.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-xl">
-              <div className="text-6xl mb-4">✅</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Coach Verifications Yet</h3>
-              <p className="text-gray-600">Your coach will verify your recovery progress</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {verifications.map((verification) => (
-                <div key={verification.id} className="bg-white p-6 rounded-xl border border-gray-200">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900">
-                        Verification by {verification.coachName}
-                      </h4>
-                      <p className="text-gray-600 mt-2">{verification.notes}</p>
-                      <div className="text-sm text-gray-500 mt-2">
-                        {verification.verificationDate.toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      verification.status === 'cleared' 
-                        ? 'bg-green-100 text-green-700'
-                        : verification.status === 'not_ready'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {verification.status === 'cleared' ? '✅ Cleared' :
-                       verification.status === 'not_ready' ? '❌ Not Ready' :
-                       '⚠️ Needs Attention'}
+          {/* Progress at 100% Section */}
+          {overallProgress >= 100 && (
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-lg font-semibold text-green-900 mb-2">🎉 Recovery Complete!</h4>
+                  <p className="text-green-700">
+                    You've reached 100% recovery progress. Request verification from your coach to officially complete your recovery.
+                  </p>
+                </div>
+                {coachVerificationStatus === 'verified' ? (
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">✅</div>
+                    <div className="bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-semibold">
+                      Verified by Coach
                     </div>
                   </div>
+                ) : coachVerificationStatus === 'pending' || verificationRequested ? (
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">⏳</div>
+                    <div className="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-full text-sm font-semibold">
+                      Verification Requested
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={requestCoachVerification}
+                    disabled={isRequestingVerification}
+                    className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center space-x-2"
+                  >
+                    {isRequestingVerification ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white"></div>
+                        <span>Requesting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🏥</span>
+                        <span>Request Coach Verification</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Verification Status Section */}
+          <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Verification Status</h4>
+            
+            {coachVerificationStatus === 'verified' ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="text-2xl">✅</div>
+                  <div>
+                    <h5 className="font-semibold text-green-900">Recovery Verified!</h5>
+                    <p className="text-green-700 text-sm">
+                      Your coach has successfully verified your recovery. You are cleared to return to full activity.
+                    </p>
+                    <p className="text-green-600 text-xs mt-2">
+                      Verified on {new Date().toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-              ))}
+              </div>
+            ) : coachVerificationStatus === 'pending' || verificationRequested ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="text-2xl">⏳</div>
+                  <div>
+                    <h5 className="font-semibold text-yellow-900">Verification Pending</h5>
+                    <p className="text-yellow-700 text-sm">
+                      Your verification request has been sent to your coach. They will review your recovery progress and provide verification.
+                    </p>
+                    <p className="text-yellow-600 text-xs mt-2">
+                      Request sent - waiting for coach review
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : overallProgress >= 100 ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="text-2xl">🏥</div>
+                  <div>
+                    <h5 className="font-semibold text-blue-900">Ready for Verification</h5>
+                    <p className="text-blue-700 text-sm">
+                      You've completed your recovery milestones! Request verification from your coach to officially complete your recovery.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="text-2xl">🔄</div>
+                  <div>
+                    <h5 className="font-semibold text-gray-900">Recovery in Progress</h5>
+                    <p className="text-gray-700 text-sm">
+                      Continue working on your recovery milestones. Coach verification will be available when you reach 100% progress.
+                    </p>
+                    <p className="text-gray-600 text-xs mt-2">
+                      Current progress: {overallProgress}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Previous Verifications */}
+          {verifications.length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Previous Verifications</h4>
+              <div className="space-y-4">
+                {verifications.map((verification) => (
+                  <div key={verification.id} className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h5 className="font-semibold text-gray-900">
+                          Verification by {verification.coachName}
+                        </h5>
+                        <p className="text-gray-600 mt-1 text-sm">{verification.notes}</p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {verification.verificationDate.toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        verification.status === 'cleared' 
+                          ? 'bg-green-100 text-green-700'
+                          : verification.status === 'not_ready'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {verification.status === 'cleared' ? '✅ Cleared' :
+                         verification.status === 'not_ready' ? '❌ Not Ready' :
+                         '⚠️ Needs Attention'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

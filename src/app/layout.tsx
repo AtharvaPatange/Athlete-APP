@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ChatbotPopup from "@/components/ChatbotPopup";
+import ClientLayout from "@/components/ClientLayout";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,18 +21,39 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ChatbotPopup />  
+        {/* Client-side layout for multilingual and chatbot */}
+        <ClientLayout>
+          {children}
+        </ClientLayout>
 
-        {children}
+        {/* Google Translate init script */}
+        <Script id="google-translate-init" strategy="afterInteractive">
+          {`
+            function googleTranslateElementInit() {
+              new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'en,hi,gu,ta,te,kn,ml,pa,bn,or,as,mr,ne,ur,ar,zh,ja,ko,fr,de,es,pt,ru,it,th,vi,id,ms,tr,pl,sv,da,no,fi,nl,cs,hu,ro,bg,hr,sk,sl,et,lv,lt,el,he,fa,sw,am,yo,ig,ha,zu,xh,af,st,tn,ts,ss,ve,nr,nd',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false,
+                multilanguagePage: true
+              }, 'google_translate_element');
+            }
+          `}
+        </Script>
 
+        {/* Load Google Translate API */}
+        <Script
+          src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

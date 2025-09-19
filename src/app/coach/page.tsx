@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, limit, onSnapshot } from "firebase/firestore";
 import { 
   Users, 
   BarChart3, 
@@ -12,12 +12,16 @@ import {
   LogOut, 
   MapPin,
   User,
-  Loader2
+  Loader2,
+  ToggleLeft,
+  ToggleRight,
+  UserCheck,
+  UserX
 } from "lucide-react";
-import RegionalAthletesView from "@/components/RegionalAthletesView";
+import RegionalAthletesView from "@/components/EnhancedRegionalAthletesView";
 import CoachAnalyticsDashboard from "@/components/CoachAnalyticsDashboard";
-import CoachInjuryManagement from "@/components/CoachInjuryManagement";
-import CoachCommunity from "@/components/CoachCommunity";
+import CoachInjuryManagement from "@/components/EnhancedCoachInjuryManagement";
+import CoachCommunity from "@/components/EnhancedCoachCommunity";
 
 interface UserProfile {
   name: string;
@@ -25,6 +29,9 @@ interface UserProfile {
   region: string;
   sport: string;
   email: string;
+  availability_status?: 'available' | 'unavailable';
+  assigned_athletes?: string[]; // Array of athlete IDs
+  last_assignment_update?: any;
 }
 
 const CoachDashboard = () => {
@@ -33,6 +40,9 @@ const CoachDashboard = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState("athletes");
   const [profileLoading, setProfileLoading] = useState(true);
+  const [availabilityStatus, setAvailabilityStatus] = useState<'available' | 'unavailable'>('unavailable');
+  const [assignedAthletes, setAssignedAthletes] = useState<string[]>([]);
+  const [isUpdatingAvailability, setIsUpdatingAvailability] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -52,6 +62,8 @@ const CoachDashboard = () => {
               return;
             }
             setUserProfile(profile);
+            setAvailabilityStatus(profile.availability_status || 'unavailable');
+            setAssignedAthletes(profile.assigned_athletes || []);
           } else {
             // No profile found, redirect to registration
             router.push("/register");
@@ -66,6 +78,114 @@ const CoachDashboard = () => {
       fetchProfile();
     }
   }, [user, loading, router]);
+
+  // Function to assign 3 athletes to the coach based on priority and region
+  const assignAthletesToCoach = async () => {
+    if (!user || !userProfile) return;
+
+    try {
+      // Get all athletes from the same region who are not already assigned to a coach
+      const athletesQuery = query(
+        collection(db, "users"),
+        where("role", "==", "athlete"),
+        where("region", "==", userProfile.region),
+        limit(50) // Get more athletes to choose from
+      );
+
+      const athletesSnapshot = await getDocs(athletesQuery);
+      const availableAthletes = athletesSnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((athlete: any) => !athlete.assigned_coach); // Only unassigned athletes
+
+      // Sort by priority (high injury risk, declining performance, etc.)
+      const prioritizedAthletes = availableAthletes.sort((a: any, b: any) => {
+        let scoreA = 0, scoreB = 0;
+        
+        // Priority scoring
+        if (a.injury_risk === 'high') scoreA += 3;
+        if (a.injury_risk === 'medium') scoreA += 2;
+        if (a.performance_trend === 'declining') scoreA += 3;
+        if (a.injury_status === 'injured' || a.injury_status === 'recovering') scoreA += 4;
+        
+        if (b.injury_risk === 'high') scoreB += 3;
+        if (b.injury_risk === 'medium') scoreB += 2;
+        if (b.performance_trend === 'declining') scoreB += 3;
+        if (b.injury_status === 'injured' || b.injury_status === 'recovering') scoreB += 4;
+        
+        return scoreB - scoreA; // Higher score = higher priority
+      });
+
+      // Take the top 3 priority athletes
+      const selectedAthletes = prioritizedAthletes.slice(0, 3);
+
+      if (selectedAthletes.length > 0) {
+        const athleteIds = selectedAthletes.map((athlete: any) => athlete.id);
+        
+        // Update coach profile with assigned athletes
+        await updateDoc(doc(db, "users", user.uid), {
+          assigned_athletes: athleteIds,
+          last_assignment_update: new Date()
+        });
+
+        // Update each athlete with the assigned coach
+        for (const athlete of selectedAthletes) {
+          await updateDoc(doc(db, "users", athlete.id), {
+            assigned_coach: user.uid,
+            coach_assignment_date: new Date()
+          });
+        }
+
+        setAssignedAthletes(athleteIds);
+        console.log(`Assigned ${selectedAthletes.length} athletes to coach`);
+      }
+    } catch (error) {
+      console.error("Error assigning athletes:", error);
+    }
+  };
+
+  // Function to toggle availability status
+  const toggleAvailability = async () => {
+    if (!user || isUpdatingAvailability) return;
+    
+    setIsUpdatingAvailability(true);
+    const newStatus = availabilityStatus === 'available' ? 'unavailable' : 'available';
+
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        availability_status: newStatus
+      });
+
+      setAvailabilityStatus(newStatus);
+
+      // If becoming available and no athletes assigned, assign athletes
+      if (newStatus === 'available' && assignedAthletes.length === 0) {
+        await assignAthletesToCoach();
+      }
+
+      // If becoming unavailable, unassign athletes
+      if (newStatus === 'unavailable' && assignedAthletes.length > 0) {
+        // Remove coach assignment from athletes
+        for (const athleteId of assignedAthletes) {
+          await updateDoc(doc(db, "users", athleteId), {
+            assigned_coach: null,
+            coach_assignment_date: null
+          });
+        }
+
+        // Clear assigned athletes from coach
+        await updateDoc(doc(db, "users", user.uid), {
+          assigned_athletes: [],
+          last_assignment_update: new Date()
+        });
+
+        setAssignedAthletes([]);
+      }
+    } catch (error) {
+      console.error("Error updating availability:", error);
+    } finally {
+      setIsUpdatingAvailability(false);
+    }
+  };
 
   if (loading || profileLoading) {
     return (
@@ -147,8 +267,41 @@ const CoachDashboard = () => {
               </div>
             </div>
             
-            {/* Right side - Profile + Logout */}
+            {/* Right side - Availability + Profile + Logout */}
             <div className="flex items-center space-x-4">
+              {/* Availability Toggle */}
+              <div className="flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg">
+                <div className="text-sm">
+                  <div className="font-medium text-gray-900">Status:</div>
+                  <div className={`text-xs ${availabilityStatus === 'available' ? 'text-green-600' : 'text-gray-500'}`}>
+                    {availabilityStatus === 'available' 
+                      ? `Managing ${assignedAthletes.length}/3 Athletes` 
+                      : 'Not Available'
+                    }
+                  </div>
+                </div>
+                <button
+                  onClick={toggleAvailability}
+                  disabled={isUpdatingAvailability}
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-sm transition-all cursor-pointer ${
+                    availabilityStatus === 'available'
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  } ${isUpdatingAvailability ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isUpdatingAvailability ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : availabilityStatus === 'available' ? (
+                    <UserCheck className="w-4 h-4" />
+                  ) : (
+                    <UserX className="w-4 h-4" />
+                  )}
+                  <span>
+                    {availabilityStatus === 'available' ? 'Available' : 'Set Available'}
+                  </span>
+                </button>
+              </div>
+              
               <div className="text-sm text-[#303644]">
                 <span className="font-semibold text-[#0F172A] hidden md:block">Welcome, {userProfile.name}!</span>
                 <div className="flex items-center mt-1">
@@ -179,6 +332,8 @@ const CoachDashboard = () => {
               coachRegion={userProfile.region} 
               coachSport={userProfile.sport}
               coachId={user?.uid || ""}
+              assignedAthletes={assignedAthletes}
+              availabilityStatus={availabilityStatus}
             />
           )}
           
@@ -194,6 +349,8 @@ const CoachDashboard = () => {
             <CoachInjuryManagement 
               coachRegion={userProfile.region} 
               coachId={user?.uid || ""}
+              assignedAthletes={assignedAthletes}
+              availabilityStatus={availabilityStatus}
             />
           )}
           

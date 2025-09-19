@@ -5,6 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getUserStats, checkAndAwardAchievements, initializeUserStats } from '@/services/statsService';
+import { getAthleteAssignedCoach, reassignAthleteToAvailableCoach, CoachInfo } from '@/services/coachAssignmentService';
+import { useCoachAvailabilityMonitor } from '@/hooks/useCoachAvailabilityMonitor';
 import PerformanceTabs from "@/components/PerformanceTabs";
 import TransparencyDashboard from "@/components/TransparencyDashboard";
 import AthleteQRCode from "@/components/AthleteQRCode";
@@ -46,6 +48,30 @@ export default function DashboardPage() {
     loading: true
   });
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [assignedCoach, setAssignedCoach] = useState<CoachInfo | null>(null);
+  const [coachAssignmentDate, setCoachAssignmentDate] = useState<Date | null>(null);
+  const [coachLoading, setCoachLoading] = useState(true);
+  const [coachNotification, setCoachNotification] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'warning' | 'info';
+  }>({ show: false, message: '', type: 'info' });
+
+  // Monitor coach availability for athletes
+  useCoachAvailabilityMonitor(
+    profile?.region, 
+    profile?.role === 'athlete' && !!user, 
+    30 // Check every 30 minutes
+  );
+
+  useEffect(() => {
+    if (coachNotification.show) {
+      const timer = setTimeout(() => {
+        setCoachNotification(prev => ({ ...prev, show: false }));
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [coachNotification.show]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -96,6 +122,11 @@ export default function DashboardPage() {
         
         // Check and award achievements based on current activity
         await checkAndAwardAchievements(user.uid);
+        
+        // If user is an athlete, fetch assigned coach information
+        if (userData.role === 'athlete') {
+          await fetchAssignedCoach(user.uid);
+        }
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -108,6 +139,54 @@ export default function DashboardPage() {
       });
     } finally {
       setProfileLoading(false);
+    }
+  };
+
+  const fetchAssignedCoach = async (athleteId: string) => {
+    try {
+      setCoachLoading(true);
+      const result = await getAthleteAssignedCoach(athleteId);
+      
+      if (result.success) {
+        setAssignedCoach(result.coachInfo);
+        setCoachAssignmentDate(result.assignmentDate);
+        
+        // If coach is unavailable, try to reassign
+        if (result.coachInfo && result.coachInfo.availability_status === 'unavailable') {
+          console.log('Assigned coach is unavailable, attempting reassignment...');
+          const reassignResult = await reassignAthleteToAvailableCoach(athleteId);
+          
+          if (reassignResult.success && reassignResult.newCoach) {
+            setAssignedCoach(reassignResult.newCoach);
+            setCoachAssignmentDate(new Date());
+            setCoachNotification({
+              show: true,
+              message: `Your coach has been automatically reassigned to ${reassignResult.newCoach.name}`,
+              type: 'success'
+            });
+            console.log('Successfully reassigned to new coach:', reassignResult.newCoach.name);
+          } else {
+            setCoachNotification({
+              show: true,
+              message: 'Your assigned coach is currently unavailable. We are looking for an alternative.',
+              type: 'warning'
+            });
+            console.warn('Could not reassign coach:', reassignResult.error);
+          }
+        }
+      } else {
+        console.error('Error fetching assigned coach:', result.error);
+      }
+    } catch (error) {
+      console.error('Error in fetchAssignedCoach:', error);
+    } finally {
+      setCoachLoading(false);
+    }
+  };
+
+  const handleRefreshCoachInfo = async () => {
+    if (user && profile?.role === 'athlete') {
+      await fetchAssignedCoach(user.uid);
     }
   };
 
@@ -191,6 +270,38 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 relative" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {/* Coach Assignment Notification */}
+      {coachNotification.show && (
+        <div className={`fixed top-4 right-4 z-50 max-w-sm p-4 rounded-lg shadow-lg transition-all duration-300 ${
+          coachNotification.type === 'success' ? 'bg-green-100 border border-green-200' :
+          coachNotification.type === 'warning' ? 'bg-yellow-100 border border-yellow-200' :
+          'bg-blue-100 border border-blue-200'
+        }`}>
+          <div className="flex items-start justify-between">
+            <div className="flex items-start">
+              <div className={`w-5 h-5 rounded-full mr-2 mt-0.5 ${
+                coachNotification.type === 'success' ? 'bg-green-500' :
+                coachNotification.type === 'warning' ? 'bg-yellow-500' :
+                'bg-blue-500'
+              }`}></div>
+              <p className={`text-sm font-medium ${
+                coachNotification.type === 'success' ? 'text-green-800' :
+                coachNotification.type === 'warning' ? 'text-yellow-800' :
+                'text-blue-800'
+              }`}>
+                {coachNotification.message}
+              </p>
+            </div>
+            <button
+              onClick={() => setCoachNotification(prev => ({ ...prev, show: false }))}
+              className="text-gray-400 hover:text-gray-600 ml-2"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Grid Background */}
       <div 
         className="fixed inset-0 opacity-100 pointer-events-none"
@@ -349,7 +460,118 @@ export default function DashboardPage() {
               <div className="mt-6">
                 <AthleteQRCode />
               </div>
-            </div>  
+            </div>
+
+            {/* Assigned Coach Section - Only for Athletes */}
+            {profile.role === 'athlete' && (
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-8 border border-gray-200">
+                <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-blue-600 font-bold text-sm">C</span>
+                    </div>
+                    Your Assigned Coach
+                  </div>
+                  <button
+                    onClick={handleRefreshCoachInfo}
+                    disabled={coachLoading}
+                    className="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors disabled:opacity-50"
+                    title="Refresh coach information"
+                  >
+                    <div className={`w-5 h-5 ${coachLoading ? 'animate-spin' : ''}`}>
+                      🔄
+                    </div>
+                  </button>
+                </h3>
+                
+                {coachLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : assignedCoach ? (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center">
+                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-bold mr-4">
+                          {assignedCoach.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 text-lg">{assignedCoach.name}</h4>
+                          <p className="text-gray-600 text-sm">{assignedCoach.email}</p>
+                          <p className="text-gray-500 text-xs">Region: {assignedCoach.region}</p>
+                          {assignedCoach.specialization && (
+                            <p className="text-gray-500 text-xs">Specialization: {assignedCoach.specialization}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                          assignedCoach.availability_status === 'available' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full mr-1 ${
+                            assignedCoach.availability_status === 'available' ? 'bg-green-400' : 'bg-red-400'
+                          }`}></div>
+                          {assignedCoach.availability_status === 'available' ? 'Available' : 'Unavailable'}
+                        </div>
+                        {coachAssignmentDate && (
+                          <p className="text-gray-400 text-xs mt-1">
+                            Assigned: {coachAssignmentDate.toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                      <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        Managing {assignedCoach.assigned_athletes.length}/3 Athletes
+                      </div>
+                      {assignedCoach.experience_years && (
+                        <div className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                          {assignedCoach.experience_years} Years Experience
+                        </div>
+                      )}
+                      {assignedCoach.rating && (
+                        <div className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                          ⭐ {assignedCoach.rating.toFixed(1)} Rating
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 flex gap-2">
+                      <button 
+                        onClick={() => router.push('/chat')}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-sm font-medium transition-colors"
+                      >
+                        Contact Coach
+                      </button>
+                      <button 
+                        onClick={() => router.push('/athlete')}
+                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded text-sm font-medium transition-colors"
+                      >
+                        View Profile
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                        <span className="text-yellow-600 text-xl">⚠️</span>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-yellow-800">No Coach Assigned</h4>
+                        <p className="text-yellow-700 text-sm">
+                          You will be automatically assigned a coach when one becomes available in your region.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div className="mb-8 ">
               <ConsistencyCalendar athleteId={user.uid} />
             </div>

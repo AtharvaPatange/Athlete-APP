@@ -1,6 +1,7 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { db } from "@/lib/firebase";
 import { 
   collection, 
@@ -8,13 +9,20 @@ import {
   where, 
   orderBy, 
   onSnapshot, 
-  addDoc, 
-  serverTimestamp,
-  getDocs,
-  doc,
-  getDoc
+  getDocs
 } from "firebase/firestore";
-import io, { Socket } from "socket.io-client";
+import { 
+  MessageSquare, 
+  Users, 
+  TrendingUp, 
+  Calendar, 
+  Send,
+  ExternalLink,
+  UserPlus,
+  Bell,
+  Search,
+  Filter
+} from "lucide-react";
 
 interface Message {
   id: string;
@@ -26,14 +34,12 @@ interface Message {
   room: string;
 }
 
-interface ChatRoom {
+interface Athlete {
   id: string;
   name: string;
-  description: string;
-  type: "general" | "regional" | "sport" | "coach_only";
-  participants: string[];
-  region?: string;
-  sport?: string;
+  sport: string;
+  region: string;
+  lastActiveAt?: any;
 }
 
 interface CoachCommunityProps {

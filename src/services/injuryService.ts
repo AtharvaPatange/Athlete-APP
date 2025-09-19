@@ -446,3 +446,347 @@ const getFallbackMilestones = (injury: Injury): Omit<RecoveryMilestone, 'id' | '
   
   return milestones;
 };
+
+// Coach-specific functions to manage multiple athletes' injuries
+export const getCoachAssignedAthletesInjuries = async (athleteIds: string[]) => {
+  try {
+    if (athleteIds.length === 0) {
+      return { athleteInjuries: [], success: true, error: null };
+    }
+
+    // Firebase 'in' operator has a limit of 10 items
+    const chunkedIds = [];
+    for (let i = 0; i < athleteIds.length; i += 10) {
+      chunkedIds.push(athleteIds.slice(i, i + 10));
+    }
+
+    const allInjuries: { athleteId: string; injuries: Injury[] }[] = [];
+
+    for (const chunk of chunkedIds) {
+      // Simplified query to avoid composite index requirement
+      const q = query(
+        collection(db, INJURIES_COLLECTION),
+        where('athleteId', 'in', chunk)
+      );
+
+      const snapshot = await getDocs(q);
+      const chunkInjuries: { [key: string]: Injury[] } = {};
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        
+        // Filter for active/recovering injuries in code instead of query
+        if (data.status === 'active' || data.status === 'recovering') {
+          const injury: Injury = {
+            id: doc.id,
+            athleteId: data.athleteId,
+            injuryType: data.injuryType,
+            bodyPart: data.bodyPart,
+            description: data.description,
+            severity: data.severity,
+            status: data.status,
+            diagnosis: data.diagnosis,
+            symptoms: data.symptoms,
+            causedBy: data.causedBy,
+            treatmentPlan: data.treatmentPlan,
+            restrictions: data.restrictions,
+            medicalImages: data.medicalImages,
+            diagnosisDate: data.diagnosisDate.toDate(),
+            expectedRecoveryDate: data.expectedRecoveryDate?.toDate(),
+            actualRecoveryDate: data.actualRecoveryDate?.toDate(),
+            createdAt: data.createdAt.toDate(),
+            updatedAt: data.updatedAt.toDate()
+          };
+
+          if (!chunkInjuries[injury.athleteId]) {
+            chunkInjuries[injury.athleteId] = [];
+          }
+          chunkInjuries[injury.athleteId].push(injury);
+        }
+      });
+
+      // Convert to array format
+      Object.keys(chunkInjuries).forEach(athleteId => {
+        allInjuries.push({ athleteId, injuries: chunkInjuries[athleteId] });
+      });
+    }
+
+    return { athleteInjuries: allInjuries, success: true, error: null };
+  } catch (error: any) {
+    console.error("Error fetching coach assigned athletes injuries:", error);
+    return { athleteInjuries: [], success: false, error: error.message };
+  }
+};
+
+// Get all active injuries in a region for coach assignment
+export const getRegionalActiveInjuries = async (region: string) => {
+  try {
+    // Get all injuries first, then filter
+    const q = query(collection(db, INJURIES_COLLECTION));
+    const snapshot = await getDocs(q);
+    
+    const regionalInjuries: { athleteId: string; injuries: Injury[] }[] = [];
+    const injuriesByAthlete: { [key: string]: Injury[] } = {};
+
+    // Get athlete regions to filter
+    const athleteIds = new Set<string>();
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.status === 'active' || data.status === 'recovering') {
+        athleteIds.add(data.athleteId);
+      }
+    });
+
+    // Get athlete data to check regions
+    const athleteRegions: { [key: string]: string } = {};
+    if (athleteIds.size > 0) {
+      const athleteIdsArray = Array.from(athleteIds);
+      
+      // Query in chunks due to Firebase 'in' limit
+      for (let i = 0; i < athleteIdsArray.length; i += 10) {
+        const chunk = athleteIdsArray.slice(i, i + 10);
+        const athleteQuery = query(
+          collection(db, 'users'),
+          where('__name__', 'in', chunk)
+        );
+        const athleteSnapshot = await getDocs(athleteQuery);
+        
+        athleteSnapshot.forEach((doc) => {
+          const data = doc.data();
+          athleteRegions[doc.id] = data.region;
+        });
+      }
+    }
+
+    // Now filter injuries by region and status
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if ((data.status === 'active' || data.status === 'recovering') && 
+          athleteRegions[data.athleteId] === region) {
+        
+        const injury: Injury = {
+          id: doc.id,
+          athleteId: data.athleteId,
+          injuryType: data.injuryType,
+          bodyPart: data.bodyPart,
+          description: data.description,
+          severity: data.severity,
+          status: data.status,
+          diagnosis: data.diagnosis,
+          symptoms: data.symptoms,
+          causedBy: data.causedBy,
+          treatmentPlan: data.treatmentPlan,
+          restrictions: data.restrictions,
+          medicalImages: data.medicalImages,
+          diagnosisDate: data.diagnosisDate.toDate(),
+          expectedRecoveryDate: data.expectedRecoveryDate?.toDate(),
+          actualRecoveryDate: data.actualRecoveryDate?.toDate(),
+          createdAt: data.createdAt.toDate(),
+          updatedAt: data.updatedAt.toDate()
+        };
+
+        if (!injuriesByAthlete[injury.athleteId]) {
+          injuriesByAthlete[injury.athleteId] = [];
+        }
+        injuriesByAthlete[injury.athleteId].push(injury);
+      }
+    });
+
+    // Convert to array format
+    Object.keys(injuriesByAthlete).forEach(athleteId => {
+      regionalInjuries.push({ athleteId, injuries: injuriesByAthlete[athleteId] });
+    });
+
+    return { regionalInjuries, success: true, error: null };
+  } catch (error: any) {
+    console.error("Error fetching regional injuries:", error);
+    return { regionalInjuries: [], success: false, error: error.message };
+  }
+};
+
+// Get achievements and challenge data for multiple athletes
+export const getAthleteAchievements = async (athleteIds: string[]) => {
+  try {
+    if (athleteIds.length === 0) {
+      return { achievements: [], success: true, error: null };
+    }
+
+    const achievementsData: { [key: string]: any } = {};
+
+    // Query in chunks due to Firebase 'in' limit
+    for (let i = 0; i < athleteIds.length; i += 10) {
+      const chunk = athleteIds.slice(i, i + 10);
+      
+      // Get challenges completed by these athletes
+      const challengesQuery = query(
+        collection(db, 'challenges'),
+        where('participants', 'array-contains-any', chunk)
+      );
+      
+      const challengesSnapshot = await getDocs(challengesQuery);
+      
+      challengesSnapshot.forEach((doc) => {
+        const challengeData = doc.data();
+        
+        // Process each participant in this challenge
+        chunk.forEach(athleteId => {
+          if (challengeData.participants && challengeData.participants.includes(athleteId)) {
+            if (!achievementsData[athleteId]) {
+              achievementsData[athleteId] = {
+                totalChallenges: 0,
+                completedChallenges: 0,
+                totalPoints: 0,
+                achievements: [],
+                recentActivity: []
+              };
+            }
+            
+            achievementsData[athleteId].totalChallenges += 1;
+            
+            // Check if athlete completed this challenge
+            if (challengeData.completedBy && challengeData.completedBy[athleteId]) {
+              achievementsData[athleteId].completedChallenges += 1;
+              achievementsData[athleteId].totalPoints += challengeData.points || 0;
+              achievementsData[athleteId].achievements.push({
+                id: doc.id,
+                title: challengeData.title,
+                points: challengeData.points || 0,
+                completedAt: challengeData.completedBy[athleteId].completedAt || challengeData.createdAt,
+                category: challengeData.category || 'General'
+              });
+            }
+            
+            // Add to recent activity
+            achievementsData[athleteId].recentActivity.push({
+              type: 'challenge',
+              title: challengeData.title,
+              date: challengeData.createdAt,
+              status: challengeData.completedBy && challengeData.completedBy[athleteId] ? 'completed' : 'active'
+            });
+          }
+        });
+      });
+
+      // Get user quest/achievement data
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('__name__', 'in', chunk)
+      );
+      
+      const usersSnapshot = await getDocs(usersQuery);
+      
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        const athleteId = doc.id;
+        
+        if (!achievementsData[athleteId]) {
+          achievementsData[athleteId] = {
+            totalChallenges: 0,
+            completedChallenges: 0,
+            totalPoints: 0,
+            achievements: [],
+            recentActivity: []
+          };
+        }
+        
+        // Add user-level achievements
+        if (userData.achievements) {
+          achievementsData[athleteId].achievements = [
+            ...achievementsData[athleteId].achievements,
+            ...userData.achievements
+          ];
+        }
+        
+        // Add tier/level information
+        if (userData.current_tier) {
+          achievementsData[athleteId].currentTier = userData.current_tier;
+          achievementsData[athleteId].tierProgress = userData.tier_progress || 0;
+        }
+        
+        // Add total points from user profile
+        if (userData.total_points) {
+          achievementsData[athleteId].totalPoints += userData.total_points;
+        }
+      });
+    }
+
+    return { achievements: achievementsData, success: true, error: null };
+  } catch (error: any) {
+    console.error("Error fetching athlete achievements:", error);
+    return { achievements: {}, success: false, error: error.message };
+  }
+};
+
+// Get recovery data for multiple athletes
+export const getMultipleAthleteRecoveryData = async (injuryIds: string[]) => {
+  try {
+    if (injuryIds.length === 0) {
+      return { recoveryData: [], success: true, error: null };
+    }
+
+    const recoveryData: {
+      injuryId: string;
+      milestones: RecoveryMilestone[];
+      progress: RecoveryProgress[];
+    }[] = [];
+
+    for (const injuryId of injuryIds) {
+      const [milestonesResult, progressResult] = await Promise.all([
+        getRecoveryMilestones(injuryId),
+        getRecoveryProgress(injuryId)
+      ]);
+
+      recoveryData.push({
+        injuryId,
+        milestones: milestonesResult.success ? milestonesResult.milestones : [],
+        progress: progressResult.success ? progressResult.progress : []
+      });
+    }
+
+    return { recoveryData, success: true, error: null };
+  } catch (error: any) {
+    return { recoveryData: [], success: false, error: error.message };
+  }
+};
+
+// Get athletes requiring coach verification
+export const getAthletesRequestingVerification = async (athleteIds: string[]) => {
+  try {
+    if (athleteIds.length === 0) {
+      return { athletes: [], success: true, error: null };
+    }
+
+    // Firebase 'in' operator has a limit of 10 items
+    const chunkedIds = [];
+    for (let i = 0; i < athleteIds.length; i += 10) {
+      chunkedIds.push(athleteIds.slice(i, i + 10));
+    }
+
+    const athletes: any[] = [];
+
+    for (const chunk of chunkedIds) {
+      const q = query(
+        collection(db, 'users'),
+        where('__name__', 'in', chunk),
+        where('recovery_verification_requested', '==', true)
+      );
+
+      const snapshot = await getDocs(q);
+      
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        athletes.push({
+          id: doc.id,
+          name: data.name,
+          recovery_verification_requested: data.recovery_verification_requested,
+          coach_verification_status: data.coach_verification_status,
+          verification_request_date: data.verification_request_date?.toDate()
+        });
+      });
+    }
+
+    return { athletes, success: true, error: null };
+  } catch (error: any) {
+    return { athletes: [], success: false, error: error.message };
+  }
+};
