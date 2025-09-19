@@ -950,10 +950,10 @@ export default function AdminDashboard({ adminId, adminRole }: AdminDashboardPro
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={Object.entries(athleteStats.byCategory).map(([category, count]) => {
                 const categoryDisplayNames: Record<string, string> = {
-                  'cardio': '❤️ Cardio',
-                  'strength': '💪 Strength',
-                  'flexibility': '🧘‍♀️ Flexibility & Balance',
-                  'coordination': '🎯 Coordination'
+                  'cardio': 'Cardio',
+                  'strength': 'Strength',
+                  'flexibility': 'Flexibility & Balance',
+                  'coordination': 'Coordination'
                 };
                 return { 
                   category: categoryDisplayNames[category] || category, 

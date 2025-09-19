@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
+import { User, Users, Shield } from "lucide-react";
 
 export default function LoginPage() {
   const { signIn, signInWithGoogle } = useAuth();
@@ -90,19 +91,20 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-6 bg-[#E0E4E9] relative"
+      className="min-h-screen flex items-center justify-center p-6 bg-[#E0E4E9] fixed inset-0 overflow-auto"
       style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
     >
       {/* Grid Background */}
       <div 
-        className="fixed inset-0 opacity-100 pointer-events-none"
+        className="fixed inset-0 opacity-100 pointer-events-none z-0"
         style={{
           backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
-          backgroundSize: '32px 32px'
+          backgroundSize: '32px 32px',
+          backgroundAttachment: 'fixed'
         }}
       ></div>
       
-      <div className="w-full max-w-md relative">
+      <div className="w-full max-w-md relative z-10">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-[#182031] mb-2">
@@ -118,33 +120,36 @@ export default function LoginPage() {
           <div className="grid grid-cols-3 gap-1">
             <button
               onClick={() => setLoginType('athlete')}
-              className={`flex items-center justify-center px-3 py-3 rounded-lg font-medium text-sm transition-all ${
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg font-medium text-sm transition-all ${
                 loginType === 'athlete'
                   ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
-              🏃‍♂️ Athlete
+              <User className="w-4 h-4" />
+              Athlete
             </button>
             <button
               onClick={() => setLoginType('coach')}
-              className={`flex items-center justify-center px-3 py-3 rounded-lg font-medium text-sm transition-all ${
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg font-medium text-sm transition-all ${
                 loginType === 'coach'
                   ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
-              🏋️‍♂️ Coach
+              <Users className="w-4 h-4" />
+              Coach
             </button>
             <button
               onClick={() => setLoginType('admin')}
-              className={`flex items-center justify-center px-3 py-3 rounded-lg font-medium text-sm transition-all ${
+              className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg font-medium text-sm transition-all ${
                 loginType === 'admin'
                   ? "bg-gradient-to-r from-[#182031] to-[#020817] text-white shadow"
                   : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
-              🏛️ Admin
+              <Shield className="w-4 h-4" />
+              Admin
             </button>
           </div>
         </div>

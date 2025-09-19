@@ -258,10 +258,10 @@ export default function ConsistencyCalendar({ athleteId }: ConsistencyCalendarPr
               setSelectedYear(Number(e.target.value));
               setCurrentMonthIndex(new Date().getMonth()); // Reset to current month when year changes
             }}
-            className="border border-gray-300 rounded px-2 py-1 text-sm"
+            className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-900"
           >
             {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
-              <option key={year} value={year}>{year}</option>
+              <option key={year} value={year} className="text-gray-900">{year}</option>
             ))}
           </select>
         </div>

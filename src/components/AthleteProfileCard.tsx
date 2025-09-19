@@ -263,6 +263,8 @@ const AthleteProfileCard = ({ athlete, onViewDetails }: AthleteProfileCardProps)
           </button>
         </div>
       </div>
+
+      
     </div>
   );
 };

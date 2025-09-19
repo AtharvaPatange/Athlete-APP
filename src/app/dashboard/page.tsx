@@ -9,6 +9,7 @@ import PerformanceTabs from "@/components/PerformanceTabs";
 import TransparencyDashboard from "@/components/TransparencyDashboard";
 import AthleteQRCode from "@/components/AthleteQRCode";
 import ChatbotPopup from "@/components/ChatbotPopup";
+import ConsistencyCalendar from "@/components/ConsistencyCalendar";
 
 interface UserProfile {
   name: string;
@@ -201,7 +202,7 @@ export default function DashboardPage() {
             onClick={() => router.push('/chat')}
             className="py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer border-transparent text-gray-500 hover:text-slate-700 hover:border-gray-300 flex items-center gap-1"
           >
-            💬 Community
+            Community
           </button>
         </div>
       </div>
@@ -242,7 +243,6 @@ export default function DashboardPage() {
                   <div>
                     <h2 className="text-2xl font-bold text-slate-800 mb-1">{profile.name}</h2>
                     <div className="flex flex-wrap items-center gap-3 text-gray-600 text-sm">
-                      <span>{profile.sport}</span> <div> | </div>
                       <span>{profile.region}</span> <div> | </div>
                       <span>{profile.age} years</span>
                     </div>
@@ -260,100 +260,10 @@ export default function DashboardPage() {
               <div className="mt-6">
                 <AthleteQRCode />
               </div>
+            </div>  
+            <div className="mb-8 ">
+              <ConsistencyCalendar athleteId={user.uid} />
             </div>
-
-            {/* Dynamic Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {/* Profile Views */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-lg border border-blue-200 hover:shadow-xl transition-all duration-300 group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-700 text-sm font-semibold mb-1">Profile Views</p>
-                    <p className="text-3xl font-bold text-blue-900">
-                      {stats.loading ? (
-                        <div className="w-12 h-8 bg-blue-200 rounded animate-pulse"></div>
-                      ) : (
-                        stats.profileViews.toLocaleString()
-                      )}
-                    </p>
-                    <p className="text-blue-600 text-xs mt-1">↗ +12% this month</p>
-                  </div>
-                  <div className="bg-blue-500 p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              
-              {/* QR Scans */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-lg border border-green-200 hover:shadow-xl transition-all duration-300 group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-700 text-sm font-semibold mb-1">QR Scans</p>
-                    <p className="text-3xl font-bold text-green-900">
-                      {stats.loading ? (
-                        <div className="w-12 h-8 bg-green-200 rounded animate-pulse"></div>
-                      ) : (
-                        stats.qrScans.toLocaleString()
-                      )}
-                    </p>
-                    <p className="text-green-600 text-xs mt-1">↗ +8% this week</p>
-                  </div>
-                  <div className="bg-green-500 p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Connections */}
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-lg border border-purple-200 hover:shadow-xl transition-all duration-300 group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-700 text-sm font-semibold mb-1">Connections</p>
-                    <p className="text-3xl font-bold text-purple-900">
-                      {stats.loading ? (
-                        <div className="w-12 h-8 bg-purple-200 rounded animate-pulse"></div>
-                      ) : (
-                        stats.connections.toLocaleString()
-                      )}
-                    </p>
-                    <p className="text-purple-600 text-xs mt-1">↗ +5 new this week</p>
-                  </div>
-                  <div className="bg-purple-500 p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Achievements */}
-              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl shadow-lg border border-yellow-200 hover:shadow-xl transition-all duration-300 group">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-yellow-700 text-sm font-semibold mb-1">Achievements</p>
-                    <p className="text-3xl font-bold text-yellow-900">
-                      {stats.loading ? (
-                        <div className="w-12 h-8 bg-yellow-200 rounded animate-pulse"></div>
-                      ) : (
-                        stats.achievements.toLocaleString()
-                      )}
-                    </p>
-                    <p className="text-yellow-600 text-xs mt-1">🏆 Latest: Training Goal</p>
-                  </div>
-                  <div className="bg-yellow-500 p-3 rounded-full shadow-md group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* CTA Section */}
             <div className="bg-slate-800 rounded-2xl p-12 text-center text-white mb-12 relative shadow-lg">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Transform Your Performance?</h2>

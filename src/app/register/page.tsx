@@ -8,9 +8,9 @@ import Link from "next/link";
 import FirebaseDebug from "@/components/FirebaseDebug";
 
 const roles = [
-  { value: "athlete", label: "🏃‍♂️ Athlete", description: "Compete and track performance" },
-  { value: "coach", label: "🏋️‍♂️ Coach", description: "Train and guide athletes" },
-  { value: "admin", label: "👨‍💼 Admin", description: "Manage platform and users" }
+  { value: "athlete", label: "Athlete", description: "Compete and track performance" },
+  { value: "coach", label: "Coach", description: "Train and guide athletes" },
+  { value: "admin", label: "Admin", description: "Manage platform and users" }
 ];
 
 const genders = [
@@ -198,19 +198,20 @@ export default function RegisterPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-6 bg-[#E0E4E9] relative"
+      className="min-h-screen flex items-center justify-center p-6 bg-[#E0E4E9] fixed inset-0 overflow-auto"
       style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
     >
       {/* Grid Background */}
       <div 
-        className="fixed inset-0 opacity-100 pointer-events-none"
+        className="fixed inset-0 opacity-100 pointer-events-none z-0"
         style={{
           backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
-          backgroundSize: "32px 32px"
+          backgroundSize: "32px 32px",
+          backgroundAttachment: 'fixed'
         }}
       ></div>
 
-      <div className="w-full max-w-md relative">
+      <div className="w-full max-w-md relative z-10">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-[#182031] mb-2">
@@ -363,7 +364,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-[#182031] mb-2">
                     Sport
                   </label>
@@ -377,7 +378,7 @@ export default function RegisterPage() {
                       <option key={s.value} value={s.value}>{s.label}</option>
                     ))}
                   </select>
-                </div>
+                </div> */}
 
                 <div>
                   <label className="block text-sm font-medium text-[#182031] mb-2">

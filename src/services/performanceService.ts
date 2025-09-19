@@ -137,10 +137,15 @@ export const getTrainingSessions = async (athleteId: string, limitCount: number 
     snapshot.forEach((doc) => {
       const data = doc.data();
       console.log(`📋 Found session:`, {
+        id: doc.id,
         sport: data.sport,
         exerciseType: data.exerciseType,
         distance: data.distance,
-        date: data.date?.toDate?.() || data.date
+        duration: data.duration, // Add duration to logging
+        intensity: data.intensity,
+        date: data.date?.toDate?.() || data.date,
+        category: data.category,
+        allFields: Object.keys(data) // Show all available fields
       });
       
       sessions.push({

@@ -21,7 +21,7 @@ const tabs = [
   { id: "nutrition", label: "Nutrition" },
   { id: "scholarships", label: "Scholarships" },
   { id: "gamification", label: "Challenges" },
-  { id: "injury", label: "Manage Injury" },
+  { id: "injury", label: "Recovery Tracker" },
 ];
 
 export default function PerformanceTabs({

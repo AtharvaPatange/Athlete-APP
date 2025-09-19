@@ -22,7 +22,6 @@ import {
   calculateWeeklyStats, 
   calculateMonthlyStats 
 } from "@/services/performanceService";
-import ConsistencyCalendar from './ConsistencyCalendar';
 
 interface PerformanceAnalyticsProps {
   athleteId: string;
@@ -142,10 +141,10 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
 
     // Map to display names with icons
     const categoryDisplayNames: Record<string, string> = {
-      'cardio': '❤️ Cardio',
-      'strength': '💪 Strength', 
-      'flexibility': '🧘‍♀️ Flexibility & Balance',
-      'coordination': '🎯 Coordination'
+      'cardio': 'Cardio',
+      'strength': 'Strength', 
+      'flexibility': ' Flexibility & Balance',
+      'coordination': 'Coordination'
     };
 
     return Object.entries(distribution).map(([category, count]) => ({
@@ -185,8 +184,6 @@ export default function PerformanceAnalytics({ athleteId, refreshTrigger }: Perf
 
   return (
     <div className="space-y-6">
-      {/* Consistency Calendar */}
-      <ConsistencyCalendar athleteId={athleteId} />
       
       {/* Header Controls */}
       <div className="bg-white rounded-xl shadow-lg p-6">

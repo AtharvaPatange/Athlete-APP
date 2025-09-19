@@ -248,12 +248,12 @@ const AthleteQRCode: React.FC = () => {
           {athleteProfile && (
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
               <div className="text-center p-2 bg-gray-50 rounded-md">
-                <p className="text-xs text-gray-600">Sport</p>
-                <p className="font-semibold text-slate-800 text-sm">{athleteProfile.sport}</p>
+                <p className="text-xs text-gray-600">Age</p>
+                <p className="font-semibold text-slate-800 text-sm">{athleteProfile.age}</p>
               </div>
               <div className="text-center p-2 bg-gray-50 rounded-md">
                 <p className="text-xs text-gray-600">Region</p>
-                <p className="font-semibold text-slate-800 text-sm">{athleteProfile.region}</p>
+                <p className="font-semibold text-slate-800 text-sm">{athleteProfile.region}-India</p>
               </div>
             </div>
           )}
@@ -281,18 +281,7 @@ const AthleteQRCode: React.FC = () => {
           </div>
         </div>
 
-        {/* Info Card */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-start space-x-2">
-            <span className="text-blue-500 text-base">ℹ️</span>
-            <div>
-              <h4 className="font-semibold text-blue-800 mb-1 text-sm">How it works</h4>
-              <p className="text-xs text-blue-700">
-                People can scan your QR code to instantly view your athlete profile, including your sport, achievements, and contact information.
-              </p>
-            </div>
-          </div>
-        </div>
+
       </div>
     </div>
   );

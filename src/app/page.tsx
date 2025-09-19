@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Play } from "lucide-react";
 import FirebaseStatus from "@/components/FirebaseStatus";
 import ChatbotPopup from "@/components/ChatbotPopup";
 
@@ -58,7 +59,7 @@ export default function Home() {
             <a href="#features" className="transition-colors hover:opacity-80" style={{ color: COLORS.textMuted }}>
               Features
             </a>
-            <a href="#contact" className="transition-colors hover:opacity-80" style={{ color: COLORS.textMuted }}>
+            <a href="contact" className="transition-colors hover:opacity-80" style={{ color: COLORS.textMuted }}>
               Contact
             </a>
           </div>
@@ -108,7 +109,12 @@ export default function Home() {
                 <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
               </Link>
               
-              <button className="group flex items-center px-8 py-4 font-semibold text-lg transition-all duration-300 cursor-pointer">
+              <a 
+                href="https://drive.google.com/file/d/1xB5zjFSF9j01K0qUPAocaX8rONxiME51/view?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center px-8 py-4 font-semibold text-lg transition-all duration-300 cursor-pointer"
+              >
                 <div 
                   className="w-12 h-12 rounded-full flex items-center justify-center mr-3 group-hover:scale-110 transition-transform"
                   style={{ 
@@ -116,10 +122,10 @@ export default function Home() {
                     color: COLORS.accent
                   }}
                 >
-                  ▶️
+                  <Play size={20} fill="currentColor" />
                 </div>
                 <span style={{ color: COLORS.text }}>Watch Demo</span>
-              </button>
+              </a>
             </div>
 
             {/* Stats */}

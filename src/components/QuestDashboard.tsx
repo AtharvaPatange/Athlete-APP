@@ -303,15 +303,31 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
 
   const handleRefreshProgress = async () => {
     setRefreshing(true);
+    console.log('🔄 Manual quest progress refresh started...');
+    
     try {
+      // Force clear the auto-sync throttle for immediate update
+      const lastSyncKey = `questSync_${athleteId}`;
+      localStorage.removeItem(lastSyncKey);
+      console.log('🧹 Cleared sync throttle for immediate update');
+      
       const result = await updateAthleteQuestProgress(athleteId);
+      console.log('📊 Quest progress update result:', result);
+      
       if (result.success && result.updates.length > 0) {
+        console.log('✅ Found quest updates:', result.updates.map(u => ({
+          questId: u.questId,
+          newProgress: u.newProgress,
+          isCompleted: u.isCompleted
+        })));
+        
         setRecentUpdates(result.updates);
         setShowUpdateAnimation(true);
         
         // Check for completed quests and show completion animation
         const completedUpdates = result.updates.filter(u => u.isCompleted);
         if (completedUpdates.length > 0) {
+          console.log('🎉 Completed quests:', completedUpdates.length);
           // Find the quest details for the first completed quest
           const firstCompleted = completedUpdates[0];
           const completedAthleteQuest = athleteQuests.find(aq => aq.questId === firstCompleted.questId);
@@ -334,9 +350,16 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
         
         // Refresh quest data to show updated progress
         await fetchQuestData();
+        
+        console.log('✅ Quest refresh completed successfully');
+        alert(`Quest progress updated! ${result.updates.length} quest${result.updates.length > 1 ? 's' : ''} updated.`);
+      } else {
+        console.log('ℹ️ No quest updates found');
+        alert('No quest progress updates found. Make sure you have active quests and recent training sessions.');
       }
     } catch (error) {
-      console.error('Error refreshing quest progress:', error);
+      console.error('❌ Error refreshing quest progress:', error);
+      alert('Failed to refresh quest progress. Check console for details.');
     } finally {
       setRefreshing(false);
     }
@@ -475,10 +498,13 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
             <button
               onClick={handleRefreshProgress}
               disabled={refreshing}
-              className="bg-white/10 backdrop-blur-sm p-3 rounded-lg border border-white/20 hover:bg-white/15 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
-              title="Refresh quest progress from training data"
+              className="bg-white/10 backdrop-blur-sm p-3 rounded-lg border border-white/20 hover:bg-white/15 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group relative"
+              title="Refresh quest progress from training data (Forces immediate sync)"
             >
               <RefreshCw className={`w-5 h-5 text-white ${refreshing ? 'animate-spin' : ''} group-hover:text-green-300 transition-colors`} />
+              {refreshing && (
+                <div className="absolute -top-1 -right-1 bg-green-400 rounded-full w-3 h-3 animate-pulse"></div>
+              )}
             </button>
 
             {/* Quest Setup button (only show if no quests available) */}
@@ -490,6 +516,24 @@ export default function QuestDashboard({ athleteId }: QuestDashboardProps) {
                 title="Create tier-based quest system"
               >
                 <span className="text-green-300 text-sm font-mono">🚀 SETUP QUESTS</span>
+              </button>
+            )}
+
+            {/* Manual Sync button for immediate quest progress update */}
+            {activeQuests.length > 0 && (
+              <button
+                onClick={() => {
+                  console.log('🔥 FORCE SYNC: Clearing throttle and syncing now...');
+                  handleRefreshProgress();
+                }}
+                disabled={refreshing}
+                className="bg-blue-500/20 backdrop-blur-sm px-4 py-2 rounded-lg border border-blue-400/30 hover:bg-blue-500/30 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50"
+                title="Force immediate quest progress sync (bypasses 5-min throttle)"
+              >
+                <span className="text-blue-300 text-sm font-medium flex items-center gap-2">
+                  <Zap size={14} />
+                  {refreshing ? 'SYNCING...' : 'SYNC NOW'}
+                </span>
               </button>
             )}
 

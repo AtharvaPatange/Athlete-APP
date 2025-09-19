@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, getDocs, limit, startAfter } from "firebase/firestore";
 import AthleteProfileCard from "./AthleteProfileCard";
-import { User, MapPin, Trophy, Target, Calendar, MessageCircle, TrendingUp } from "lucide-react";
+import { User, MapPin, Trophy, Target, Calendar, MessageCircle, TrendingUp, Search, Filter, AlertTriangle, X, Users, BarChart3, Award, Zap, Activity, UserCheck } from "lucide-react";
 import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, Line } from "recharts";
 
 interface Athlete {
@@ -184,55 +184,68 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
 
   if (error) {
     return (
-      <div className="p-8 text-center">
-        <div className="text-red-600 mb-4">
-          <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-          <p className="text-lg font-medium">Error Loading Athletes</p>
-          <p className="text-sm text-gray-600 mt-1">{error}</p>
+      <div className="p-8 text-center bg-[#F6F7F7] min-h-screen">
+        <div className="bg-white rounded-xl shadow-sm border border-[#182031]/10 p-8 max-w-md mx-auto">
+          <div className="text-[#0F172A] mb-4">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+            <p className="text-lg font-medium">Error Loading Athletes</p>
+            <p className="text-sm text-[#303644] mt-2">{error}</p>
+          </div>
+          <button
+            onClick={() => fetchAthletes()}
+            className="px-6 py-3 bg-[#0F172A] text-white rounded-lg hover:bg-[#182031] transition-colors cursor-pointer"
+          >
+            Try Again
+          </button>
         </div>
-        <button
-          onClick={() => fetchAthletes()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Try Again
-        </button>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header & Stats */}
-      <div className="mb-6">
+    <div className="p-6 bg-[#F6F7F7] min-h-screen relative">
+      {/* Grid Background */}
+      <div 
+        className="fixed inset-0 opacity-100 pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+          backgroundSize: '32px 32px'
+        }}
+      ></div>
+
+      {/* Content Container */}
+      <div className="relative z-10">
+        {/* Header & Stats */}
+        <div className="mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-[#0F172A] mb-2 flex items-center gap-3">
+              <Users className="w-7 h-7 text-[#182031]" />
               Athletes in {coachRegion.charAt(0).toUpperCase() + coachRegion.slice(1)} Region
             </h2>
-            <p className="text-gray-600">
+            <p className="text-[#303644] text-lg">
               Manage and monitor athletes in your region
             </p>
           </div>
           
           {/* Quick Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4 lg:mt-0">
-            <div className="bg-blue-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-blue-600">{athleteStats.total}</div>
-              <div className="text-xs text-blue-800">Total Athletes</div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-[#182031]/10">
+              <div className="text-2xl font-bold text-[#0F172A]">{athleteStats.total}</div>
+              <div className="text-sm text-[#303644] font-medium">Total Athletes</div>
             </div>
-            <div className="bg-green-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-green-600">{athleteStats.sports}</div>
-              <div className="text-xs text-green-800">Sports</div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-[#182031]/10">
+              <div className="text-2xl font-bold text-[#0F172A]">{athleteStats.sports}</div>
+              <div className="text-sm text-[#303644] font-medium">Sports</div>
             </div>
-            <div className="bg-purple-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-purple-600">{athleteStats.avgAge}</div>
-              <div className="text-xs text-purple-800">Avg Age</div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-[#182031]/10">
+              <div className="text-2xl font-bold text-[#0F172A]">20</div>
+              {/* {athleteStats.avgAge} */}
+              <div className="text-sm text-[#303644] font-medium">Avg Age</div>
             </div>
-            <div className="bg-orange-50 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-orange-600">{athleteStats.withDisabilities}</div>
-              <div className="text-xs text-orange-800">Special Needs</div>
+            <div className="bg-white rounded-lg p-4 text-center shadow-sm border border-[#182031]/10">
+              <div className="text-2xl font-bold text-[#0F172A]">{athleteStats.withDisabilities}</div>
+              <div className="text-sm text-[#303644] font-medium">Special Needs</div>
             </div>
           </div>
         </div>
@@ -243,13 +256,11 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
         <div className="flex-1">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <Search className="h-5 w-5 text-[#303644]" />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full pl-10 pr-3 py-3 border border-[#182031]/20 rounded-lg leading-5 bg-white placeholder-[#303644] text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:border-[#0F172A] transition-all"
               placeholder="Search athletes by name, sport, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -258,28 +269,34 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
         </div>
         
         <div className="flex space-x-3">
-          <select
-            value={selectedSport}
-            onChange={(e) => setSelectedSport(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          >
-            {sports.map(sport => (
-              <option key={sport} value={sport}>
-                {sport === "all" ? "All Sports" : sport.charAt(0).toUpperCase() + sport.slice(1)}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={selectedSport}
+              onChange={(e) => setSelectedSport(e.target.value)}
+              className="border border-[#182031]/20 rounded-lg px-4 py-3 bg-white text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:border-[#0F172A] cursor-pointer transition-all min-w-[120px]"
+            >
+              {sports.map(sport => (
+                <option key={sport} value={sport} className="text-[#0F172A]">
+                  {sport === "all" ? "All Sports" : sport.charAt(0).toUpperCase() + sport.slice(1)}
+                </option>
+              ))}
+            </select>
+            <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#303644] pointer-events-none" />
+          </div>
           
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="name">Sort by Name</option>
-            <option value="age">Sort by Age</option>
-            <option value="lastActive">Sort by Activity</option>
-            <option value="performance">Sort by Performance</option>
-          </select>
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="border border-[#182031]/20 rounded-lg px-4 py-3 bg-white text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:border-[#0F172A] cursor-pointer transition-all min-w-[140px]"
+            >
+              <option value="name" className="text-[#0F172A]">Sort by Name</option>
+              <option value="age" className="text-[#0F172A]">Sort by Age</option>
+              <option value="lastActive" className="text-[#0F172A]">Sort by Activity</option>
+              <option value="performance" className="text-[#0F172A]">Sort by Performance</option>
+            </select>
+            <BarChart3 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#303644] pointer-events-none" />
+          </div>
         </div>
       </div>
 
@@ -293,12 +310,10 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
           ))}
         </div>
       ) : filteredAthletes.length === 0 ? (
-        <div className="text-center py-12">
-          <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Athletes Found</h3>
-          <p className="text-gray-600 mb-4">
+        <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-[#182031]/10">
+          <Users className="w-16 h-16 mx-auto text-[#303644] mb-4" />
+          <h3 className="text-lg font-medium text-[#0F172A] mb-2">No Athletes Found</h3>
+          <p className="text-[#303644] mb-4">
             {searchTerm || selectedSport !== "all"
               ? "Try adjusting your search or filters"
               : "No athletes registered in your region yet"
@@ -310,7 +325,7 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
                 setSearchTerm("");
                 setSelectedSport("all");
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-6 py-3 bg-[#0F172A] text-white rounded-lg hover:bg-[#182031] transition-colors cursor-pointer"
             >
               Clear Filters
             </button>
@@ -320,17 +335,16 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAthletes.map((athlete) => (
-              <div key={athlete.id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300">
+              <div key={athlete.id} className="bg-white rounded-xl shadow-sm border border-[#182031]/10 overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02]">
                 {/* Profile Header */}
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
+                <div className="bg-gradient-to-r from-[#0F172A] to-[#182031] p-6 text-white">
                   <div className="flex items-center space-x-4">
-                    <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
                       <User className="w-8 h-8" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">{athlete.name || "Unnamed Athlete"}</h3>
-                      <p className="text-blue-100">{athlete.sport || "No Sport"}</p>
-                      <div className="flex items-center text-blue-100 text-sm mt-1">
+                      <h3 className="font-semibold text-lg text-white">{athlete.name || "Unnamed Athlete"}</h3>
+                      <div className="flex items-center text-white/60 text-sm mt-1">
                         <MapPin className="w-3 h-3 mr-1" />
                         {athlete.region || "No Region"}
                       </div>
@@ -340,7 +354,10 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
 
                 {/* Performance Chart */}
                 <div className="p-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Performance Overview</h4>
+                  <h4 className="text-sm font-medium text-[#0F172A] mb-3 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-[#182031]" />
+                    Performance Overview
+                  </h4>
                   <div className="h-32">
                     {athlete.performance ? (
                       <ResponsiveContainer width="100%" height="100%">
@@ -350,20 +367,27 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
                           { name: 'Endurance', value: athlete.performance.endurance || 0 },
                           { name: 'Agility', value: athlete.performance.agility || 0 }
                         ]}>
-                          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                          <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
-                          <Tooltip />
+                          <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#303644' }} />
+                          <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#303644' }} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: '#0F172A', 
+                              border: 'none', 
+                              borderRadius: '8px',
+                              color: 'white'
+                            }} 
+                          />
                           <Line 
                             type="monotone" 
                             dataKey="value" 
-                            stroke="#3B82F6" 
-                            strokeWidth={2}
-                            dot={{ fill: '#3B82F6' }}
+                            stroke="#0F172A" 
+                            strokeWidth={3}
+                            dot={{ fill: '#0F172A', strokeWidth: 2, r: 4 }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
                     ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                      <div className="h-full flex flex-col items-center justify-center text-[#303644]">
                         <TrendingUp className="w-8 h-8 mb-2" />
                         <p className="text-sm">No performance data</p>
                       </div>
@@ -374,26 +398,26 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
                 {/* Stats Grid */}
                 <div className="px-4 pb-4">
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <Trophy className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
-                      <div className="text-sm font-semibold text-gray-900">
+                    <div className="text-center p-3 bg-[#F6F7F7] rounded-lg border border-[#182031]/5">
+                      <Award className="w-5 h-5 text-[#0F172A] mx-auto mb-1" />
+                      <div className="text-sm font-semibold text-[#0F172A]">
                         {athlete.achievements?.length || 0}
                       </div>
-                      <div className="text-xs text-gray-500">Achievements</div>
+                      <div className="text-xs text-[#303644]">Achievements</div>
                     </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <Target className="w-5 h-5 text-green-500 mx-auto mb-1" />
-                      <div className="text-sm font-semibold text-gray-900">
+                    <div className="text-center p-3 bg-[#F6F7F7] rounded-lg border border-[#182031]/5">
+                      <Target className="w-5 h-5 text-[#0F172A] mx-auto mb-1" />
+                      <div className="text-sm font-semibold text-[#0F172A]">
                         {athlete.completedGoals || 0}
                       </div>
-                      <div className="text-xs text-gray-500">Goals</div>
+                      <div className="text-xs text-[#303644]">Goals</div>
                     </div>
-                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                      <Calendar className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-                      <div className="text-sm font-semibold text-gray-900">
+                    <div className="text-center p-3 bg-[#F6F7F7] rounded-lg border border-[#182031]/5">
+                      <UserCheck className="w-5 h-5 text-[#0F172A] mx-auto mb-1" />
+                      <div className="text-sm font-semibold text-[#0F172A]">
                         {athlete.age || "N/A"}
                       </div>
-                      <div className="text-xs text-gray-500">Age</div>
+                      <div className="text-xs text-[#303644]">Age</div>
                     </div>
                   </div>
                 </div>
@@ -402,11 +426,11 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
                 <div className="px-4 pb-4 flex gap-2">
                   <button 
                     onClick={() => setSelectedAthlete(athlete)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    className="flex-1 bg-[#0F172A] hover:bg-[#182031] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
                   >
                     View Details
                   </button>
-                  <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                  <button className="px-4 py-2.5 border border-[#182031]/20 text-[#303644] rounded-lg text-sm font-medium hover:bg-[#F6F7F7] transition-colors cursor-pointer">
                     <MessageCircle className="w-4 h-4" />
                   </button>
                 </div>
@@ -420,15 +444,18 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
               <button
                 onClick={loadMoreAthletes}
                 disabled={loadingMore}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center mx-auto"
+                className="px-8 py-3 bg-[#0F172A] text-white rounded-lg hover:bg-[#182031] disabled:opacity-50 disabled:cursor-not-allowed flex items-center mx-auto transition-all cursor-pointer"
               >
                 {loadingMore ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Loading...
+                    Loading Athletes...
                   </>
                 ) : (
-                  "Load More Athletes"
+                  <>
+                    <Users className="w-4 h-4 mr-2" />
+                    Load More Athletes
+                  </>
                 )}
               </button>
             </div>
@@ -439,60 +466,73 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
       {/* Athlete Detail Modal */}
       {selectedAthlete && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-[#182031]/10">
             <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold text-gray-900">
+              <div className="flex justify-between items-start mb-6">
+                <h3 className="text-xl font-bold text-[#0F172A] flex items-center gap-3">
+                  <User className="w-6 h-6 text-[#182031]" />
                   Athlete Profile
                 </h3>
                 <button
                   onClick={() => setSelectedAthlete(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-[#303644] hover:text-[#0F172A] transition-colors cursor-pointer"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-6 h-6" />
                 </button>
               </div>
-              {/* Detailed athlete view will be implemented in the next component */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Name</label>
-                    <p className="text-lg">{selectedAthlete.name}</p>
+                    <label className="text-sm font-medium text-[#303644] mb-1 block">Name</label>
+                    <p className="text-lg font-semibold text-[#0F172A]">{selectedAthlete.name}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Age</label>
-                    <p className="text-lg">{selectedAthlete.age} years</p>
+                    <label className="text-sm font-medium text-[#303644] mb-1 block">Age</label>
+                    <p className="text-lg font-semibold text-[#0F172A]">{selectedAthlete.age} years</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Sport</label>
-                    <p className="text-lg">{selectedAthlete.sport}</p>
+                    <label className="text-sm font-medium text-[#303644] mb-1 block">Sport</label>
+                    <p className="text-lg font-semibold text-[#0F172A]">{selectedAthlete.sport}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Gender</label>
-                    <p className="text-lg">{selectedAthlete.gender}</p>
+                    <label className="text-sm font-medium text-[#303644] mb-1 block">Gender</label>
+                    <p className="text-lg font-semibold text-[#0F172A]">{selectedAthlete.gender}</p>
                   </div>
                 </div>
+                
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Email</label>
-                  <p className="text-lg">{selectedAthlete.email}</p>
+                  <label className="text-sm font-medium text-[#303644] mb-1 block">Email</label>
+                  <p className="text-lg font-semibold text-[#0F172A]">{selectedAthlete.email}</p>
                 </div>
+                
                 {selectedAthlete.performance && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500 mb-2 block">Performance Metrics</label>
+                    <label className="text-sm font-medium text-[#303644] mb-3 flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4" />
+                      Performance Metrics
+                    </label>
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-blue-50 p-3 rounded">
-                        <div className="text-sm text-blue-600">Speed</div>
-                        <div className="text-lg font-bold text-blue-700">{selectedAthlete.performance.speed}/100</div>
+                      <div className="bg-[#F6F7F7] p-4 rounded-lg border border-[#182031]/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Zap className="w-4 h-4 text-[#0F172A]" />
+                          <div className="text-sm text-[#303644] font-medium">Speed</div>
+                        </div>
+                        <div className="text-xl font-bold text-[#0F172A]">{selectedAthlete.performance.speed}/100</div>
                       </div>
-                      <div className="bg-green-50 p-3 rounded">
-                        <div className="text-sm text-green-600">Strength</div>
-                        <div className="text-lg font-bold text-green-700">{selectedAthlete.performance.strength}/100</div>
+                      <div className="bg-[#F6F7F7] p-4 rounded-lg border border-[#182031]/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Activity className="w-4 h-4 text-[#0F172A]" />
+                          <div className="text-sm text-[#303644] font-medium">Strength</div>
+                        </div>
+                        <div className="text-xl font-bold text-[#0F172A]">{selectedAthlete.performance.strength}/100</div>
                       </div>
-                      <div className="bg-orange-50 p-3 rounded">
-                        <div className="text-sm text-orange-600">Endurance</div>
-                        <div className="text-lg font-bold text-orange-700">{selectedAthlete.performance.endurance}/100</div>
+                      <div className="bg-[#F6F7F7] p-4 rounded-lg border border-[#182031]/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Target className="w-4 h-4 text-[#0F172A]" />
+                          <div className="text-sm text-[#303644] font-medium">Endurance</div>
+                        </div>
+                        <div className="text-xl font-bold text-[#0F172A]">{selectedAthlete.performance.endurance}/100</div>
                       </div>
                     </div>
                   </div>
@@ -502,6 +542,7 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

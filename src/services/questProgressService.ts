@@ -242,24 +242,75 @@ const calculateDurationProgress = (
   quest: Quest,
   athleteQuest: AthleteQuest
 ): number => {
+  console.log('⏱️ Calculating duration progress for quest:', quest.title);
+  console.log('📊 Total sessions provided:', sessions.length);
+  console.log('📅 Quest started at:', athleteQuest.startedAt);
+  
   // Filter sessions based on quest requirements
   let filteredSessions = sessions;
   
   if (quest.requirements?.sport || quest.requirements?.category) {
+    console.log('🏃 Filtering by sport/category:', quest.requirements.sport || quest.requirements.category);
     filteredSessions = sessions.filter(s => sessionMatchesRequirement(s, quest));
+    console.log('📊 Sessions after sport/category filter:', filteredSessions.length);
   }
   
   if (quest.requirements?.intensity) {
+    console.log('💪 Filtering by intensity:', quest.requirements.intensity);
     filteredSessions = filteredSessions.filter(s => s.intensity === quest.requirements!.intensity);
+    console.log('📊 Sessions after intensity filter:', filteredSessions.length);
   }
   
-  // Calculate total duration since quest started
+  // Calculate total duration since quest started (with 12-hour lookback for better UX)
   const questStartDate = athleteQuest.startedAt;
-  const relevantSessions = filteredSessions.filter(s => s.date >= questStartDate);
+  const lookbackDate = new Date(questStartDate.getTime() - (12 * 60 * 60 * 1000)); // 12 hours before quest start
+  console.log('📅 Quest start date:', questStartDate);
+  console.log('📅 Lookback date (12hr):', lookbackDate);
   
-  const totalDuration = relevantSessions.reduce((sum, session) => sum + session.duration, 0);
+  const relevantSessions = filteredSessions.filter(s => {
+    const sessionDate = s.date instanceof Date ? s.date : new Date(s.date);
+    const isAfterLookback = sessionDate >= lookbackDate;
+    
+    console.log('📅 Session date check:', {
+      sessionDate: sessionDate,
+      questStartDate: questStartDate,
+      lookbackDate: lookbackDate,
+      isAfterLookback: isAfterLookback,
+      sessionDuration: s.duration,
+      sessionSport: s.sport,
+      sessionExerciseType: s.exerciseType
+    });
+    
+    return isAfterLookback;
+  });
   
-  return Math.min(totalDuration, quest.target);
+  console.log('📊 Relevant sessions for duration calculation:', relevantSessions.length);
+  
+  // Debug each session's duration
+  relevantSessions.forEach((session, index) => {
+    console.log(`Session ${index + 1} duration data:`, {
+      duration: session.duration,
+      sport: session.sport,
+      exerciseType: session.exerciseType,
+      date: session.date,
+      hasDuration: session.duration !== undefined && session.duration !== null,
+      durationValue: session.duration
+    });
+  });
+  
+  const totalDuration = relevantSessions.reduce((sum, session) => {
+    const sessionDuration = session.duration || 0;
+    console.log(`Adding session duration: ${sessionDuration} (cumulative: ${sum + sessionDuration})`);
+    return sum + sessionDuration;
+  }, 0);
+  
+  console.log('⏱️ Total duration calculated:', totalDuration, 'minutes');
+  console.log('🎯 Quest target:', quest.target, 'minutes');
+  
+  const progress = Math.min(totalDuration, quest.target);
+  console.log('📊 Final duration progress:', progress);
+  
+  return progress;
 };
 
 /**
@@ -278,10 +329,14 @@ const calculateConsistencyProgress = (
     filteredSessions = sessions.filter(s => sessionMatchesRequirement(s, quest));
   }
   
-  // Get sessions since quest started
+  // Get sessions since quest started (with 12-hour lookback for better UX)
   const questStartDate = athleteQuest.startedAt;
+  const lookbackDate = new Date(questStartDate.getTime() - (12 * 60 * 60 * 1000)); // 12 hours before quest start
   const relevantSessions = filteredSessions
-    .filter(s => s.date >= questStartDate)
+    .filter(s => {
+      const sessionDate = s.date instanceof Date ? s.date : new Date(s.date);
+      return sessionDate >= lookbackDate;
+    })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
   
   if (relevantSessions.length === 0) return 0;

@@ -4,6 +4,16 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { 
+  Users, 
+  BarChart3, 
+  Heart, 
+  MessageSquare, 
+  LogOut, 
+  MapPin,
+  User,
+  Loader2
+} from "lucide-react";
 import RegionalAthletesView from "@/components/RegionalAthletesView";
 import CoachAnalyticsDashboard from "@/components/CoachAnalyticsDashboard";
 import CoachInjuryManagement from "@/components/CoachInjuryManagement";
@@ -61,8 +71,8 @@ const CoachDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Coach Portal...</p>
+          <Loader2 className="w-12 h-12 text-[#0F172A] animate-spin mx-auto mb-4" />
+          <p className="text-[#303644] font-medium">Loading Coach Portal...</p>
         </div>
       </div>
     );
@@ -72,10 +82,10 @@ const CoachDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Unable to load profile. Please try again.</p>
+          <p className="text-[#303644] mb-4">Unable to load profile. Please try again.</p>
           <button
             onClick={() => router.push("/login")}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-3 bg-[#0F172A] text-white rounded-lg hover:bg-[#182031] transition-colors cursor-pointer"
           >
             Return to Login
           </button>
@@ -85,10 +95,10 @@ const CoachDashboard = () => {
   }
 
   const tabs = [
-    { id: "athletes", label: "🏃‍♂️ Athletes", icon: "👥" },
-    { id: "analytics", label: "📊 Analytics", icon: "📈" },
-    { id: "injuries", label: "🏥 Injury Management", icon: "🩺" },
-    { id: "community", label: "💬 Community", icon: "🗨️" }
+    { id: "athletes", label: "Athletes", icon: <Users className="w-5 h-5" /> },
+    { id: "analytics", label: "Analytics", icon: <BarChart3 className="w-5 h-5" /> },
+    { id: "injuries", label: "Injury Management", icon: <Heart className="w-5 h-5" /> },
+    { id: "community", label: "Community", icon: <MessageSquare className="w-5 h-5" /> }
   ];
 
   const handleLogout = async () => {
@@ -97,75 +107,73 @@ const CoachDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+    <div className="min-h-screen bg-[#F6F7F7]">
+      {/* Header - Single unified header like athlete dashboard */}
+      <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+            {/* Left side - Logo + Navigation Tabs */}
+            <div className="flex items-center space-x-8">
+              {/* Logo */}
               <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  🏋️‍♂️ Coach Portal
+                <h1 className="text-2xl font-bold text-[#0F172A] flex items-center gap-3">
+                  <div className="bg-[#0F172A] p-2 rounded-lg">
+                    <User className="w-6 h-6 text-white" />
+                  </div>
+                  Coach Portal
                 </h1>
+              </div>
+
+              {/* Navigation Tabs */}
+              <div className="flex space-x-6">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors cursor-pointer ${
+                      activeTab === tab.id
+                        ? "border-[#0F172A] text-[#0F172A]"
+                        : "border-transparent text-[#303644] hover:text-[#0F172A] hover:border-gray-300"
+                    }`}
+                  >
+                    <span className={`transition-colors ${
+                      activeTab === tab.id ? 'text-[#0F172A]' : 'text-[#182031]'
+                    }`}>
+                      {tab.icon}
+                    </span>
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             </div>
             
+            {/* Right side - Profile + Logout */}
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                <span className="font-medium">{userProfile.name}</span>
-                <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                  {userProfile.region} Region
-                </span>
+              <div className="text-sm text-[#303644]">
+                <span className="font-semibold text-[#0F172A] hidden md:block">Welcome, {userProfile.name}!</span>
+                <div className="flex items-center mt-1">
+                  <MapPin className="w-4 h-4 text-[#182031] mr-1" />
+                  <span className="px-2 py-1 bg-[#0F172A] text-white rounded-full text-xs font-medium">
+                    {userProfile.region} Region
+                  </span>
+                </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#303644] bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-[#0F172A] transition-all cursor-pointer"
               >
-                Sign Out
+                <LogOut className="w-4 h-4" />
+                Logout
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Navigation Tabs */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
-              >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
-            <h2 className="text-3xl font-bold mb-2">
-              Welcome back, {userProfile.name}! 👋
-            </h2>
-            <p className="text-blue-100 text-lg">
-              Managing athletes in the {userProfile.region} region • {userProfile.sport} specialization
-            </p>
-          </div>
-        </div>
-
         {/* Tab Content */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[600px]">
           {activeTab === "athletes" && (
             <RegionalAthletesView 
               coachRegion={userProfile.region} 

@@ -2,6 +2,23 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { 
+  BarChart3, 
+  Users, 
+  Activity, 
+  Calendar, 
+  Award, 
+  TrendingUp, 
+  AlertTriangle, 
+  Filter,
+  Target,
+  Zap,
+  Heart,
+  Clock,
+  Trophy,
+  MapPin,
+  RefreshCw
+} from "lucide-react";
 
 interface CoachAnalyticsDashboardProps {
   coachRegion: string;
@@ -232,26 +249,39 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
 
   const getPerformanceColor = (category: string) => {
     switch (category) {
-      case "excellent": return "bg-green-500";
-      case "good": return "bg-blue-500";
-      case "average": return "bg-yellow-500";
-      case "needsImprovement": return "bg-red-500";
-      default: return "bg-gray-500";
+      case "excellent": return "bg-[#0F172A]";
+      case "good": return "bg-[#182031]";
+      case "average": return "bg-[#303644]";
+      case "needsImprovement": return "bg-gray-400";
+      default: return "bg-[#303644]";
     }
   };
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-6">
+      <div className="p-6 bg-[#F6F7F7] min-h-screen relative">
+        {/* Grid Background */}
+        <div 
+          className="fixed inset-0 opacity-100 pointer-events-none"
+          style={{
+            backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+            backgroundSize: '32px 32px'
+          }}
+        ></div>
+        
+        <div className="relative z-10 animate-pulse space-y-6">
+          <div className="flex items-center justify-center mb-8">
+            <RefreshCw className="w-8 h-8 text-[#0F172A] animate-spin mr-3" />
+            <span className="text-lg font-medium text-[#0F172A]">Loading Analytics...</span>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-gray-300 rounded-lg h-32"></div>
+              <div key={i} className="bg-white rounded-xl h-32 shadow-sm border border-[#182031]/10"></div>
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-gray-300 rounded-lg h-64"></div>
+              <div key={i} className="bg-white rounded-xl h-64 shadow-sm border border-[#182031]/10"></div>
             ))}
           </div>
         </div>
@@ -261,20 +291,31 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
 
   if (error) {
     return (
-      <div className="p-8 text-center">
-        <div className="text-red-600 mb-4">
-          <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M6.938 4h10.124c1.54 0 2.502 1.667 1.732 2.5L13.732 20c-.77.833-1.964.833-2.732 0L4.082 6.5C3.312 5.167 4.273 4 5.812 4z" />
-          </svg>
-          <p className="text-lg font-medium">Error Loading Analytics</p>
-          <p className="text-sm text-gray-600 mt-1">{error}</p>
+      <div className="p-6 bg-[#F6F7F7] min-h-screen relative">
+        {/* Grid Background */}
+        <div 
+          className="fixed inset-0 opacity-100 pointer-events-none"
+          style={{
+            backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+            backgroundSize: '32px 32px'
+          }}
+        ></div>
+        
+        <div className="relative z-10 text-center">
+          <div className="bg-white rounded-xl shadow-sm border border-[#182031]/10 p-8 max-w-md mx-auto">
+            <div className="text-[#0F172A] mb-4">
+              <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+              <p className="text-lg font-medium">Error Loading Analytics</p>
+              <p className="text-sm text-[#303644] mt-2">{error}</p>
+            </div>
+            <button
+              onClick={fetchAnalytics}
+              className="px-6 py-3 bg-[#0F172A] text-white rounded-lg hover:bg-[#182031] transition-colors cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
         </div>
-        <button
-          onClick={fetchAnalytics}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Retry
-        </button>
       </div>
     );
   }
@@ -282,257 +323,279 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
   if (!analytics) return null;
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Analytics Dashboard
-          </h2>
-          <p className="text-gray-600">
-            Performance insights for {coachRegion.charAt(0).toUpperCase() + coachRegion.slice(1)} region
-          </p>
-        </div>
-        
-        <div className="flex space-x-3 mt-4 lg:mt-0">
-          <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value as any)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="7days">Last 7 Days</option>
-            <option value="30days">Last 30 Days</option>
-            <option value="3months">Last 3 Months</option>
-            <option value="1year">Last Year</option>
-          </select>
+    <div className="p-6 bg-[#F6F7F7] min-h-screen relative">
+      {/* Grid Background */}
+      <div 
+        className="fixed inset-0 opacity-100 pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+          backgroundSize: '32px 32px'
+        }}
+      ></div>
+
+      {/* Content Container */}
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-[#0F172A] mb-2 flex items-center gap-3">
+              <BarChart3 className="w-7 h-7 text-[#182031]" />
+              Analytics Dashboard
+            </h2>
+            <p className="text-[#303644] text-lg">
+              Performance insights for {coachRegion.charAt(0).toUpperCase() + coachRegion.slice(1)} region
+            </p>
+          </div>
           
-          <select
-            value={selectedMetric}
-            onChange={(e) => setSelectedMetric(e.target.value as any)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="performance">Performance</option>
-            <option value="activity">Activity</option>
-            <option value="growth">Growth</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
+          <div className="flex space-x-3 mt-4 lg:mt-0">
+            <div className="relative">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value as any)}
+                className="border border-[#182031]/20 rounded-lg px-4 py-3 bg-white text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:border-[#0F172A] cursor-pointer transition-all min-w-[140px]"
+              >
+                <option value="7days" className="text-[#0F172A]">Last 7 Days</option>
+                <option value="30days" className="text-[#0F172A]">Last 30 Days</option>
+                <option value="3months" className="text-[#0F172A]">Last 3 Months</option>
+                <option value="1year" className="text-[#0F172A]">Last Year</option>
+              </select>
+              <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#303644] pointer-events-none" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Athletes</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics.totalAthletes}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Active Sports</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics.activeSports.length}</p>
+            
+            <div className="relative">
+              <select
+                value={selectedMetric}
+                onChange={(e) => setSelectedMetric(e.target.value as any)}
+                className="border border-[#182031]/20 rounded-lg px-4 py-3 bg-white text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:border-[#0F172A] cursor-pointer transition-all min-w-[120px]"
+              >
+                <option value="performance" className="text-[#0F172A]">Performance</option>
+                <option value="activity" className="text-[#0F172A]">Activity</option>
+                <option value="growth" className="text-[#0F172A]">Growth</option>
+              </select>
+              <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#303644] pointer-events-none" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Average Age</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics.averageAge} yrs</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Excellent Performers</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics.performanceDistribution.excellent}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts and Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Performance Distribution */}
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Performance Distribution
-          </h3>
-          
-          <div className="space-y-4">
-            {Object.entries(analytics.performanceDistribution).map(([level, count]) => {
-              const percentage = analytics.totalAthletes > 0 
-                ? Math.round((count / analytics.totalAthletes) * 100)
-                : 0;
-              
-              return (
-                <div key={level}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="capitalize font-medium text-gray-700">
-                      {level.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                    <span className="text-gray-500">{count} athletes ({percentage}%)</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${getPerformanceColor(level)}`}
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Monthly Trends */}
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Monthly Trends (Last 6 Months)
-          </h3>
-          
-          <div className="space-y-4">
-            {analytics.monthlyTrends.map((month, index) => (
-              <div key={index} className="border-l-4 border-blue-500 pl-4">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-medium text-gray-900">{month.month}</span>
-                  <span className="text-sm text-gray-500">Avg Performance: {month.averagePerformance}</span>
-                </div>
-                <div className="text-sm text-gray-600">
-                  <span className="mr-4">🏃 {month.activeSessions} sessions</span>
-                  <span>👥 {month.newAthletes} new athletes</span>
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-[#0F172A] rounded-lg flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
                 </div>
               </div>
-            ))}
+              <div className="ml-4">
+                <p className="text-sm font-medium text-[#303644]">Total Athletes</p>
+                <p className="text-2xl font-bold text-[#0F172A]">{analytics.totalAthletes}</p>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Top Performers */}
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Top Performers
-          </h3>
-          
-          <div className="space-y-3">
-            {analytics.topPerformers.map((athlete, index) => (
-              <div key={athlete.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                    index === 0 ? 'bg-yellow-500' : 
-                    index === 1 ? 'bg-gray-400' : 
-                    index === 2 ? 'bg-orange-600' : 'bg-blue-500'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{athlete.name}</p>
-                    <p className="text-sm text-gray-500 capitalize">{athlete.sport}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-gray-900">{athlete.overallScore}</p>
-                  <p className="text-xs text-gray-500">Overall Score</p>
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-[#0F172A] rounded-lg flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-white" />
                 </div>
               </div>
-            ))}
+              <div className="ml-4">
+                <p className="text-sm font-medium text-[#303644]">Active Sports</p>
+                <p className="text-2xl font-bold text-[#0F172A]">{analytics.activeSports.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-[#0F172A] rounded-lg flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-[#303644]">Average Age</p>
+                <p className="text-2xl font-bold text-[#0F172A]"> 20 Years</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-[#0F172A] rounded-lg flex items-center justify-center">
+                  <Award className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-[#303644]">Excellent Performers</p>
+                <p className="text-2xl font-bold text-[#0F172A]">{analytics.performanceDistribution.excellent}</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Injury Statistics */}
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Injury & Recovery Stats
-          </h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <div className="text-2xl font-bold text-red-600">{analytics.injuryStats.total}</div>
-              <div className="text-sm text-red-800">Total Injuries</div>
-            </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{analytics.injuryStats.recovered}</div>
-              <div className="text-sm text-green-800">Fully Recovered</div>
-            </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <div className="text-2xl font-bold text-yellow-600">{analytics.injuryStats.inRecovery}</div>
-              <div className="text-sm text-yellow-800">In Recovery</div>
-            </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{analytics.injuryStats.awaitingApproval}</div>
-              <div className="text-sm text-blue-800">Awaiting Approval</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Region Comparison */}
-      <div className="mt-8">
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Regional Comparison
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {analytics.regionComparison.map((region) => (
-              <div key={region.region} className={`p-4 rounded-lg border-2 ${
-                region.region.toLowerCase() === coachRegion 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-200 bg-white'
-              }`}>
-                <div className="text-center">
-                  <h4 className="font-bold text-gray-900">{region.region}</h4>
-                  <div className="mt-2">
-                    <div className="text-2xl font-bold text-blue-600">{region.athleteCount}</div>
-                    <div className="text-xs text-gray-500">Athletes</div>
-                  </div>
-                  <div className="mt-2">
-                    <div className="text-lg font-semibold text-green-600">{region.avgPerformance}</div>
-                    <div className="text-xs text-gray-500">Avg Performance</div>
-                  </div>
-                  {region.region.toLowerCase() === coachRegion && (
-                    <div className="mt-2">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Your Region
+        {/* Charts and Analysis */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Performance Distribution */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+            <h3 className="text-lg font-semibold text-[#0F172A] mb-4 flex items-center gap-2">
+              <Target className="w-5 h-5 text-[#182031]" />
+              Performance Distribution
+            </h3>
+            
+            <div className="space-y-4">
+              {Object.entries(analytics.performanceDistribution).map(([level, count]) => {
+                const percentage = analytics.totalAthletes > 0 
+                  ? Math.round((count / analytics.totalAthletes) * 100)
+                  : 0;
+                
+                return (
+                  <div key={level}>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="capitalize font-medium text-[#0F172A]">
+                        {level.replace(/([A-Z])/g, ' $1').trim()}
                       </span>
+                      <span className="text-[#303644]">{count} athletes ({percentage}%)</span>
                     </div>
-                  )}
+                    <div className="w-full bg-[#F6F7F7] rounded-full h-3 border border-[#182031]/10">
+                      <div
+                        className={`h-3 rounded-full transition-all duration-300 ${getPerformanceColor(level)}`}
+                        style={{ width: `${percentage}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Monthly Trends */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+            <h3 className="text-lg font-semibold text-[#0F172A] mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-[#182031]" />
+              Monthly Trends (Last 6 Months)
+            </h3>
+            
+            <div className="space-y-4">
+              {analytics.monthlyTrends.map((month, index) => (
+                <div key={index} className="border-l-4 border-[#0F172A] pl-4 bg-[#F6F7F7] p-3 rounded-r-lg">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-medium text-[#0F172A]">{month.month}</span>
+                    <span className="text-sm text-[#303644]">Avg Performance: {month.averagePerformance}</span>
+                  </div>
+                  <div className="text-sm text-[#303644] flex items-center gap-4">
+                    <span className="flex items-center gap-1">
+                      <Activity className="w-4 h-4" />
+                      {month.activeSessions} sessions
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      {month.newAthletes} new athletes
+                    </span>
+                  </div>
                 </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Top Performers */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+            <h3 className="text-lg font-semibold text-[#0F172A] mb-4 flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-[#182031]" />
+              Top Performers
+            </h3>
+            
+            <div className="space-y-3">
+              {analytics.topPerformers.map((athlete, index) => (
+                <div key={athlete.id} className="flex items-center justify-between p-3 bg-[#F6F7F7] rounded-lg border border-[#182031]/10">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                      index === 0 ? 'bg-[#0F172A]' : 
+                      index === 1 ? 'bg-[#182031]' : 
+                      index === 2 ? 'bg-[#303644]' : 'bg-gray-400'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-[#0F172A]">{athlete.name}</p>
+                      <p className="text-sm text-[#303644] capitalize">{athlete.sport}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-[#0F172A]">{athlete.overallScore}</p>
+                    <p className="text-xs text-[#303644]">Overall Score</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Injury Statistics */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+            <h3 className="text-lg font-semibold text-[#0F172A] mb-4 flex items-center gap-2">
+              <Heart className="w-5 h-5 text-[#182031]" />
+              Injury & Recovery Stats
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-[#F6F7F7] rounded-lg border border-[#182031]/10">
+                <div className="text-2xl font-bold text-[#0F172A]">{analytics.injuryStats.total}</div>
+                <div className="text-sm text-[#303644] font-medium">Total Injuries</div>
               </div>
-            ))}
+              <div className="text-center p-4 bg-[#F6F7F7] rounded-lg border border-[#182031]/10">
+                <div className="text-2xl font-bold text-[#0F172A]">{analytics.injuryStats.recovered}</div>
+                <div className="text-sm text-[#303644] font-medium">Fully Recovered</div>
+              </div>
+              <div className="text-center p-4 bg-[#F6F7F7] rounded-lg border border-[#182031]/10">
+                <div className="text-2xl font-bold text-[#0F172A]">{analytics.injuryStats.inRecovery}</div>
+                <div className="text-sm text-[#303644] font-medium">In Recovery</div>
+              </div>
+              <div className="text-center p-4 bg-[#F6F7F7] rounded-lg border border-[#182031]/10">
+                <div className="text-2xl font-bold text-[#0F172A]">{analytics.injuryStats.awaitingApproval}</div>
+                <div className="text-sm text-[#303644] font-medium">Awaiting Approval</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Region Comparison */}
+        <div className="mt-8">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+            <h3 className="text-lg font-semibold text-[#0F172A] mb-6 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-[#182031]" />
+              Regional Comparison
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {analytics.regionComparison.map((region) => (
+                <div key={region.region} className={`p-4 rounded-lg border-2 transition-all ${
+                  region.region.toLowerCase() === coachRegion 
+                    ? 'border-[#0F172A] bg-[#0F172A]/5' 
+                    : 'border-[#182031]/20 bg-white hover:bg-[#F6F7F7]'
+                }`}>
+                  <div className="text-center">
+                    <h4 className="font-bold text-[#0F172A]">{region.region}</h4>
+                    <div className="mt-2">
+                      <div className="text-2xl font-bold text-[#0F172A]">{region.athleteCount}</div>
+                      <div className="text-xs text-[#303644]">Athletes</div>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-lg font-semibold text-[#182031]">{region.avgPerformance}</div>
+                      <div className="text-xs text-[#303644]">Avg Performance</div>
+                    </div>
+                    {region.region.toLowerCase() === coachRegion && (
+                      <div className="mt-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#0F172A] text-white">
+                          Your Region
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
