@@ -22,6 +22,7 @@ import RegionalAthletesView from "@/components/EnhancedRegionalAthletesView";
 import CoachAnalyticsDashboard from "@/components/CoachAnalyticsDashboard";
 import CoachInjuryManagement from "@/components/EnhancedCoachInjuryManagement";
 import CoachCommunity from "@/components/EnhancedCoachCommunity";
+import VoiceNavigationComponent from "@/components/VoiceNavigationComponent";
 
 interface UserProfile {
   name: string;
@@ -53,9 +54,12 @@ const CoachDashboard = () => {
     if (user) {
       const fetchProfile = async () => {
         try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            const profile = userDoc.data() as UserProfile;
+          const docRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const profile = docSnap.data() as UserProfile;
+            
             // Check if user is actually a coach
             if (profile.role !== 'coach') {
               router.push("/dashboard");
@@ -78,6 +82,37 @@ const CoachDashboard = () => {
       fetchProfile();
     }
   }, [user, loading, router]);
+
+  // Voice navigation event listeners
+  useEffect(() => {
+    const handleVoiceTabChange = (event: CustomEvent) => {
+      const tab = event.detail;
+      if (['athletes', 'analytics', 'injuries', 'community'].includes(tab)) {
+        setActiveTab(tab);
+      }
+    };
+
+    const handleVoiceLogout = () => {
+      handleLogout();
+    };
+
+    const handleVoiceAvailability = (event: CustomEvent) => {
+      const status = event.detail;
+      if (status === 'available' || status === 'unavailable') {
+        toggleAvailability();
+      }
+    };
+
+    window.addEventListener('voice-tab-change', handleVoiceTabChange as EventListener);
+    window.addEventListener('voice-logout', handleVoiceLogout);
+    window.addEventListener('voice-availability', handleVoiceAvailability as EventListener);
+
+    return () => {
+      window.removeEventListener('voice-tab-change', handleVoiceTabChange as EventListener);
+      window.removeEventListener('voice-logout', handleVoiceLogout);
+      window.removeEventListener('voice-availability', handleVoiceAvailability as EventListener);
+    };
+  }, []);
 
   // Function to assign 3 athletes to the coach based on priority and region
   const assignAthletesToCoach = async () => {
@@ -365,6 +400,45 @@ const CoachDashboard = () => {
           )}
         </div>
       </main>
+
+      {/* Voice Navigation */}
+      <VoiceNavigationComponent 
+        commands={[
+          {
+            command: 'go to athletes',
+            action: () => setActiveTab('athletes'),
+            description: 'Switch to athletes view',
+            category: 'Coach Dashboard'
+          },
+          {
+            command: 'go to analytics',
+            action: () => setActiveTab('analytics'),
+            description: 'Switch to analytics view',
+            category: 'Coach Dashboard'
+          },
+          {
+            command: 'go to injuries',
+            action: () => setActiveTab('injuries'),
+            description: 'Switch to injury management',
+            category: 'Coach Dashboard'
+          },
+          {
+            command: 'go to community',
+            action: () => setActiveTab('community'),
+            description: 'Switch to coach community',
+            category: 'Coach Dashboard'
+          },
+          {
+            command: 'toggle availability',
+            action: () => toggleAvailability(),
+            description: 'Toggle your availability status',
+            category: 'Coach Actions'
+          }
+        ]}
+        onCommandExecuted={(command) => {
+          console.log('Coach voice command executed:', command);
+        }}
+      />
     </div>
   );
 };

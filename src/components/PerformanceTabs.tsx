@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TrainingLogForm from "./TrainingLogForm";
 import PerformanceAnalytics from "./PerformanceAnalytics";
 import TrainingSessionsList from "./TrainingSessionsList";
@@ -31,6 +31,27 @@ export default function PerformanceTabs({
 }: PerformanceTabsProps) {
   const [activeTab, setActiveTab] = useState("log");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Voice navigation event listener
+  useEffect(() => {
+    const handleVoicePerformanceTabChange = (event: CustomEvent) => {
+      const tabId = event.detail as string;
+      console.log('PerformanceTabs: Received voice-performance-tab-change event with detail:', tabId);
+      const validTabIds = tabs.map(tab => tab.id);
+      if (validTabIds.includes(tabId)) {
+        console.log('PerformanceTabs: Setting active tab to:', tabId);
+        setActiveTab(tabId);
+      } else {
+        console.log('PerformanceTabs: Invalid tab ID, ignoring:', tabId);
+      }
+    };
+
+    window.addEventListener('voice-performance-tab-change', handleVoicePerformanceTabChange as EventListener);
+
+    return () => {
+      window.removeEventListener('voice-performance-tab-change', handleVoicePerformanceTabChange as EventListener);
+    };
+  }, []);
 
   const handleSessionAdded = () => {
     setRefreshTrigger((prev) => prev + 1);

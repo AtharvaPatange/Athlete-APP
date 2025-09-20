@@ -83,7 +83,7 @@ export default function AthleteTransparencyDashboard() {
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [error, setError] = useState<string>("");
 
-  const GEMINI_API_KEY = "AIzaSyCE9DNXLCebiANMcQE9mktuK9nm6bxECjk";
+  const GEMINI_API_KEY = "AIzaSyCdJtJj4eHmFEGU2iyyiVrwlf4jrH3P45Q";
   const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
 
   const callGeminiAPI = async (prompt: string) => {

@@ -12,6 +12,7 @@ import TransparencyDashboard from "@/components/TransparencyDashboard";
 import AthleteQRCode from "@/components/AthleteQRCode";
 import ChatbotPopup from "@/components/ChatbotPopup";
 import ConsistencyCalendar from "@/components/ConsistencyCalendar";
+import VoiceNavigationComponent from "@/components/VoiceNavigationComponent";
 import { Camera, RefreshCw } from "lucide-react";
 
 interface UserProfile {
@@ -72,6 +73,49 @@ export default function DashboardPage() {
       return () => clearTimeout(timer);
     }
   }, [coachNotification.show]);
+
+  // Voice navigation event listeners
+  useEffect(() => {
+    const handleVoiceTabChange = (event: CustomEvent) => {
+      const section = event.detail;
+      console.log('Dashboard: Received voice-tab-change event with detail:', section);
+      // Only accept valid section names
+      if (section === 'overview' || section === 'performance' || section === 'transparency') {
+        console.log('Dashboard: Setting active section to:', section);
+        setActiveSection(section);
+      } else {
+        console.log('Dashboard: Invalid section name, ignoring:', section);
+      }
+    };
+
+    const handleVoiceCombinedNavigation = (event: CustomEvent) => {
+      const { section, subTab } = event.detail;
+      console.log('Dashboard: Received combined navigation:', { section, subTab });
+      
+      if (section === 'performance') {
+        setActiveSection('performance');
+        // Dispatch the sub-tab event after setting the section
+        setTimeout(() => {
+          const subTabEvent = new CustomEvent('voice-performance-tab-change', { detail: subTab });
+          window.dispatchEvent(subTabEvent);
+        }, 300);
+      }
+    };
+
+    const handleVoiceLogout = () => {
+      handleLogout();
+    };
+
+    window.addEventListener('voice-tab-change', handleVoiceTabChange as EventListener);
+    window.addEventListener('voice-navigation-combined', handleVoiceCombinedNavigation as EventListener);
+    window.addEventListener('voice-logout', handleVoiceLogout);
+
+    return () => {
+      window.removeEventListener('voice-tab-change', handleVoiceTabChange as EventListener);
+      window.removeEventListener('voice-navigation-combined', handleVoiceCombinedNavigation as EventListener);
+      window.removeEventListener('voice-logout', handleVoiceLogout);
+    };
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -467,15 +511,15 @@ export default function DashboardPage() {
               <div className="bg-white rounded-lg shadow-lg p-6 mb-8 border border-gray-200">
                 <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center justify-between">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-blue-600 font-bold text-sm">C</span>
+                    <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center mr-3">
+                      <span className="text-slate-700 font-bold text-sm">C</span>
                     </div>
                     Your Assigned Coach
                   </div>
                   <button
                     onClick={handleRefreshCoachInfo}
                     disabled={coachLoading}
-                    className="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors disabled:opacity-50"
+                    className="text-slate-600 hover:text-slate-800 p-1 rounded transition-colors disabled:opacity-50"
                     title="Refresh coach information"
                   >
                       <RefreshCw className={`w-5 h-5 ${coachLoading ? 'animate-spin' : ''}`} />
@@ -484,13 +528,13 @@ export default function DashboardPage() {
                 
                 {coachLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : assignedCoach ? (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center">
-                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-bold mr-4">
+                        <div className="w-12 h-12 bg-gradient-to-r from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-white font-bold mr-4">
                           {assignedCoach.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -540,7 +584,7 @@ export default function DashboardPage() {
                     <div className="mt-4 flex gap-2">
                       <button 
                         onClick={() => router.push('/chat')}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-sm font-medium transition-colors"
+                        className="flex-1 bg-slate-700 hover:bg-slate-800 text-white py-2 px-4 rounded text-sm font-medium transition-colors"
                       >
                         Contact Coach
                       </button>
@@ -709,6 +753,13 @@ export default function DashboardPage() {
 
       {/* Chatbot Popup */}
       <ChatbotPopup />
+
+      {/* Voice Navigation */}
+      <VoiceNavigationComponent 
+        onCommandExecuted={(command) => {
+          console.log('Voice command executed:', command);
+        }}
+      />
     </div>
   );
 }
