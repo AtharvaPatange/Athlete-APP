@@ -12,7 +12,7 @@ import TransparencyDashboard from "@/components/TransparencyDashboard";
 import AthleteQRCode from "@/components/AthleteQRCode";
 import ChatbotPopup from "@/components/ChatbotPopup";
 import ConsistencyCalendar from "@/components/ConsistencyCalendar";
-import { Camera } from "lucide-react";
+import { Camera, RefreshCw } from "lucide-react";
 
 interface UserProfile {
   name: string;
@@ -442,10 +442,6 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-800 mb-1">{profile.name}</h2>
-                    <div className="flex flex-wrap items-center gap-3 text-gray-600 text-sm">
-                      <span>{profile.region}</span> <div> | </div>
-                      <span>{profile.age} years</span>
-                    </div>
                   </div>
                 </div>
                 <div className="text-left lg:text-right">
@@ -460,6 +456,10 @@ export default function DashboardPage() {
               <div className="mt-6">
                 <AthleteQRCode />
               </div>
+            </div>
+            
+            <div className="mb-8 ">
+              <ConsistencyCalendar athleteId={user.uid} />
             </div>
 
             {/* Assigned Coach Section - Only for Athletes */}
@@ -478,9 +478,7 @@ export default function DashboardPage() {
                     className="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors disabled:opacity-50"
                     title="Refresh coach information"
                   >
-                    <div className={`w-5 h-5 ${coachLoading ? 'animate-spin' : ''}`}>
-                      🔄
-                    </div>
+                      <RefreshCw className={`w-5 h-5 ${coachLoading ? 'animate-spin' : ''}`} />
                   </button>
                 </h3>
                 
@@ -571,10 +569,8 @@ export default function DashboardPage() {
                 )}
               </div>
             )}
-            
-            <div className="mb-8 ">
-              <ConsistencyCalendar athleteId={user.uid} />
-            </div>
+
+
             {/* CTA Section */}
             <div className="bg-slate-800 rounded-2xl p-12 text-center text-white mb-12 relative shadow-lg">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Transform Your Performance?</h2>

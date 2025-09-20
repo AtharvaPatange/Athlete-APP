@@ -259,7 +259,7 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
 
   if (loading) {
     return (
-      <div className="p-6 bg-[#F6F7F7] min-h-screen relative">
+      <div className="min-h-screen bg-white p-6 space-y-8">
         {/* Grid Background */}
         <div 
           className="fixed inset-0 opacity-100 pointer-events-none"
@@ -306,7 +306,7 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
             <div className="text-[#0F172A] mb-4">
               <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-red-500" />
               <p className="text-lg font-medium">Error Loading Analytics</p>
-              <p className="text-sm text-[#303644] mt-2">{error}</p>
+              <p className="text-sm text-gray-700 mt-2">{error}</p>
             </div>
             <button
               onClick={fetchAnalytics}
@@ -323,7 +323,8 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
   if (!analytics) return null;
 
   return (
-    <div className="p-6 bg-[#F6F7F7] min-h-screen relative">
+    <div className="min-h-screen bg-white p-6 space-y-8">
+
       {/* Grid Background */}
       <div 
         className="fixed inset-0 opacity-100 pointer-events-none"
@@ -332,22 +333,22 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
           backgroundSize: '32px 32px'
         }}
       ></div>
-
       {/* Content Container */}
-      <div className="relative z-10">
+      <div className="relative">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-[#0F172A] mb-2 flex items-center gap-3">
-              <BarChart3 className="w-7 h-7 text-[#182031]" />
-              Analytics Dashboard
-            </h2>
-            <p className="text-[#303644] text-lg">
-              Performance insights for {coachRegion.charAt(0).toUpperCase() + coachRegion.slice(1)} region
-            </p>
-          </div>
-          
-          <div className="flex space-x-3 mt-4 lg:mt-0">
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-8 bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-50 rounded-2xl border-2 border-blue-300 shadow-lg">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <BarChart3 className="w-7 h-7 text-blue-600" />
+                Analytics Dashboard
+              </h2>
+              <p className="text-gray-700 text-lg">
+                Performance insights for {coachRegion.charAt(0).toUpperCase() + coachRegion.slice(1)} region
+              </p>
+            </div>
+            
+            <div className="flex space-x-3 mt-4 lg:mt-0">
             <div className="relative">
               <select
                 value={timeRange}
@@ -359,7 +360,7 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
                 <option value="3months" className="text-[#0F172A]">Last 3 Months</option>
                 <option value="1year" className="text-[#0F172A]">Last Year</option>
               </select>
-              <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#303644] pointer-events-none" />
+              <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-700 pointer-events-none" />
             </div>
             
             <div className="relative">
@@ -372,65 +373,66 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
                 <option value="activity" className="text-[#0F172A]">Activity</option>
                 <option value="growth" className="text-[#0F172A]">Growth</option>
               </select>
-              <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#303644] pointer-events-none" />
+              <Filter className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-700 pointer-events-none" />
             </div>
           </div>
+        </div>
         </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-[#0F172A] rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                   <Users className="w-6 h-6 text-white" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-[#303644]">Total Athletes</p>
-                <p className="text-2xl font-bold text-[#0F172A]">{analytics.totalAthletes}</p>
+                <p className="text-sm font-medium text-blue-100">Total Athletes</p>
+                <p className="text-2xl font-bold text-white">{analytics.totalAthletes}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-[#0F172A] rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                   <Activity className="w-6 h-6 text-white" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-[#303644]">Active Sports</p>
-                <p className="text-2xl font-bold text-[#0F172A]">{analytics.activeSports.length}</p>
+                <p className="text-sm font-medium text-emerald-100">Active Sports</p>
+                <p className="text-2xl font-bold text-white">{analytics.activeSports.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+          <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-[#0F172A] rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-[#303644]">Average Age</p>
-                <p className="text-2xl font-bold text-[#0F172A]"> 20 Years</p>
+                <p className="text-sm font-medium text-amber-100">Average Age</p>
+                <p className="text-2xl font-bold text-white">21 Years</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-[#182031]/10">
+          <div className="bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-[#0F172A] rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
                   <Award className="w-6 h-6 text-white" />
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-[#303644]">Excellent Performers</p>
-                <p className="text-2xl font-bold text-[#0F172A]">{analytics.performanceDistribution.excellent}</p>
+                <p className="text-sm font-medium text-purple-100">Excellent Performers</p>
+                <p className="text-2xl font-bold text-white">{analytics.performanceDistribution.excellent}</p>
               </div>
             </div>
           </div>
@@ -457,7 +459,7 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
                       <span className="capitalize font-medium text-[#0F172A]">
                         {level.replace(/([A-Z])/g, ' $1').trim()}
                       </span>
-                      <span className="text-[#303644]">{count} athletes ({percentage}%)</span>
+                      <span className="text-gray-700">{count} athletes ({percentage}%)</span>
                     </div>
                     <div className="w-full bg-[#F6F7F7] rounded-full h-3 border border-[#182031]/10">
                       <div
@@ -483,9 +485,9 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
                 <div key={index} className="border-l-4 border-[#0F172A] pl-4 bg-[#F6F7F7] p-3 rounded-r-lg">
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-medium text-[#0F172A]">{month.month}</span>
-                    <span className="text-sm text-[#303644]">Avg Performance: {month.averagePerformance}</span>
+                    <span className="text-sm text-gray-700">Avg Performance: {month.averagePerformance}</span>
                   </div>
-                  <div className="text-sm text-[#303644] flex items-center gap-4">
+                  <div className="text-sm text-gray-700 flex items-center gap-4">
                     <span className="flex items-center gap-1">
                       <Activity className="w-4 h-4" />
                       {month.activeSessions} sessions
@@ -520,12 +522,12 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
                     </div>
                     <div>
                       <p className="font-medium text-[#0F172A]">{athlete.name}</p>
-                      <p className="text-sm text-[#303644] capitalize">{athlete.sport}</p>
+                      <p className="text-sm text-gray-700 capitalize">{athlete.sport}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-[#0F172A]">{athlete.overallScore}</p>
-                    <p className="text-xs text-[#303644]">Overall Score</p>
+                    <p className="text-xs text-gray-700">Overall Score</p>
                   </div>
                 </div>
               ))}
@@ -542,19 +544,19 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-[#F6F7F7] rounded-lg border border-[#182031]/10">
                 <div className="text-2xl font-bold text-[#0F172A]">{analytics.injuryStats.total}</div>
-                <div className="text-sm text-[#303644] font-medium">Total Injuries</div>
+                <div className="text-sm text-gray-700 font-medium">Total Injuries</div>
               </div>
               <div className="text-center p-4 bg-[#F6F7F7] rounded-lg border border-[#182031]/10">
                 <div className="text-2xl font-bold text-[#0F172A]">{analytics.injuryStats.recovered}</div>
-                <div className="text-sm text-[#303644] font-medium">Fully Recovered</div>
+                <div className="text-sm text-gray-700 font-medium">Fully Recovered</div>
               </div>
               <div className="text-center p-4 bg-[#F6F7F7] rounded-lg border border-[#182031]/10">
                 <div className="text-2xl font-bold text-[#0F172A]">{analytics.injuryStats.inRecovery}</div>
-                <div className="text-sm text-[#303644] font-medium">In Recovery</div>
+                <div className="text-sm text-gray-700 font-medium">In Recovery</div>
               </div>
               <div className="text-center p-4 bg-[#F6F7F7] rounded-lg border border-[#182031]/10">
                 <div className="text-2xl font-bold text-[#0F172A]">{analytics.injuryStats.awaitingApproval}</div>
-                <div className="text-sm text-[#303644] font-medium">Awaiting Approval</div>
+                <div className="text-sm text-gray-700 font-medium">Awaiting Approval</div>
               </div>
             </div>
           </div>
@@ -579,11 +581,11 @@ const CoachAnalyticsDashboard = ({ coachRegion, coachSport, coachId }: CoachAnal
                     <h4 className="font-bold text-[#0F172A]">{region.region}</h4>
                     <div className="mt-2">
                       <div className="text-2xl font-bold text-[#0F172A]">{region.athleteCount}</div>
-                      <div className="text-xs text-[#303644]">Athletes</div>
+                      <div className="text-xs text-gray-700">Athletes</div>
                     </div>
                     <div className="mt-2">
                       <div className="text-lg font-semibold text-[#182031]">{region.avgPerformance}</div>
-                      <div className="text-xs text-[#303644]">Avg Performance</div>
+                      <div className="text-xs text-gray-700">Avg Performance</div>
                     </div>
                     {region.region.toLowerCase() === coachRegion && (
                       <div className="mt-2">

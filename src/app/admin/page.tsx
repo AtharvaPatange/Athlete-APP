@@ -121,17 +121,18 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#182031] to-[#303644] relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 opacity-10">
-        <div className="absolute top-10 left-10 w-32 h-32 bg-gradient-to-br from-blue-400/30 to-purple-500/30 rounded-full blur-2xl animate-pulse"></div>
-        <div className="absolute top-32 right-20 w-24 h-24 bg-gradient-to-br from-purple-400/30 to-pink-500/30 rounded-full blur-xl animate-pulse delay-1000"></div>
-        <div className="absolute bottom-20 left-32 w-20 h-20 bg-gradient-to-br from-cyan-400/20 to-blue-500/20 rounded-full blur-lg animate-pulse delay-500"></div>
-        <div className="absolute bottom-32 right-32 w-16 h-16 bg-gradient-to-br from-emerald-400/20 to-teal-500/20 rounded-full blur-lg animate-pulse delay-700"></div>
-      </div>
+    <div className="min-h-screen bg-gray-100 relative" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {/* Grid Background */}
+      <div 
+        className="fixed inset-0 opacity-100 pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+          backgroundSize: '32px 32px'
+        }}
+      ></div>
 
       {/* Top Banner */}
-      <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm text-center py-4 relative z-10 border-b border-white/10">
+      <div className="bg-slate-800 text-center py-3 relative z-10">
         <div className="flex items-center justify-center text-white text-sm">
           <Shield className="w-4 h-4 mr-2" />
           🏛️ Government Administration Portal - Sports Ministry Dashboard
@@ -139,32 +140,31 @@ export default function AdminPage() {
       </div>
 
       {/* Header */}
-      <header className="bg-white/5 backdrop-blur-md shadow-xl relative z-10 border-b border-white/10">
+      <header className="bg-white shadow-sm relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+          <div className="flex justify-between items-center h-16">
             
             {/* Logo + Title */}
             <div className="flex items-center space-x-6">
               <div
                 onClick={() => router.push("/")}
-                className="flex items-center cursor-pointer group"
+                className="flex items-center cursor-pointer"
               >
                 <img
-                  src="/AthleteXBlack.png"        
+                  src="/AthleteX.png"        
                   alt="AthleteX Logo"
-                  width={120}      
-                  height={32}
-                  className="h-8 w-auto group-hover:scale-105 transition-transform"      
+                  width={90}      
+                  height={20}
                 />
               </div>
-              <div className="text-white">
+              <div className="text-slate-800">
                 <div className="flex items-center space-x-3">
-                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-2 rounded-xl">
-                    <Trophy className="w-6 h-6 text-white" />
+                  <div className="bg-slate-800 p-1.5 rounded-lg">
+                    <Trophy className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">Admin Console</h1>
-                    <p className="text-xs text-gray-300">Sports Ministry Portal</p>
+                    <h1 className="text-lg font-bold text-slate-800">Admin Console</h1>
+                    <p className="text-xs text-gray-600">Sports Ministry Portal</p>
                   </div>
                 </div>
               </div>
@@ -173,15 +173,15 @@ export default function AdminPage() {
             {/* Admin Info + Logout */}
             <div className="flex items-center space-x-4">
               <div className="text-right hidden md:block">
-                <p className="text-sm font-semibold text-white">{profile.name}</p>
-                <p className="text-xs text-gray-300 capitalize flex items-center">
+                <p className="text-sm font-semibold text-slate-800">{profile.name}</p>
+                <p className="text-xs text-gray-600 capitalize flex items-center">
                   <Users className="w-3 h-3 mr-1" />
                   {profile.role}
                 </p>
               </div>
               <button
                 onClick={handleLogout}
-                className="bg-gradient-to-r from-red-500/20 to-pink-500/20 backdrop-blur-sm border border-white/20 px-6 py-3 rounded-xl text-white hover:from-red-500/30 hover:to-pink-500/30 hover:border-white/30 transition-all duration-300 text-sm font-medium flex items-center space-x-2"
+                className="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg text-white transition-colors text-sm font-medium flex items-center space-x-2"
               >
                 <span>Logout</span>
                 <ChevronRight className="w-4 h-4" />
@@ -197,11 +197,11 @@ export default function AdminPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-black/20 backdrop-blur-md border-t border-white/10 mt-16 relative z-10">
+      <footer className="bg-gray-50 border-t border-gray-200 mt-32 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center text-gray-300 text-sm">
-            <p>© 2024 Sports Ministry, Government of India. All rights reserved.</p>
-            <p className="mt-1 text-gray-400">RTI Compliance | Data Protection Act | Sports Policy</p>
+          <div className="text-center text-gray-600 text-sm">
+            <p>©️ 2024 Sports Ministry, Government of India. All rights reserved.</p>
+            <p className="mt-1 text-gray-500">RTI Compliance | Data Protection Act | Sports Policy</p>
           </div>
         </div>
       </footer>

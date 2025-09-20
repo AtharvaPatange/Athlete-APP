@@ -211,6 +211,21 @@ export default function InjuryManagement() {
                         <span className={`px-3 py-1 rounded-full text-sm font-medium border ${statusBadge.color}`}>
                           {statusBadge.icon} {statusBadge.status}
                         </span>
+                        {injury.needsCoachVerification && injury.verificationStatus === 'pending' && (
+                          <span className="px-3 py-1 rounded-full text-sm font-medium border border-yellow-300 bg-yellow-50 text-yellow-700">
+                            ⏳ Awaiting Coach Verification
+                          </span>
+                        )}
+                        {injury.verificationStatus === 'verified' && (
+                          <span className="px-3 py-1 rounded-full text-sm font-medium border border-green-300 bg-green-50 text-green-700">
+                            ✅ Coach Verified
+                          </span>
+                        )}
+                        {injury.verificationStatus === 'rejected' && (
+                          <span className="px-3 py-1 rounded-full text-sm font-medium border border-red-300 bg-red-50 text-red-700">
+                            ❌ Needs Review
+                          </span>
+                        )}
                       </div>
                       <p style={{ color: COLORS.marianBlue }}>{injury.description}</p>
                     </div>

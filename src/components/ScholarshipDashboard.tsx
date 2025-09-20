@@ -211,7 +211,7 @@ export default function ScholarshipDashboard() {
         {activeTab === "ai-discover" && (
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-              <h3 className="text-lg font-semibold mb-4">AI-Powered Opportunity Discovery</h3>
+              <h3 className="text-lg font-semibold mb-4 text-black">AI-Powered Opportunity Discovery</h3>
               <p className="text-gray-600 mb-4">
                 Use AI to discover new scholarship opportunities tailored to your profile and sport.
               </p>
@@ -255,7 +255,7 @@ export default function ScholarshipDashboard() {
         {activeTab === "analytics" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-              <h3 className="text-lg font-semibold mb-4">Application Status</h3>
+              <h3 className="text-lg font-semibold mb-4 text-black">Application Status</h3>
               <div className="space-y-3">
                 {applications.length === 0 ? (
                   <p className="text-gray-500">No applications yet</p>
@@ -286,11 +286,11 @@ export default function ScholarshipDashboard() {
             </div>
 
             <div className="bg-white rounded-xl shadow-md p-6 border border-[#E0E4E9]">
-              <h3 className="text-lg font-semibold mb-4">Quick Stats</h3>
+              <h3 className="text-lg font-semibold mb-4 text-black">Quick Stats</h3>
               <div className="space-y-4">
                 <div className="flex justify-between">
-                  <span>Success Rate</span>
-                  <span className="font-semibold">
+                  <span className="text-black">Success Rate</span>
+                  <span className="font-semibold text-black">
                     {applications.length > 0 
                       ? `${Math.round((applications.filter(app => app.status === 'approved').length / applications.length) * 100)}%`
                       : '0%'
@@ -298,20 +298,20 @@ export default function ScholarshipDashboard() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Avg Response Time</span>
-                  <span className="font-semibold">2-4 weeks</span>
+                  <span className="text-black">Avg Response Time</span>
+                  <span className="font-semibold text-black">2-4 weeks</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Categories Applied</span>
-                  <span className="font-semibold">
+                  <span className="text-black">Categories Applied</span>
+                  <span className="font-semibold text-black">
                     {new Set(applications.map(app => 
                       app.opportunity?.category
                     ).filter(Boolean)).size}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Avg Fairness Score</span>
-                  <span className="font-semibold">
+                  <span className="text-black">Avg Fairness Score</span>
+                  <span className="font-semibold text-black">
                     {applications.length > 0
                       ? Math.round(applications.reduce((sum, app) => sum + app.fairnessScore, 0) / applications.length)
                       : 'N/A'

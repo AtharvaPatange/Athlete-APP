@@ -36,6 +36,10 @@ export interface Injury {
   treatmentPlan?: string;
   restrictions: string[];
   medicalImages?: string[];
+  needsCoachVerification?: boolean;
+  verificationStatus?: 'pending' | 'verified' | 'rejected' | null;
+  verifiedBy?: string; // Coach ID
+  verifiedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -92,8 +96,22 @@ const COACH_VERIFICATIONS_COLLECTION = 'coach_verifications';
 // Injury CRUD Operations
 export const reportInjury = async (injuryData: Omit<Injury, 'id' | 'createdAt' | 'updatedAt'>) => {
   try {
+    // Check if athlete has previous injuries
+    const previousInjuriesQuery = query(
+      collection(db, INJURIES_COLLECTION),
+      where('athleteId', '==', injuryData.athleteId)
+    );
+    
+    const previousInjuriesSnapshot = await getDocs(previousInjuriesQuery);
+    const hasPreviousInjuries = !previousInjuriesSnapshot.empty;
+    
+    // If athlete has previous injuries, this new injury needs coach verification
+    const needsVerification = hasPreviousInjuries;
+    
     const docRef = await addDoc(collection(db, INJURIES_COLLECTION), {
       ...injuryData,
+      needsCoachVerification: needsVerification,
+      verificationStatus: needsVerification ? 'pending' : null,
       diagnosisDate: Timestamp.fromDate(injuryData.diagnosisDate),
       expectedRecoveryDate: injuryData.expectedRecoveryDate ? Timestamp.fromDate(injuryData.expectedRecoveryDate) : null,
       actualRecoveryDate: injuryData.actualRecoveryDate ? Timestamp.fromDate(injuryData.actualRecoveryDate) : null,
@@ -101,9 +119,9 @@ export const reportInjury = async (injuryData: Omit<Injury, 'id' | 'createdAt' |
       updatedAt: Timestamp.now()
     });
     
-    return { id: docRef.id, success: true, error: null };
+    return { id: docRef.id, success: true, error: null, needsVerification };
   } catch (error: any) {
-    return { id: null, success: false, error: error.message };
+    return { id: null, success: false, error: error.message, needsVerification: false };
   }
 };
 
@@ -289,6 +307,107 @@ export const addCoachVerification = async (verificationData: Omit<CoachVerificat
     return { id: docRef.id, success: true, error: null };
   } catch (error: any) {
     return { id: null, success: false, error: error.message };
+  }
+};
+
+// Verify injury by coach
+export const verifyInjuryByCoach = async (
+  injuryId: string, 
+  coachId: string, 
+  status: 'verified' | 'rejected',
+  notes?: string
+) => {
+  try {
+    const injuryRef = doc(db, INJURIES_COLLECTION, injuryId);
+    
+    await updateDoc(injuryRef, {
+      verificationStatus: status,
+      verifiedBy: coachId,
+      verifiedAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    });
+    
+    // Also add to coach verifications collection for record keeping
+    const verificationData: Omit<CoachVerification, 'id'> = {
+      injuryId,
+      athleteId: '', // Will need to get this from the injury
+      coachId,
+      coachName: '', // Will need to get coach name
+      status: status === 'verified' ? 'cleared' : 'needs_attention',
+      notes: notes || '',
+      verificationDate: new Date()
+    };
+    
+    await addCoachVerification(verificationData);
+    
+    return { success: true, error: null };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+};
+
+// Get injuries that need coach verification
+export const getInjuriesNeedingVerification = async (coachRegion?: string) => {
+  try {
+    let q = query(
+      collection(db, INJURIES_COLLECTION),
+      where('needsCoachVerification', '==', true),
+      where('verificationStatus', '==', 'pending'),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    const injuries: (Injury & { athleteName?: string })[] = [];
+    
+    for (const docSnapshot of snapshot.docs) {
+      const data = docSnapshot.data();
+      const injury: Injury & { athleteName?: string } = {
+        id: docSnapshot.id,
+        athleteId: data.athleteId,
+        injuryType: data.injuryType,
+        bodyPart: data.bodyPart,
+        description: data.description,
+        severity: data.severity,
+        status: data.status,
+        diagnosisDate: data.diagnosisDate.toDate(),
+        expectedRecoveryDate: data.expectedRecoveryDate?.toDate(),
+        actualRecoveryDate: data.actualRecoveryDate?.toDate(),
+        diagnosis: data.diagnosis || '',
+        symptoms: data.symptoms || [],
+        causedBy: data.causedBy,
+        treatmentPlan: data.treatmentPlan || '',
+        restrictions: data.restrictions || [],
+        medicalImages: data.medicalImages || [],
+        needsCoachVerification: data.needsCoachVerification,
+        verificationStatus: data.verificationStatus,
+        verifiedBy: data.verifiedBy,
+        verifiedAt: data.verifiedAt?.toDate(),
+        createdAt: data.createdAt.toDate(),
+        updatedAt: data.updatedAt.toDate()
+      };
+      
+      // Get athlete name
+      try {
+        const athleteDoc = await getDoc(doc(db, 'users', data.athleteId));
+        if (athleteDoc.exists()) {
+          const athleteData = athleteDoc.data();
+          injury.athleteName = athleteData.name;
+          
+          // If coach region is specified, filter by athlete region
+          if (coachRegion && athleteData.region !== coachRegion) {
+            continue;
+          }
+        }
+      } catch (error) {
+        console.error('Error getting athlete data:', error);
+      }
+      
+      injuries.push(injury);
+    }
+    
+    return { injuries, success: true, error: null };
+  } catch (error: any) {
+    return { injuries: [], success: false, error: error.message };
   }
 };
 

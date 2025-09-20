@@ -373,7 +373,7 @@ const CoachInjuryManagement = ({ coachRegion, coachId }: CoachInjuryManagementPr
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-lg p-6 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
@@ -389,7 +389,7 @@ const CoachInjuryManagement = ({ coachRegion, coachId }: CoachInjuryManagementPr
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-lg p-6 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -405,7 +405,7 @@ const CoachInjuryManagement = ({ coachRegion, coachId }: CoachInjuryManagementPr
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-lg p-6 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -421,7 +421,7 @@ const CoachInjuryManagement = ({ coachRegion, coachId }: CoachInjuryManagementPr
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-lg p-6 border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
@@ -440,7 +440,7 @@ const CoachInjuryManagement = ({ coachRegion, coachId }: CoachInjuryManagementPr
 
       {/* Injuries List */}
       {injuries.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-lg p-8 text-center">
           <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
@@ -453,7 +453,7 @@ const CoachInjuryManagement = ({ coachRegion, coachId }: CoachInjuryManagementPr
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -551,7 +551,7 @@ const CoachInjuryManagement = ({ coachRegion, coachId }: CoachInjuryManagementPr
       {/* Verification Modal */}
       {verificationModal && selectedInjury && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-lg max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Verify Recovery: {selectedInjury.athleteName}
             </h3>
@@ -624,7 +624,7 @@ const CoachInjuryManagement = ({ coachRegion, coachId }: CoachInjuryManagementPr
       {/* Details Modal */}
       {selectedInjury && !verificationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <h3 className="text-xl font-bold text-gray-900">

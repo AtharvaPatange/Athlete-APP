@@ -41,7 +41,7 @@ export default function Leaderboard({
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     sport: sport || "",
-    region: region || "",
+    region: region || "central",
   });
   const [availableFilters] = useState({
     sports: [
@@ -54,12 +54,12 @@ export default function Leaderboard({
       "weightlifting",
     ],
     regions: [
-      "North America",
-      "Europe", 
-      "Asia",
-      "Australia",
-      "South America",
-      "Africa",
+      "nationwide",
+      "central",
+      "north",
+      "south", 
+      "east",
+      "west",
     ],
   });
 
@@ -70,9 +70,12 @@ export default function Leaderboard({
   const fetchLeaderboard = async () => {
     setLoading(true);
 
+    // If region is "nationwide", don't pass region filter to show all athletes
+    const regionFilter = filters.region === "nationwide" ? undefined : filters.region;
+
     const result = await getLeaderboard(
       filters.sport || undefined,
-      filters.region || undefined,
+      regionFilter || undefined,
       100
     );
 
@@ -217,61 +220,33 @@ export default function Leaderboard({
       </div>
 
       {/* Enhanced Filters */}
-      <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl p-8 border border-gray-200">
-        <div className="flex items-center mb-6">
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl mr-4 shadow-lg">
-            <Filter className="w-6 h-6 text-white" />
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Filter className="w-5 h-5 text-indigo-500" />
+            <h3 className="text-lg font-semibold text-gray-800">Filter Athletes</h3>
           </div>
-          <h3 className="text-2xl font-bold text-gray-800">Refine Your View</h3>
-        </div>
-        
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Sport Filter */}
-          <div>
-            <label className="block text-sm font-bold mb-3 text-gray-700 flex items-center">
-              <Target className="w-4 h-4 mr-2 text-indigo-500" />
-              Sport
-            </label>
-            <select
-              value={filters.sport}
-              onChange={(e) =>
-                setFilters({ ...filters, sport: e.target.value })
-              }
-              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 focus:outline-none transition-all duration-300 bg-white text-gray-700 font-medium hover:border-gray-300"
-            >
-              <option value="">All Disciplines</option>
-              {availableFilters.sports.map((sportOption) => (
-                <option key={sportOption} value={sportOption}>
-                  {sportOption.charAt(0).toUpperCase() +
-                    sportOption.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Region Filter */}
-          <div>
-            <label className="block text-sm font-bold mb-3 text-gray-700 flex items-center">
-              <Globe className="w-4 h-4 mr-2 text-indigo-500" />
-              Region
-            </label>
-            <select
-              value={filters.region}
-              onChange={(e) =>
-                setFilters({ ...filters, region: e.target.value })
-              }
-              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 focus:outline-none transition-all duration-300 bg-white text-gray-700 font-medium hover:border-gray-300"
-            >
-              <option value="">All Territories</option>
-              {availableFilters.regions.map((regionOption) => (
-                <option key={regionOption} value={regionOption}>
-                  {regionOption}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Globe className="w-4 h-4 text-gray-800" />
+              <select
+                value={filters.region}
+                onChange={(e) => setFilters({ ...filters, region: e.target.value })}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {availableFilters.regions.map((region) => (
+                  <option className="text-black" key={region} value={region}>
+                    {region === "nationwide" 
+                      ? "All Athletes Nationwide" 
+                      : `${region.charAt(0).toUpperCase() + region.slice(1)} Region`}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
+      
 
       {/* Enhanced Leaderboard */}
       <div className="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-xl overflow-hidden border border-gray-200">
@@ -280,11 +255,9 @@ export default function Leaderboard({
             <h3 className="text-2xl font-bold text-gray-800 flex items-center">
               <Users className="w-6 h-6 mr-3 text-indigo-500" />
               Elite Athletes{" "}
-              {filters.sport &&
-                `in ${
-                  filters.sport.charAt(0).toUpperCase() + filters.sport.slice(1)
-                }`}
-              {filters.region && ` from ${filters.region}`}
+              {filters.region && filters.region === "nationwide" 
+                ? " Nationwide" 
+                : filters.region && ` from ${filters.region.charAt(0).toUpperCase() + filters.region.slice(1)}`}
             </h3>
             <div className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5 text-emerald-500" />
@@ -295,9 +268,9 @@ export default function Leaderboard({
 
         {leaderboard.length > 0 ? (
           <div className="divide-y divide-gray-200">
-            {leaderboard.slice(0, 50).map((entry) => (
+            {leaderboard.slice(0, 50).map((entry, index) => (
               <div
-                key={entry.athleteId}
+                key={`${entry.athleteId}-${index}`}
                 className={`p-6 hover:bg-gradient-to-r hover:from-gray-50 hover:to-indigo-50 transition-all duration-300 transform hover:scale-[1.02] group relative ${
                   entry.athleteId === athleteId
                     ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-l-4 border-indigo-500"

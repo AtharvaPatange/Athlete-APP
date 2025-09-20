@@ -318,9 +318,9 @@ export default function RecoveryTracker({ injury, onUpdateInjury }: RecoveryTrac
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
           {[
-            { id: 'milestones', label: 'Recovery Milestones', icon: '🎯' },
-            { id: 'progress', label: 'Progress Tracking', icon: '📈' },
-            { id: 'verification', label: 'Coach Verification', icon: '✅' }
+            { id: 'milestones', label: 'Recovery Milestones', icon: '' },
+            { id: 'progress', label: 'Progress Tracking', icon: '' },
+            { id: 'verification', label: 'Coach Verification', icon: '' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -558,7 +558,7 @@ export default function RecoveryTracker({ injury, onUpdateInjury }: RecoveryTrac
                       </div>
                       {entry.physiotherapySession && (
                         <div className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full mt-1">
-                          💪 Physiotherapy
+                        Physiotherapy
                         </div>
                       )}
                     </div>

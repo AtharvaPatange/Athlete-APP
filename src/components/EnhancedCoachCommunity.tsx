@@ -135,27 +135,39 @@ const EnhancedCoachCommunity = ({ coachId, coachName, coachRegion }: CoachCommun
   };
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="min-h-screen bg-white p-6 space-y-8">
+
+      {/* Grid Background */}
+        <div 
+          className="fixed inset-0 opacity-100 pointer-events-none"
+          style={{
+            backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+            backgroundSize: '32px 32px'
+          }}
+        ></div>
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Community Hub</h2>
-          <p className="text-gray-600">Connect with athletes and manage communications</p>
+      <div className="mb-8">
+        <div className="flex items-center justify-between p-8 bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-50 rounded-2xl border-2 border-blue-300 shadow-lg">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Community Hub</h2>
+            <p className="text-gray-700">Connect with athletes and manage communications</p>
+          </div>
+          
+          <Link
+            href="/chat"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 cursor-pointer transform hover:scale-105 shadow-lg hover:shadow-xl"
+          >
+            <MessageSquare className="w-5 h-5" />
+            Open Full Chat
+            <ExternalLink className="w-4 h-4" />
+          </Link>
         </div>
-        
-        <Link
-          href="/chat"
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 cursor-pointer transform hover:scale-105 shadow-lg hover:shadow-xl"
-        >
-          <MessageSquare className="w-5 h-5" />
-          Open Full Chat
-          <ExternalLink className="w-4 h-4" />
-        </Link>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm font-medium">Total Athletes</p>
@@ -165,27 +177,27 @@ const EnhancedCoachCommunity = ({ coachId, coachName, coachRegion }: CoachCommun
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium">Active Today</p>
+              <p className="text-emerald-100 text-sm font-medium">Active Today</p>
               <p className="text-3xl font-bold">{activeAthletes}</p>
             </div>
-            <Activity className="w-8 h-8 text-green-200" />
+            <Activity className="w-8 h-8 text-emerald-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-yellow-100 text-sm font-medium">Priority Cases</p>
+              <p className="text-amber-100 text-sm font-medium">Priority Cases</p>
               <p className="text-3xl font-bold">{priorityAthletes}</p>
             </div>
-            <AlertTriangle className="w-8 h-8 text-yellow-200" />
+            <AlertTriangle className="w-8 h-8 text-amber-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 text-sm font-medium">Messages</p>
@@ -198,7 +210,7 @@ const EnhancedCoachCommunity = ({ coachId, coachName, coachRegion }: CoachCommun
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Recent Chat Activity */}
-        <div className="bg-white rounded-xl shadow-sm border p-6">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 p-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-blue-600" />
@@ -251,15 +263,15 @@ const EnhancedCoachCommunity = ({ coachId, coachName, coachRegion }: CoachCommun
                         {message.userRole}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 truncate">{message.text}</p>
-                    <p className="text-xs text-gray-400">{formatTimeAgo(message.timestamp)}</p>
+                    <p className="text-sm text-gray-700 truncate">{message.text}</p>
+                    <p className="text-xs text-gray-600">{formatTimeAgo(message.timestamp)}</p>
                   </div>
                 </div>
               ))
             ) : (
               <div className="text-center py-8">
                 <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No recent messages</p>
+                <p className="text-gray-700">No recent messages</p>
                 <Link
                   href="/chat"
                   className="text-blue-600 hover:text-blue-700 text-sm font-medium cursor-pointer"
@@ -272,7 +284,7 @@ const EnhancedCoachCommunity = ({ coachId, coachName, coachRegion }: CoachCommun
         </div>
 
         {/* Athlete Status Overview */}
-        <div className="bg-white rounded-xl shadow-sm border p-6">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 p-8">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Users className="w-5 h-5 text-green-600" />
@@ -300,12 +312,14 @@ const EnhancedCoachCommunity = ({ coachId, coachName, coachRegion }: CoachCommun
               athletes.slice(0, 6).map((athlete) => (
                 <div key={athlete.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-medium">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium shadow-sm ${
+                      ['bg-blue-600', 'bg-purple-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-rose-600', 'bg-amber-600', 'bg-teal-600', 'bg-orange-600'][athlete.name?.charCodeAt(0) % 8 || 0]
+                    }`}>
                       {athlete.name?.charAt(0) || 'A'}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{athlete.name}</p>
-                      <p className="text-xs text-gray-500">{athlete.sport} • {athlete.region}</p>
+                      <p className="text-xs text-gray-700">{athlete.sport} • {athlete.region}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -324,7 +338,7 @@ const EnhancedCoachCommunity = ({ coachId, coachName, coachRegion }: CoachCommun
             ) : (
               <div className="text-center py-8">
                 <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No athletes in your region</p>
+                <p className="text-gray-700">No athletes in your region</p>
               </div>
             )}
           </div>
@@ -332,39 +346,39 @@ const EnhancedCoachCommunity = ({ coachId, coachName, coachRegion }: CoachCommun
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl p-8 border border-slate-200 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Quick Actions</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Link
             href="/chat"
-            className="flex items-center space-x-3 bg-white p-4 rounded-lg hover:shadow-md transition-all cursor-pointer group"
+            className="flex items-center space-x-3 bg-white p-6 rounded-xl hover:shadow-lg transition-all cursor-pointer group border border-slate-200 shadow-sm"
           >
-            <div className="bg-blue-100 p-2 rounded-lg group-hover:bg-blue-200 transition-colors">
-              <MessageSquare className="w-5 h-5 text-blue-600" />
+            <div className="bg-blue-100 p-3 rounded-xl group-hover:bg-blue-200 transition-colors">
+              <MessageSquare className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="font-medium text-gray-900">Join Chat Rooms</p>
-              <p className="text-sm text-gray-600">Connect with athletes</p>
+              <p className="font-semibold text-gray-900">Join Chat Rooms</p>
+              <p className="text-sm text-gray-700">Connect with athletes</p>
             </div>
           </Link>
 
-          <button className="flex items-center space-x-3 bg-white p-4 rounded-lg hover:shadow-md transition-all cursor-pointer group">
-            <div className="bg-green-100 p-2 rounded-lg group-hover:bg-green-200 transition-colors">
-              <Calendar className="w-5 h-5 text-green-600" />
+          <button className="flex items-center space-x-3 bg-white p-6 rounded-xl hover:shadow-lg transition-all cursor-pointer group border border-slate-200 shadow-sm">
+            <div className="bg-emerald-100 p-3 rounded-xl group-hover:bg-emerald-200 transition-colors">
+              <Calendar className="w-6 h-6 text-emerald-600" />
             </div>
             <div>
-              <p className="font-medium text-gray-900">Schedule Session</p>
-              <p className="text-sm text-gray-600">Book training time</p>
+              <p className="font-semibold text-gray-900">Schedule Session</p>
+              <p className="text-sm text-gray-700">Book training time</p>
             </div>
           </button>
 
-          <button className="flex items-center space-x-3 bg-white p-4 rounded-lg hover:shadow-md transition-all cursor-pointer group">
-            <div className="bg-purple-100 p-2 rounded-lg group-hover:bg-purple-200 transition-colors">
-              <Bell className="w-5 h-5 text-purple-600" />
+          <button className="flex items-center space-x-3 bg-white p-6 rounded-xl hover:shadow-lg transition-all cursor-pointer group border border-slate-200 shadow-sm">
+            <div className="bg-purple-100 p-3 rounded-xl group-hover:bg-purple-200 transition-colors">
+              <Bell className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <p className="font-medium text-gray-900">Send Announcement</p>
-              <p className="text-sm text-gray-600">Notify all athletes</p>
+              <p className="font-semibold text-gray-900">Send Announcement</p>
+              <p className="text-sm text-gray-700">Notify all athletes</p>
             </div>
           </button>
         </div>

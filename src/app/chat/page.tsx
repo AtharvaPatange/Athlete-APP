@@ -522,7 +522,7 @@ export default function ChatPage() {
               </div>
               <button
                 onClick={() => router.push('/dashboard')}
-                className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-3 md:px-6 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center gap-1 md:gap-2 cursor-pointer transform hover:scale-105 shadow-lg hover:shadow-xl text-sm"
+                className="bg-gradient-to-r from-gray-900 to-gray-700 text-white px-3 md:px-6 py-2 rounded-xl font-semibold transition-all duration-300 flex items-center gap-1 md:gap-2 cursor-pointer transform hover:scale-105 shadow-lg hover:shadow-xl text-sm"
               >
                 <HiArrowLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Dashboard</span>
@@ -597,7 +597,7 @@ export default function ChatPage() {
             <button
               type="submit"
               disabled={!message.trim() || !isConnected}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-4 md:px-8 py-2 md:py-3 rounded-xl font-semibold transition-all duration-300 disabled:cursor-not-allowed cursor-pointer transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-1 md:gap-2 text-sm md:text-base"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 md:px-8 py-2 md:py-3 rounded-xl font-semibold transition-all duration-300 disabled:cursor-not-allowed cursor-pointer transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center gap-1 md:gap-2 text-sm md:text-base"
             >
               <HiPaperAirplane className="w-4 h-4" />
               <span className="hidden sm:inline">Send</span>

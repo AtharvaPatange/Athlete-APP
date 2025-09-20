@@ -11,7 +11,9 @@ import {
   getMultipleAthleteRecoveryData,
   getAthletesRequestingVerification,
   getRegionalActiveInjuries,
-  getAthleteAchievements
+  getAthleteAchievements,
+  getInjuriesNeedingVerification,
+  verifyInjuryByCoach
 } from "@/services/injuryService";
 import { 
   AlertTriangle, 
@@ -30,7 +32,10 @@ import {
   Target,
   Award,
   UserCheck,
-  Camera
+  Camera,
+  AlertCircle,
+  RotateCcw,
+  Zap
 } from "lucide-react";
 
 interface InjuryAlert {
@@ -97,6 +102,7 @@ const EnhancedCoachInjuryManagement = ({
 }: EnhancedCoachInjuryManagementProps) => {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [injuryAlerts, setInjuryAlerts] = useState<InjuryAlert[]>([]);
+  const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'high' | 'medium' | 'low'>('all');
   const [selectedAthleteReport, setSelectedAthleteReport] = useState<string | null>(null);
@@ -166,14 +172,6 @@ const EnhancedCoachInjuryManagement = ({
     // Activity level
     const lastActive = athlete.lastActiveAt?.toDate ? athlete.lastActiveAt.toDate() : new Date(athlete.lastActiveAt || 0);
     const daysSinceActive = Math.floor((Date.now() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (daysSinceActive > 14) {
-      riskScore += 3;
-      factors.push('Inactive for over 2 weeks');
-    } else if (daysSinceActive > 7) {
-      riskScore += 1;
-      factors.push('Reduced activity level');
-    }
 
     // Determine risk level
     let risk: 'high' | 'medium' | 'low';
@@ -499,6 +497,24 @@ const EnhancedCoachInjuryManagement = ({
     fetchAthletesWithInjuryData();
   }, [coachRegion, availabilityStatus, assignedAthletes]);
 
+  // Load pending verifications
+  useEffect(() => {
+    const fetchPendingVerifications = async () => {
+      if (!coachId) return;
+      
+      try {
+        const result = await getInjuriesNeedingVerification();
+        if (result.success) {
+          setPendingVerifications(result.injuries);
+        }
+      } catch (error) {
+        console.error("Error fetching pending verifications:", error);
+      }
+    };
+
+    fetchPendingVerifications();
+  }, [coachId]);
+
   // Handle coach verification for completed recovery
   const handleRecoveryVerification = async (athleteId: string, verified: boolean) => {
     try {
@@ -542,8 +558,8 @@ const EnhancedCoachInjuryManagement = ({
       // Show success message
       const athleteName = athletes.find(a => a.id === athleteId)?.name || 'Athlete';
       setVerificationMessage(verified 
-        ? `✅ ${athleteName}'s recovery has been verified and they are cleared to return to activity!`
-        : `⏳ ${athleteName} needs more recovery time. They will be notified.`
+        ? `${athleteName}'s recovery has been verified and they are cleared to return to activity!`
+        : `${athleteName} needs more recovery time. They will be notified.`
       );
       
       // Clear message after 5 seconds
@@ -606,6 +622,34 @@ const EnhancedCoachInjuryManagement = ({
   const closeReport = () => {
     setSelectedAthleteReport(null);
     setReportData(null);
+  };
+
+  // Handle coach verification for re-injury verification
+  const handleInjuryVerification = async (injuryId: string, approved: boolean, notes?: string) => {
+    try {
+      const status = approved ? 'verified' : 'rejected';
+      const result = await verifyInjuryByCoach(injuryId, coachId, status, notes);
+      if (result.success) {
+        // Show success message
+        setVerificationMessage(approved 
+          ? "Injury has been verified and approved."
+          : "Injury verification has been rejected. The athlete will be notified."
+        );
+        
+        // Refresh pending verifications
+        const updatedVerifications = await getInjuriesNeedingVerification();
+        if (updatedVerifications.success) {
+          setPendingVerifications(updatedVerifications.injuries);
+        }
+        
+        // Clear message after 5 seconds
+        setTimeout(() => setVerificationMessage(null), 5000);
+      }
+    } catch (error) {
+      console.error("Error handling injury verification:", error);
+      setVerificationMessage("Error processing verification. Please try again.");
+      setTimeout(() => setVerificationMessage(null), 5000);
+    }
   };
 
   // Helper function to get athletes needing urgent attention
@@ -693,7 +737,9 @@ const EnhancedCoachInjuryManagement = ({
   };
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="min-h-screen bg-white p-6 space-y-8">
+
+      <div>
       {/* Success/Verification Message */}
       {verificationMessage && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
@@ -707,65 +753,83 @@ const EnhancedCoachInjuryManagement = ({
     
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            {availabilityStatus === 'available' ? 'Injury Management - My Athletes' : 'Injury Prevention & Monitoring'}
-          </h2>
-          <p className="text-gray-600">
-            {availabilityStatus === 'available' 
-              ? `Regional Injury Management for ${coachRegion} - ${athletes.length} injured athletes`
-              : 'Set availability status to access injury management features'
-            }
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="bg-yellow-100 border border-yellow-300 rounded-lg px-3 py-2 flex items-center space-x-2">
-            <Bell className="w-4 h-4 text-yellow-600" />
-            <span className="text-yellow-700 font-medium">{injuryAlerts.length} Active Alerts</span>
+      <div className="mb-8">
+        <div className="flex items-center justify-between p-8 bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-50 rounded-2xl border-2 border-blue-300 shadow-lg">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {availabilityStatus === 'available' ? 'Injury Management - My Athletes' : 'Injury Prevention & Monitoring'}
+            </h2>
+            <p className="text-gray-700">
+              {availabilityStatus === 'available' 
+                ? `Regional Injury Management for ${coachRegion} - ${athletes.length} injured athletes`
+                : 'Set availability status to access injury management features'
+              }
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="bg-amber-100 border border-amber-300 rounded-xl px-4 py-3 flex items-center space-x-2 shadow-sm">
+              <Bell className="w-4 h-4 text-amber-600" />
+              <span className="text-amber-700 font-medium">{injuryAlerts.length} Active Alerts</span>
+            </div>
+            {pendingVerifications.length > 0 && (
+              <div className="bg-purple-100 border border-purple-300 rounded-xl px-4 py-3 flex items-center space-x-2 shadow-sm">
+                <Shield className="w-4 h-4 text-purple-600" />
+                <span className="text-purple-700 font-medium">{pendingVerifications.length} Pending Verifications</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Risk Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border p-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Total Athletes</p>
+              <p className="text-gray-700 text-sm font-medium">Total Athletes</p>
               <p className="text-3xl font-bold text-gray-900">{riskStats.total}</p>
             </div>
-            <User className="w-8 h-8 text-gray-400" />
+            <User className="w-8 h-8 text-indigo-400" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-br from-rose-500 to-red-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-red-100 text-sm font-medium">High Risk</p>
+              <p className="text-rose-100 text-sm font-medium">High Risk</p>
               <p className="text-3xl font-bold">{riskStats.high}</p>
             </div>
-            <AlertTriangle className="w-8 h-8 text-red-200" />
+            <AlertTriangle className="w-8 h-8 text-rose-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-yellow-100 text-sm font-medium">Medium Risk</p>
+              <p className="text-amber-100 text-sm font-medium">Medium Risk</p>
               <p className="text-3xl font-bold">{riskStats.medium}</p>
             </div>
-            <Activity className="w-8 h-8 text-yellow-200" />
+            <Activity className="w-8 h-8 text-amber-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium">Low Risk</p>
+              <p className="text-emerald-100 text-sm font-medium">Low Risk</p>
               <p className="text-3xl font-bold">{riskStats.low}</p>
             </div>
-            <CheckCircle className="w-8 h-8 text-green-200" />
+            <CheckCircle className="w-8 h-8 text-emerald-200" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm font-medium">Pending Verifications</p>
+              <p className="text-3xl font-bold">{pendingVerifications.length}</p>
+            </div>
+            <Shield className="w-8 h-8 text-purple-200" />
           </div>
         </div>
       </div>
@@ -807,7 +871,7 @@ const EnhancedCoachInjuryManagement = ({
                   <p className="text-sm text-gray-700">{alert.recommendation}</p>
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                  <p className="text-xs text-gray-700 flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     Generated just now
                   </p>
@@ -826,125 +890,104 @@ const EnhancedCoachInjuryManagement = ({
         </div>
       )}
 
-      {/* Filter and Athletes List */}
-      <div className="bg-white rounded-xl shadow-sm border p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Athlete Risk Assessment</h3>
-          <div className="flex space-x-2">
-            {(['all', 'high', 'medium', 'low'] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setSelectedFilter(filter)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium cursor-pointer transition-colors ${
-                  selectedFilter === filter
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {filter === 'all' ? 'All Athletes' : `${filter.charAt(0).toUpperCase() + filter.slice(1)} Risk`}
-              </button>
+      {/* Pending Injury Verifications */}
+      {pendingVerifications.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-purple-600" />
+            Pending Injury Verifications ({pendingVerifications.length})
+          </h3>
+          <div className="space-y-4">
+            {pendingVerifications.map((injury) => (
+              <div key={injury.id} className="border border-purple-200 bg-purple-50 rounded-lg p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h4 className="font-semibold text-gray-900">
+                      {injury.athleteName || 'Unknown Athlete'}
+                    </h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Injury: {injury.injuryType || 'Not specified'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Area: {injury.injuredArea || 'Not specified'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Reported: {injury.createdAt ? new Date(injury.createdAt.seconds * 1000).toLocaleDateString() : 'Unknown date'}
+                    </p>
+                  </div>
+                  <div className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                    NEEDS VERIFICATION
+                  </div>
+                </div>
+                
+                {injury.description && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-800">Description:</p>
+                    <p className="text-sm text-gray-700 bg-white p-2 rounded border">
+                      {injury.description}
+                    </p>
+                  </div>
+                )}
+
+                {injury.previousInjuries && injury.previousInjuries.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-800">Previous Similar Injuries:</p>
+                    <div className="text-sm text-gray-700 bg-yellow-50 p-2 rounded border">
+                      {injury.previousInjuries.map((prev: any, index: number) => (
+                        <div key={index} className="mb-1">
+                          • {prev.injuryType} ({prev.injuredArea}) - {new Date(prev.createdAt.seconds * 1000).toLocaleDateString()}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-3 border-t border-purple-200">
+                  <p className="text-xs text-gray-600 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Re-injured athlete requiring coach verification
+                  </p>
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => handleInjuryVerification(injury.id!, false)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors"
+                    >
+                      <XCircle className="w-3 h-3 inline mr-1" />
+                      Reject
+                    </button>
+                    <button 
+                      onClick={() => handleInjuryVerification(injury.id!, true)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors"
+                    >
+                      <CheckCircle className="w-3 h-3 inline mr-1" />
+                      Verify
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-            [...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-gray-200 rounded-lg h-32"></div>
-              </div>
-            ))
-          ) : (
-            filteredAthletes.map((athlete) => (
-              <div key={athlete.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-900">{athlete.name}</h4>
-                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    athlete.injury_risk === 'high' ? 'bg-red-100 text-red-800' :
-                    athlete.injury_risk === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {athlete.injury_risk?.toUpperCase()}
-                  </div>
-                </div>
-                
-                <p className="text-sm text-gray-600 mb-3">{athlete.region}</p>
-                
-                {athlete.performance && (
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-500 mb-2">Performance Metrics</p>
-                    <div className="flex space-x-2">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{ width: `${(athlete.performance.speed / 10) * 100}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-gray-600">Speed</span>
-                    </div>
-                  </div>
-                )}
-                
-                {athlete.achievements && (
-                  <div className="mb-3">
-                    <p className="text-xs text-gray-500 mb-2">Achievement Data</p>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-gray-600">Challenges:</span>
-                        <span className="ml-1 font-medium">{athlete.achievements.completedChallenges || 0}/{athlete.achievements.totalChallenges || 0}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Points:</span>
-                        <span className="ml-1 font-medium">{athlete.achievements.totalPoints || 0}</span>
-                      </div>
-                      {athlete.achievements.currentTier && (
-                        <div className="col-span-2">
-                          <span className="text-gray-600">Tier:</span>
-                          <span className={`ml-1 px-2 py-0.5 rounded text-xs font-medium ${
-                            athlete.achievements.currentTier === 'Gold' ? 'bg-yellow-100 text-yellow-800' :
-                            athlete.achievements.currentTier === 'Silver' ? 'bg-gray-100 text-gray-800' :
-                            'bg-orange-100 text-orange-800'
-                          }`}>
-                            {athlete.achievements.currentTier}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="flex space-x-2">
-                  <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-xs font-medium cursor-pointer">
-                    View Details
-                  </button>
-                  <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-3 rounded text-xs font-medium cursor-pointer">
-                    Contact
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Recovery Progress Tracking Section */}
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <div className="mb-6">
           <h3 className="text-xl font-bold text-gray-900 mb-2">Recovery Progress Tracking</h3>
-          <p className="text-gray-600">Monitor recovery progress for all injured athletes in your region</p>
+          <p className="text-gray-700">Monitor recovery progress for all injured athletes in your region</p>
         </div>
 
         {availabilityStatus !== 'available' ? (
           <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
             <Shield className="w-12 h-12 mx-auto text-gray-400 mb-4" />
             <h4 className="text-lg font-medium text-gray-600 mb-2">Set Availability Status</h4>
-            <p className="text-gray-500">Enable your availability to manage injuries for athletes in your region</p>
+            <p className="text-gray-700">Enable your availability to manage injuries for athletes in your region</p>
           </div>
         ) : assignedAthletes.length === 0 ? (
           <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
             <Target className="w-12 h-12 mx-auto text-gray-400 mb-4" />
             <h4 className="text-lg font-medium text-gray-600 mb-2">No Athletes Assigned</h4>
-            <p className="text-gray-500">Athletes will be automatically assigned based on priority needs</p>
+            <p className="text-gray-700">Athletes will be automatically assigned based on priority needs</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -968,8 +1011,22 @@ const EnhancedCoachInjuryManagement = ({
                       athlete.injury_status === 'recovering' ? 'bg-blue-100 text-blue-800' :
                       'bg-green-100 text-green-800'
                     }`}>
-                      {athlete.injury_status === 'injured' ? `🚨 Injured (${athlete.injury_severity})` :
-                       athlete.injury_status === 'recovering' ? '🔄 Recovering' : '✅ Healthy'}
+                      {athlete.injury_status === 'injured' ? (
+                        <>
+                          <AlertTriangle className="w-4 h-4 mr-1" />
+                          Injured ({athlete.injury_severity})
+                        </>
+                      ) : athlete.injury_status === 'recovering' ? (
+                        <>
+                          <RotateCcw className="w-4 h-4 mr-1" />
+                          Recovering
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Healthy
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1033,7 +1090,10 @@ const EnhancedCoachInjuryManagement = ({
                             <div className="flex items-center space-x-3">
                               <CheckCircle className="w-6 h-6 text-green-600" />
                               <div>
-                                <h5 className="font-medium text-green-900">Recovery Verified ✅</h5>
+                                <h5 className="font-medium text-green-900 flex items-center gap-2">
+                                  <CheckCircle className="w-5 h-5" />
+                                  Recovery Verified
+                                </h5>
                                 <p className="text-sm text-green-700">
                                   Verified on {athlete.coach_verification_date ? 
                                     new Date(athlete.coach_verification_date).toLocaleDateString() : 'Recently'
@@ -1097,7 +1157,10 @@ const EnhancedCoachInjuryManagement = ({
                     {/* Progress Summary for Verification Requests */}
                     {athlete.recovery_verification_requested && athlete.injury_status !== 'recovering' && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <h5 className="font-medium text-yellow-900 mb-2">📊 Recovery Summary</h5>
+                        <h5 className="font-medium text-yellow-900 mb-2 flex items-center gap-2">
+                          <Activity className="w-5 h-5" />
+                          Recovery Summary
+                        </h5>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="font-medium text-gray-700">Progress:</span>
@@ -1161,20 +1224,22 @@ const EnhancedCoachInjuryManagement = ({
       {/* Comprehensive Injury Report Modal */}
       {selectedAthleteReport && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-blue-200">
+            <div className="flex items-center justify-between p-6 border-b border-blue-200 bg-gradient-to-r from-blue-100 to-purple-100">
               <div className="flex items-center space-x-3">
-                <FileText className="w-8 h-8 text-blue-600" />
+                <div className="bg-blue-600 p-2 rounded-lg">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">Recovery Verification Report</h2>
-                  <p className="text-gray-600">
+                  <p className="text-gray-700 font-medium">
                     {reportData?.athlete?.name} - Complete Recovery Assessment
                   </p>
                 </div>
               </div>
               <button
                 onClick={closeReport}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-500 hover:text-gray-700 transition-colors bg-white p-1 rounded-lg hover:bg-gray-100"
               >
                 <XCircle className="w-8 h-8" />
               </button>
@@ -1188,22 +1253,28 @@ const EnhancedCoachInjuryManagement = ({
               ) : reportData ? (
                 <div className="p-6 space-y-8">
                   {/* Athlete Summary */}
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+                  <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 rounded-xl p-6 border border-blue-200 shadow-sm">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Athlete Information</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                          <User className="w-5 h-5 text-blue-600 mr-2" />
+                          Athlete Information
+                        </h3>
                         <div className="space-y-2">
-                          <p><span className="font-medium">Name:</span> {reportData.athlete.name}</p>
-                          <p><span className="font-medium">Sport:</span> {reportData.athlete.sport}</p>
-                          <p><span className="font-medium">Region:</span> {reportData.athlete.region}</p>
+                          <p><span className="font-medium text-gray-800">Name:</span> <span className="text-gray-900">{reportData.athlete.name}</span></p>
+                          <p><span className="font-medium text-gray-800">Sport:</span> <span className="text-gray-900">{reportData.athlete.sport}</span></p>
+                          <p><span className="font-medium text-gray-800">Region:</span> <span className="text-gray-900">{reportData.athlete.region}</span></p>
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Recovery Status</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                          <Activity className="w-5 h-5 text-green-600 mr-2" />
+                          Recovery Status
+                        </h3>
                         <div className="space-y-2">
-                          <p><span className="font-medium">Progress:</span> {reportData.athlete.recovery_progress}%</p>
-                          <p><span className="font-medium">Status:</span> {reportData.athlete.injury_status}</p>
-                          <p><span className="font-medium">Risk Level:</span> 
+                          <p><span className="font-medium text-gray-800">Progress:</span> <span className="text-gray-900 font-semibold">{reportData.athlete.recovery_progress}%</span></p>
+                          <p><span className="font-medium text-gray-800">Status:</span> <span className="text-gray-900 capitalize">{reportData.athlete.injury_status}</span></p>
+                          <p><span className="font-medium text-gray-800">Risk Level:</span> 
                             <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
                               reportData.athlete.injury_risk === 'high' ? 'bg-red-100 text-red-800' :
                               reportData.athlete.injury_risk === 'medium' ? 'bg-yellow-100 text-yellow-800' :
@@ -1215,18 +1286,21 @@ const EnhancedCoachInjuryManagement = ({
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Timeline</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                          <Calendar className="w-5 h-5 text-purple-600 mr-2" />
+                          Timeline
+                        </h3>
                         <div className="space-y-2">
-                          <p><span className="font-medium">Injury Date:</span> {new Date(reportData.injury.diagnosisDate).toLocaleDateString()}</p>
-                          <p><span className="font-medium">Expected Return:</span> {reportData.injury.expectedRecoveryDate ? new Date(reportData.injury.expectedRecoveryDate).toLocaleDateString() : 'Not set'}</p>
-                          <p><span className="font-medium">Days in Recovery:</span> {Math.floor((Date.now() - new Date(reportData.injury.diagnosisDate).getTime()) / (1000 * 60 * 60 * 24))} days</p>
+                          <p><span className="font-medium text-gray-800">Injury Date:</span> <span className="text-gray-900">{new Date(reportData.injury.diagnosisDate).toLocaleDateString()}</span></p>
+                          <p><span className="font-medium text-gray-800">Expected Return:</span> <span className="text-gray-900">{reportData.injury.expectedRecoveryDate ? new Date(reportData.injury.expectedRecoveryDate).toLocaleDateString() : 'Not set'}</span></p>
+                          <p><span className="font-medium text-gray-800">Days in Recovery:</span> <span className="text-gray-900 font-semibold">{Math.floor((Date.now() - new Date(reportData.injury.diagnosisDate).getTime()) / (1000 * 60 * 60 * 24))} days</span></p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Injury Details */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
+                  <div className="bg-gradient-to-br from-red-50 via-orange-50 to-yellow-50 border border-red-200 rounded-xl p-6 shadow-sm">
                     <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                       <Target className="w-6 h-6 text-red-500 mr-2" />
                       Injury Details
@@ -1235,9 +1309,9 @@ const EnhancedCoachInjuryManagement = ({
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-2">Basic Information</h4>
                         <div className="space-y-2 text-sm">
-                          <p><span className="font-medium">Type:</span> {reportData.injury.injuryType}</p>
-                          <p><span className="font-medium">Body Part:</span> {reportData.injury.bodyPart}</p>
-                          <p><span className="font-medium">Severity:</span> 
+                          <p><span className="font-medium text-gray-800">Type:</span> <span className="text-gray-900">{reportData.injury.injuryType}</span></p>
+                          <p><span className="font-medium text-gray-800">Body Part:</span> <span className="text-gray-900">{reportData.injury.bodyPart}</span></p>
+                          <p><span className="font-medium text-gray-800">Severity:</span> 
                             <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
                               reportData.injury.severity === 'severe' ? 'bg-red-100 text-red-800' :
                               reportData.injury.severity === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
@@ -1246,15 +1320,15 @@ const EnhancedCoachInjuryManagement = ({
                               {reportData.injury.severity?.toUpperCase()}
                             </span>
                           </p>
-                          <p><span className="font-medium">Status:</span> {reportData.injury.status}</p>
+                          <p><span className="font-medium text-gray-800">Status:</span> <span className="text-gray-900 capitalize">{reportData.injury.status}</span></p>
                         </div>
                       </div>
                       <div>
                         <h4 className="font-semibold text-gray-900 mb-2">Medical Information</h4>
                         <div className="space-y-2 text-sm">
-                          <p><span className="font-medium">Diagnosis:</span> {reportData.injury.diagnosis || 'Not provided'}</p>
-                          <p><span className="font-medium">Caused by:</span> {reportData.injury.causedBy || 'Not specified'}</p>
-                          <p><span className="font-medium">Symptoms:</span> {reportData.injury.symptoms?.join(', ') || 'None listed'}</p>
+                          <p><span className="font-medium text-gray-800">Diagnosis:</span> <span className="text-gray-900">{reportData.injury.diagnosis || 'Not provided'}</span></p>
+                          <p><span className="font-medium text-gray-800">Caused by:</span> <span className="text-gray-900">{reportData.injury.causedBy || 'Not specified'}</span></p>
+                          <p><span className="font-medium text-gray-800">Symptoms:</span> <span className="text-gray-900">{reportData.injury.symptoms?.join(', ') || 'None listed'}</span></p>
                         </div>
                       </div>
                     </div>
@@ -1262,7 +1336,7 @@ const EnhancedCoachInjuryManagement = ({
                     {/* Description */}
                     <div className="mt-4">
                       <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">
+                      <p className="text-sm text-gray-900 bg-white bg-opacity-60 p-3 rounded-lg border border-gray-200">
                         {reportData.injury.description || 'No detailed description provided.'}
                       </p>
                     </div>
@@ -1296,7 +1370,7 @@ const EnhancedCoachInjuryManagement = ({
                   </div>
 
                   {/* Recovery Milestones */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
+                  <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border border-green-200 rounded-xl p-6 shadow-sm">
                     <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                       <Award className="w-6 h-6 text-green-500 mr-2" />
                       Recovery Milestones ({reportData.milestones.filter((m: any) => m.isCompleted).length}/{reportData.milestones.length} completed)
@@ -1379,12 +1453,12 @@ const EnhancedCoachInjuryManagement = ({
                   </div>
 
                   {/* Verification Actions */}
-                  <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6">
+                  <div className="bg-gradient-to-br from-green-100 via-blue-50 to-indigo-100 border border-green-300 rounded-xl p-6 shadow-sm">
                     <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                       <UserCheck className="w-6 h-6 text-green-500 mr-2" />
                       Coach Verification Decision
                     </h3>
-                    <p className="text-gray-700 mb-6">
+                    <p className="text-gray-800 mb-6 font-medium">
                       Based on the complete recovery report above, make your verification decision for {reportData.athlete.name}'s recovery.
                     </p>
                     <div className="flex space-x-4">
@@ -1393,7 +1467,7 @@ const EnhancedCoachInjuryManagement = ({
                           requestVerificationConfirmation(selectedAthleteReport!, true);
                           closeReport();
                         }}
-                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
+                        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-all shadow-lg hover:shadow-xl"
                       >
                         <CheckCircle className="w-5 h-5" />
                         <span>Approve Recovery - Clear to Return</span>
@@ -1403,7 +1477,7 @@ const EnhancedCoachInjuryManagement = ({
                           requestVerificationConfirmation(selectedAthleteReport!, false);
                           closeReport();
                         }}
-                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
+                        className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-all shadow-lg hover:shadow-xl"
                       >
                         <XCircle className="w-5 h-5" />
                         <span>Request More Recovery Time</span>
@@ -1424,10 +1498,10 @@ const EnhancedCoachInjuryManagement = ({
       {/* Verification Confirmation Modal */}
       {confirmingVerification && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+          <div className="bg-gradient-to-br from-white via-gray-50 to-blue-50 rounded-xl shadow-2xl max-w-md w-full p-6 border border-blue-200">
             <div className="text-center">
               <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                confirmingVerification.verified ? 'bg-green-100' : 'bg-orange-100'
+                confirmingVerification.verified ? 'bg-gradient-to-br from-green-100 to-green-200' : 'bg-gradient-to-br from-orange-100 to-orange-200'
               }`}>
                 {confirmingVerification.verified ? (
                   <CheckCircle className="w-8 h-8 text-green-600" />
@@ -1440,7 +1514,7 @@ const EnhancedCoachInjuryManagement = ({
                 {confirmingVerification.verified ? 'Verify Recovery?' : 'Request More Time?'}
               </h3>
               
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-700 mb-6 font-medium">
                 {confirmingVerification.verified 
                   ? `Are you sure you want to verify ${confirmingVerification.athleteName}'s recovery? They will be marked as healthy and cleared to return to full activity.`
                   : `Are you sure ${confirmingVerification.athleteName} needs more recovery time? They will be notified that their verification was not approved yet.`
@@ -1450,16 +1524,16 @@ const EnhancedCoachInjuryManagement = ({
               <div className="flex space-x-3">
                 <button
                   onClick={cancelVerification}
-                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors border border-gray-300"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmVerification}
-                  className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors ${
+                  className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-xl ${
                     confirmingVerification.verified 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-orange-600 hover:bg-orange-700'
+                      ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800' 
+                      : 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800'
                   }`}
                 >
                   {confirmingVerification.verified ? 'Yes, Verify' : 'Yes, Need More Time'}
@@ -1470,6 +1544,7 @@ const EnhancedCoachInjuryManagement = ({
         </div>
       )}
     </div>
+</div>
   );
 };
 

@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node server.js",
-    "dev:next": "next dev",
+    "dev": "node --max-old-space-size=4096 server.js",
+    "dev:next": "next dev --experimental-watcher=polling",
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
     "start:next": "next start",

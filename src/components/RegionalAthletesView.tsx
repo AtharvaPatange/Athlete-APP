@@ -368,7 +368,7 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
               </div>
               <input
                 type="text"
-                className="block w-full pl-10 pr-3 py-3 border border-[#182031]/20 rounded-lg leading-5 bg-white placeholder-[#303644] text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:border-[#0F172A] transition-all"
+                className="block w-full pl-10 pr-3 py-3 border border-[#182031]/20 rounded-lg leading-5 bg-white placeholder:text-gray-700 text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:border-[#0F172A] transition-all"
                 placeholder="Search athletes by name, sport, or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -647,127 +647,31 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
             </div>
           )}
         </>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg text-white">{athlete.name || "Unnamed Athlete"}</h3>
-                      <div className="flex items-center text-white/60 text-sm mt-1">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {athlete.region || "No Region"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Performance Chart */}
-                <div className="p-4">
-                  <h4 className="text-sm font-medium text-[#0F172A] mb-3 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-[#182031]" />
-                    Performance Overview
-                  </h4>
-                  <div className="h-32">
-                    {athlete.performance ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={[
-                          { name: 'Speed', value: athlete.performance.speed || 0 },
-                          { name: 'Strength', value: athlete.performance.strength || 0 },
-                          { name: 'Endurance', value: athlete.performance.endurance || 0 },
-                          { name: 'Agility', value: athlete.performance.agility || 0 }
-                        ]}>
-                          <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#303644' }} />
-                          <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#303644' }} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: '#0F172A', 
-                              border: 'none', 
-                              borderRadius: '8px',
-                              color: 'white'
-                            }} 
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="value" 
-                            stroke="#0F172A" 
-                            strokeWidth={3}
-                            dot={{ fill: '#0F172A', strokeWidth: 2, r: 4 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-[#303644]">
-                        <TrendingUp className="w-8 h-8 mb-2" />
-                        <p className="text-sm">No performance data</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="px-4 pb-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="text-center p-3 bg-[#F6F7F7] rounded-lg border border-[#182031]/5">
-                      <Award className="w-5 h-5 text-[#0F172A] mx-auto mb-1" />
-                      <div className="text-sm font-semibold text-[#0F172A]">
-                        {athlete.achievements?.length || 0}
-                      </div>
-                      <div className="text-xs text-[#303644]">Achievements</div>
-                    </div>
-                    <div className="text-center p-3 bg-[#F6F7F7] rounded-lg border border-[#182031]/5">
-                      <Target className="w-5 h-5 text-[#0F172A] mx-auto mb-1" />
-                      <div className="text-sm font-semibold text-[#0F172A]">
-                        {athlete.completedGoals || 0}
-                      </div>
-                      <div className="text-xs text-[#303644]">Goals</div>
-                    </div>
-                    <div className="text-center p-3 bg-[#F6F7F7] rounded-lg border border-[#182031]/5">
-                      <UserCheck className="w-5 h-5 text-[#0F172A] mx-auto mb-1" />
-                      <div className="text-sm font-semibold text-[#0F172A]">
-                        {athlete.age || "N/A"}
-                      </div>
-                      <div className="text-xs text-[#303644]">Age</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="px-4 pb-4 flex gap-2">
-                  <button 
-                    onClick={() => setSelectedAthlete(athlete)}
-                    className="flex-1 bg-[#0F172A] hover:bg-[#182031] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer"
-                  >
-                    View Details
-                  </button>
-                  <button className="px-4 py-2.5 border border-[#182031]/20 text-[#303644] rounded-lg text-sm font-medium hover:bg-[#F6F7F7] transition-colors cursor-pointer">
-                    <MessageCircle className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Load More Button */}
-          {hasMore && !searchTerm && (
-            <div className="mt-8 text-center">
-              <button
-                onClick={loadMoreAthletes}
-                disabled={loadingMore}
-                className="px-8 py-3 bg-[#0F172A] text-white rounded-lg hover:bg-[#182031] disabled:opacity-50 disabled:cursor-not-allowed flex items-center mx-auto transition-all cursor-pointer"
-              >
-                {loadingMore ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Loading Athletes...
-                  </>
-                ) : (
-                  <>
-                    <Users className="w-4 h-4 mr-2" />
-                    Load More Athletes
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-        </>
       )}
+
+      {/* Load More Button */}
+      {hasMore && !searchTerm && (
+        <div className="mt-8 text-center">
+          <button
+            onClick={loadMoreAthletes}
+            disabled={loadingMore}
+            className="px-8 py-3 bg-[#0F172A] text-white rounded-lg hover:bg-[#182031] disabled:opacity-50 disabled:cursor-not-allowed flex items-center mx-auto transition-all cursor-pointer"
+          >
+            {loadingMore ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                Loading Athletes...
+              </>
+            ) : (
+              <>
+                <Users className="w-4 h-4 mr-2" />
+                Load More Athletes
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
 
       {/* Athlete Detail Modal */}
       {selectedAthlete && (
@@ -848,7 +752,6 @@ const RegionalAthletesView = ({ coachRegion, coachSport, coachId }: RegionalAthl
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 };

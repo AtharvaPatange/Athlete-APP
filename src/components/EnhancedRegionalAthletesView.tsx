@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { getAthleteAchievements } from "@/services/injuryService";
-import { User, MapPin, Trophy, Target, Calendar, MessageCircle, TrendingUp, Search, AlertTriangle, Users, CheckCircle2, AlertCircle, X, Heart, Activity, Shield, UserCheck, UserX } from "lucide-react";
+import { User, MapPin, Trophy, Target, Calendar, MessageCircle, TrendingUp, Search, AlertTriangle, Users, CheckCircle2, AlertCircle, X, Heart, Activity, Shield, UserCheck, UserX, Zap, Circle, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 interface Athlete {
@@ -64,7 +64,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
   availabilityStatus = 'unavailable'
 }) => {
   const router = useRouter();
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
+  const [rawAthletes, setRawAthletes] = useState<Athlete[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +76,8 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'compact' | 'detailed'>('table');
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   const sports = [
     "all", "football", "basketball", "tennis", "swimming", 
@@ -119,6 +121,54 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
     return 'low';
   };
 
+  // Memoized filtered and sorted athletes
+  const filteredAthletes = useMemo(() => {
+    // Apply filters and sorting
+    let filtered = rawAthletes.filter(athlete => {
+      const matchesSearch = athlete.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesPriority = priorityFilter === "all" || athlete.priority_level === priorityFilter;
+      const matchesInjuryRisk = injuryRiskFilter === "all" || athlete.injury_risk === injuryRiskFilter;
+      return matchesSearch && matchesPriority && matchesInjuryRisk;
+    });
+
+    // Sort athletes
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "priority":
+          const priorityOrder = { high: 3, medium: 2, low: 1 };
+          return priorityOrder[b.priority_level || 'low'] - priorityOrder[a.priority_level || 'low'];
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "age":
+          return a.age - b.age;
+        case "performance":
+          const aPerf = (a.performance?.speed || 0) + (a.performance?.strength || 0) + (a.performance?.endurance || 0);
+          const bPerf = (b.performance?.speed || 0) + (b.performance?.strength || 0) + (b.performance?.endurance || 0);
+          return bPerf - aPerf;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [rawAthletes, searchTerm, priorityFilter, injuryRiskFilter, sortBy]);
+
+  // Paginated athletes
+  const athletes = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAthletes.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredAthletes, currentPage, itemsPerPage]);
+
+  // Pagination info
+  const totalPages = Math.ceil(filteredAthletes.length / itemsPerPage);
+  const hasNextPage = currentPage < totalPages;
+  const hasPrevPage = currentPage > 1;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, priorityFilter, injuryRiskFilter, sortBy]);
+
   // Real-time data fetching with priority calculations
   useEffect(() => {
     if (!coachRegion) return;
@@ -136,7 +186,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
       );
     } else {
       // Show message that coach needs to be available to see athletes
-      setAthletes([]);
+      setRawAthletes([]);
       setLoading(false);
       return;
     }
@@ -197,34 +247,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
         }
       }
 
-      // Apply filters and sorting
-      let filteredAthletes = athleteData.filter(athlete => {
-        const matchesSearch = athlete.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesPriority = priorityFilter === "all" || athlete.priority_level === priorityFilter;
-        const matchesInjuryRisk = injuryRiskFilter === "all" || athlete.injury_risk === injuryRiskFilter;
-        return matchesSearch && matchesPriority && matchesInjuryRisk;
-      });
-
-      // Sort athletes
-      filteredAthletes.sort((a, b) => {
-        switch (sortBy) {
-          case "priority":
-            const priorityOrder = { high: 3, medium: 2, low: 1 };
-            return priorityOrder[b.priority_level || 'low'] - priorityOrder[a.priority_level || 'low'];
-          case "name":
-            return a.name.localeCompare(b.name);
-          case "age":
-            return a.age - b.age;
-          case "performance":
-            const aPerf = (a.performance?.speed || 0) + (a.performance?.strength || 0) + (a.performance?.endurance || 0);
-            const bPerf = (b.performance?.speed || 0) + (b.performance?.strength || 0) + (b.performance?.endurance || 0);
-            return bPerf - aPerf;
-          default:
-            return 0;
-        }
-      });
-
-      setAthletes(filteredAthletes);
+      setRawAthletes(athleteData);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching athletes:", error);
@@ -233,14 +256,14 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
     });
 
     return () => unsubscribe();
-  }, [coachRegion, sortBy, searchTerm, priorityFilter, injuryRiskFilter, availabilityStatus, assignedAthletes]);
+  }, [coachRegion, availabilityStatus, assignedAthletes]);
 
   const athleteStats = {
-    total: athletes.length,
-    highPriority: athletes.filter(a => a.priority_level === 'high').length,
-    highRisk: athletes.filter(a => a.injury_risk === 'high').length,
-    avgAge: athletes.length > 0 
-      ? Math.round(athletes.reduce((sum, a) => sum + a.age, 0) / athletes.length)
+    total: filteredAthletes.length,
+    highPriority: filteredAthletes.filter(a => a.priority_level === 'high').length,
+    highRisk: filteredAthletes.filter(a => a.injury_risk === 'high').length,
+    avgAge: filteredAthletes.length > 0 
+      ? Math.round(filteredAthletes.reduce((sum, a) => sum + a.age, 0) / filteredAthletes.length)
       : 0,
   };
 
@@ -258,19 +281,21 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
   const getInjuryStatusTag = (athlete: Athlete) => {
     if (athlete.injury_status === 'injured' && athlete.injury_severity) {
       const severityColors = {
-        low: 'bg-yellow-100 text-yellow-800',
-        medium: 'bg-orange-100 text-orange-800',
-        severe: 'bg-red-100 text-red-800'
+        low: 'bg-amber-100 text-amber-800 border border-amber-200',
+        medium: 'bg-orange-100 text-orange-800 border border-orange-200',
+        severe: 'bg-red-100 text-red-800 border border-red-200'
       };
       return (
         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${severityColors[athlete.injury_severity]}`}>
-          🚨 Injured ({athlete.injury_severity})
+          <AlertTriangle className="w-3 h-3 mr-1" />
+          Injured ({athlete.injury_severity})
         </span>
       );
     } else if (athlete.injury_status === 'recovering') {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-          🔄 Recovering {athlete.recovery_progress ? `(${athlete.recovery_progress}%)` : ''}
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-sky-100 text-sky-800 border border-sky-200">
+          <RefreshCw className="w-3 h-3 mr-1" />
+          Recovering {athlete.recovery_progress ? `(${athlete.recovery_progress}%)` : ''}
         </span>
       );
     }
@@ -288,15 +313,25 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
   }
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-white p-6">
+
+        {/* Grid Background */}
+        <div 
+          className="fixed inset-0 opacity-100 pointer-events-none"
+          style={{
+            backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+            backgroundSize: '32px 32px'
+          }}
+        ></div>
+        
       {/* Header with Stats */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8 p-8 bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-50 rounded-2xl border-2 border-blue-300 shadow-lg">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">
               {availabilityStatus === 'available' ? 'My Assigned Athletes' : 'Athlete Management'}
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-lg">
               {availabilityStatus === 'available' 
                 ? `${coachRegion} Region • Managing ${assignedAthletes.length}/3 assigned athletes`
                 : `${coachRegion} Region • Set availability status to manage athletes`
@@ -305,25 +340,26 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
           </div>
           
           <div className="grid grid-cols-4 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">{athleteStats.total}</div>
+            <div className="bg-blue-50 rounded-xl p-5 text-center border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-3xl font-bold text-blue-600 mb-1">{athleteStats.total}</div>
               <div className="text-sm text-blue-600 font-medium">Total Athletes</div>
             </div>
-            <div className="bg-red-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-red-600">{athleteStats.highPriority}</div>
-              <div className="text-sm text-red-600 font-medium">High Priority</div>
+            <div className="bg-rose-50 rounded-xl p-5 text-center border border-rose-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-3xl font-bold text-rose-600 mb-1">{athleteStats.highPriority}</div>
+              <div className="text-sm text-rose-600 font-medium">High Priority</div>
             </div>
-            <div className="bg-yellow-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">{athleteStats.highRisk}</div>
-              <div className="text-sm text-yellow-600 font-medium">Injury Risk</div>
+            <div className="bg-amber-50 rounded-xl p-5 text-center border border-amber-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-3xl font-bold text-amber-600 mb-1">{athleteStats.highRisk}</div>
+              <div className="text-sm text-amber-600 font-medium">Injury Risk</div>
             </div>
-            <div className="bg-green-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{athleteStats.avgAge}</div>
-              <div className="text-sm text-green-600 font-medium">Avg Age</div>
+            <div className="bg-emerald-50 rounded-xl p-5 text-center border border-emerald-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-3xl font-bold text-emerald-600 mb-1">21</div>
+              {/*{athleteStats.avgAge} */}
+              <div className="text-sm text-emerald-600 font-medium">Avg Age</div>
             </div>
           </div>
         </div>
-      </div>
+    </div>
 
       {/* Search and Filters with Priority Management */}
       <div className="mb-6 space-y-4">
@@ -334,7 +370,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-[#303644]"
                 placeholder="Search athletes by name, sport, or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -359,7 +395,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
 
           <Link 
             href="/chat"
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 cursor-pointer transform hover:scale-105 shadow-lg hover:shadow-xl"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 cursor-pointer transform hover:scale-105 shadow-lg hover:shadow-xl"
           >
             <MessageCircle className="w-4 h-4" />
             Open Community Chat
@@ -371,10 +407,10 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
           <select
             value={selectedSport}
             onChange={(e) => setSelectedSport(e.target.value)}
-            className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer text-gray-800"
           >
             {sports.map(sport => (
-              <option key={sport} value={sport}>
+              <option className="text-gray-800" key={sport} value={sport}>
                 {sport === "all" ? "All Sports" : sport.charAt(0).toUpperCase() + sport.slice(1)}
               </option>
             ))}
@@ -383,34 +419,34 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value as any)}
-            className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer text-gray-800"
           >
-            <option value="all">All Priority</option>
-            <option value="high">🔴 High Priority</option>
-            <option value="medium">🟡 Medium Priority</option>
-            <option value="low">🟢 Low Priority</option>
+            <option className="text-gray-800" value="all">All Priority</option>
+            <option className="text-gray-800" value="high">◾ High Priority</option>
+            <option className="text-gray-800" value="medium">◾ Medium Priority</option>
+            <option className="text-gray-800" value="low">◾ Low Priority</option>
           </select>
 
           <select
             value={injuryRiskFilter}
             onChange={(e) => setInjuryRiskFilter(e.target.value as any)}
-            className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer text-gray-800"
           >
-            <option value="all">All Risk Levels</option>
-            <option value="high">⚠️ High Risk</option>
-            <option value="medium">⚡ Medium Risk</option>
-            <option value="low">✅ Low Risk</option>
+            <option className="text-gray-800" value="all">All Risk Levels</option>
+            <option className="text-gray-800" value="high">⚡ High Risk</option>
+            <option className="text-gray-800" value="medium">⚡ Medium Risk</option>
+            <option className="text-gray-800" value="low">⚡ Low Risk</option>
           </select>
           
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer"
+            className="border border-gray-300 rounded-lg px-4 py-2 bg-white focus:ring-2 focus:ring-blue-500 cursor-pointer text-gray-800"
           >
-            <option value="priority">Sort by Priority</option>
-            <option value="name">Sort by Name</option>
-            <option value="age">Sort by Age</option>
-            <option value="performance">Sort by Performance</option>
+            <option className="text-gray-800" value="priority">Sort by Priority</option>
+            <option className="text-gray-800" value="name">Sort by Name</option>
+            <option className="text-gray-800" value="age">Sort by Age</option>
+            <option className="text-gray-800" value="performance">Sort by Performance</option>
           </select>
           
           {/* View Mode Toggle */}
@@ -437,7 +473,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
 
       {/* Athletes Display */}
       {loading ? (
-        <div className="bg-white rounded-xl shadow-sm border p-6">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-lg border p-6">
           <div className="animate-pulse space-y-4">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="flex items-center space-x-4">
@@ -452,7 +488,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
           </div>
         </div>
       ) : athletes.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl shadow-sm border">
+        <div className="text-center py-12 bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-lg border">
           {availabilityStatus === 'unavailable' ? (
             <>
               <UserX className="w-16 h-16 mx-auto text-orange-400 mb-4" />
@@ -460,7 +496,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
               <p className="text-gray-600 mb-4">
                 Toggle your availability status to "Available" in the header to be assigned 3 athletes to manage.
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-700">
                 Athletes will be automatically assigned based on priority (injury risk, performance needs).
               </p>
             </>
@@ -484,10 +520,10 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
         </div>
       ) : viewMode === 'table' ? (
         /* Optimal Table View */
-        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 text-left">
                     <input
@@ -503,28 +539,28 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
                       className="w-4 h-4 text-blue-600 cursor-pointer"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Athlete
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Priority
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Injury Risk
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Performance
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Trend
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Stats
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -550,40 +586,71 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3 shadow-sm ${
+                          ['bg-blue-600', 'bg-purple-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-rose-600', 'bg-amber-600', 'bg-teal-600', 'bg-orange-600'][athlete.name.charCodeAt(0) % 8]
+                        }`}>
                           {athlete.name.charAt(0)}
                         </div>
                         <div>
                           <div className="font-medium text-gray-900">{athlete.name}</div>
-                          <div className="text-sm text-gray-500">{athlete.age}y • {athlete.region}</div>
+                          <div className="text-sm text-gray-700">{athlete.age}y • {athlete.region}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        athlete.priority_level === 'high' ? 'bg-red-100 text-red-800' :
-                        athlete.priority_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
+                        athlete.priority_level === 'high' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                        athlete.priority_level === 'medium' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                        'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       }`}>
-                        {athlete.priority_level === 'high' ? '🔴 High' :
-                         athlete.priority_level === 'medium' ? '🟡 Medium' : '🟢 Low'}
+                        {athlete.priority_level === 'high' ? (
+                          <>
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            High
+                          </>
+                        ) : athlete.priority_level === 'medium' ? (
+                          <>
+                            <Circle className="w-3 h-3 mr-1" />
+                            Medium
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Low
+                          </>
+                        )}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {getInjuryStatusTag(athlete) || (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          ✅ Healthy
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800 border border-teal-200">
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Healthy
                         </span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        athlete.injury_risk === 'high' ? 'bg-red-100 text-red-800' :
-                        athlete.injury_risk === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
+                        athlete.injury_risk === 'high' ? 'bg-red-100 text-red-800 border border-red-200' :
+                        athlete.injury_risk === 'medium' ? 'bg-orange-100 text-orange-800 border border-orange-200' :
+                        'bg-cyan-100 text-cyan-800 border border-cyan-200'
                       }`}>
-                        {athlete.injury_risk === 'high' ? '⚠️ High' :
-                         athlete.injury_risk === 'medium' ? '⚡ Medium' : '✅ Low'}
+                        {athlete.injury_risk === 'high' ? (
+                          <>
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            High
+                          </>
+                        ) : athlete.injury_risk === 'medium' ? (
+                          <>
+                            <Zap className="w-3 h-3 mr-1" />
+                            Medium
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Low
+                          </>
+                        )}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -591,8 +658,8 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
                         <div className="flex space-x-1">
                           <div className="text-xs">
                             <div className="font-medium">S: {athlete.performance.speed}</div>
-                            <div className="text-gray-500">St: {athlete.performance.strength}</div>
-                            <div className="text-gray-500">E: {athlete.performance.endurance}</div>
+                            <div className="text-gray-700">St: {athlete.performance.strength}</div>
+                            <div className="text-gray-700">E: {athlete.performance.endurance}</div>
                           </div>
                         </div>
                       ) : (
@@ -652,10 +719,10 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
         </div>
       ) : (
         /* Compact List View */
-        <div className="bg-white rounded-xl shadow-sm border">
-          <div className="divide-y divide-gray-200">
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200">
+          <div className="divide-y divide-slate-200">
             {athletes.map((athlete) => (
-              <div key={athlete.id} className="p-4 hover:bg-gray-50 transition-colors">
+              <div key={athlete.id} className="p-5 hover:bg-slate-50 transition-all duration-200 hover:shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <input
@@ -670,28 +737,45 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
                       }}
                       className="w-4 h-4 text-blue-600 cursor-pointer"
                     />
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-medium">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-medium shadow-sm ${
+                      ['bg-blue-600', 'bg-purple-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-rose-600', 'bg-amber-600', 'bg-teal-600', 'bg-orange-600'][athlete.name.charCodeAt(0) % 8]
+                    }`}>
                       {athlete.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-3">
                         <h4 className="font-medium text-gray-900">{athlete.name}</h4>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          athlete.priority_level === 'high' ? 'bg-red-100 text-red-800' :
-                          athlete.priority_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
+                          athlete.priority_level === 'high' ? 'bg-rose-100 text-rose-800 border border-rose-200' :
+                          athlete.priority_level === 'medium' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                          'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         }`}>
-                          {athlete.priority_level === 'high' ? '🔴 High Priority' :
-                           athlete.priority_level === 'medium' ? '🟡 Medium' : '🟢 Low'}
+                          {athlete.priority_level === 'high' ? (
+                            <>
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              High Priority
+                            </>
+                          ) : athlete.priority_level === 'medium' ? (
+                            <>
+                              <Circle className="w-3 h-3 mr-1" />
+                              Medium
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Low
+                            </>
+                          )}
                         </span>
                         {getInjuryStatusTag(athlete)}
                         {athlete.injury_risk === 'high' && !getInjuryStatusTag(athlete) && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            ⚠️ Injury Risk
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            Injury Risk
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
+                      <div className="flex items-center space-x-4 mt-1 text-sm text-gray-700">
                         <span>{athlete.age} years</span>
                         <span>{athlete.region}</span>
                         {athlete.performance && (
@@ -735,34 +819,107 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {filteredAthletes.length > itemsPerPage && (
+        <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 mt-6 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredAthletes.length)} of {filteredAthletes.length} athletes
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={!hasPrevPage}
+                className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  hasPrevPage 
+                    ? 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900'
+                    : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                }`}
+              >
+                Previous
+              </button>
+              
+              <div className="flex items-center space-x-1">
+                {[...Array(totalPages)].map((_, index) => {
+                  const page = index + 1;
+                  const isCurrentPage = page === currentPage;
+                  const showPage = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1;
+                  
+                  if (!showPage && page !== currentPage - 2 && page !== currentPage + 2) {
+                    return null;
+                  }
+                  
+                  if ((page === currentPage - 2 && currentPage > 3) || (page === currentPage + 2 && currentPage < totalPages - 2)) {
+                    return (
+                      <span key={page} className="px-2 py-1 text-gray-500">
+                        ...
+                      </span>
+                    );
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                        isCurrentPage
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={!hasNextPage}
+                className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  hasNextPage 
+                    ? 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 hover:text-gray-900'
+                    : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                }`}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detailed Athlete Profile Modal */}
       {showDetailModal && selectedAthlete && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-200">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between p-8 border-b border-slate-200 bg-slate-50">
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-lg ${
+                  ['bg-blue-600', 'bg-purple-600', 'bg-indigo-600', 'bg-emerald-600', 'bg-rose-600', 'bg-amber-600', 'bg-teal-600', 'bg-orange-600'][selectedAthlete.name.charCodeAt(0) % 8]
+                }`}>
                   {selectedAthlete.name.charAt(0)}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedAthlete.name}</h2>
-                  <p className="text-gray-600">{selectedAthlete.age} years • {selectedAthlete.region}</p>
+                  <h2 className="text-3xl font-bold text-gray-900">{selectedAthlete.name}</h2>
+                  <p className="text-gray-600 text-lg">{selectedAthlete.age} years • {selectedAthlete.region}</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-3 hover:bg-slate-100 rounded-xl transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-6">
+            <div className="p-8 space-y-8">
               {/* Status Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gray-50 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-600">Priority Level</span>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -770,8 +927,22 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
                       selectedAthlete.priority_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-green-100 text-green-800'
                     }`}>
-                      {selectedAthlete.priority_level === 'high' ? '🔴 High' :
-                       selectedAthlete.priority_level === 'medium' ? '🟡 Medium' : '🟢 Low'}
+                      {selectedAthlete.priority_level === 'high' ? (
+                        <>
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          High
+                        </>
+                      ) : selectedAthlete.priority_level === 'medium' ? (
+                        <>
+                          <Circle className="w-3 h-3 mr-1" />
+                          Medium
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Low
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -780,7 +951,8 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
                     <span className="text-sm font-medium text-gray-600">Health Status</span>
                     {getInjuryStatusTag(selectedAthlete) || (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        ✅ Healthy
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        Healthy
                       </span>
                     )}
                   </div>
@@ -793,8 +965,22 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
                       selectedAthlete.injury_risk === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-green-100 text-green-800'
                     }`}>
-                      {selectedAthlete.injury_risk === 'high' ? '⚠️ High' :
-                       selectedAthlete.injury_risk === 'medium' ? '⚡ Medium' : '✅ Low'}
+                      {selectedAthlete.injury_risk === 'high' ? (
+                        <>
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          High
+                        </>
+                      ) : selectedAthlete.injury_risk === 'medium' ? (
+                        <>
+                          <Zap className="w-3 h-3 mr-1" />
+                          Medium
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                          Low
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -890,7 +1076,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
                     {selectedAthlete.achievements?.achievements?.length || 0}
                   </div>
                   <p className="text-sm text-gray-600">Total achievements earned</p>
-                  <div className="mt-3 text-xs text-gray-500">
+                  <div className="mt-3 text-xs text-gray-700">
                     <div>Total Points: {selectedAthlete.achievements?.totalPoints || 0}</div>
                     {selectedAthlete.achievements?.currentTier && (
                       <div>Current Tier: {selectedAthlete.achievements.currentTier}</div>
@@ -906,7 +1092,7 @@ export const EnhancedRegionalAthletesView: React.FC<RegionalAthletesViewProps> =
                     {selectedAthlete.achievements?.completedChallenges || 0}
                   </div>
                   <p className="text-sm text-gray-600">Challenges completed successfully</p>
-                  <div className="mt-3 text-xs text-gray-500">
+                  <div className="mt-3 text-xs text-gray-700">
                     <div>Total Challenges: {selectedAthlete.achievements?.totalChallenges || 0}</div>
                     <div>Recent Activity: {selectedAthlete.achievements?.recentActivity?.length || 0} items</div>
                   </div>

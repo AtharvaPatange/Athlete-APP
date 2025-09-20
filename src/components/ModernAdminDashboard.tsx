@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { collection, getDocs, query, where, orderBy, limit, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { getTrainingSessions, TrainingSession } from "@/services/performanceService";
 import { 
   Users, Trophy, TrendingUp, Activity, Medal, Target, 
   ChevronRight, ArrowLeft, Star, Zap, Shield, Award,
@@ -70,6 +71,277 @@ const GRADIENT_COLORS = [
   'from-red-500 to-pink-600'
 ];
 
+// Helper functions to fetch real athlete data
+const fetchAthleteTrainingData = async (athleteId: string) => {
+  try {
+    console.log("🔍 Fetching training data for athlete:", athleteId);
+    
+    // Use the existing service to get training sessions
+    const result = await getTrainingSessions(athleteId, 100); // Get up to 100 sessions
+    
+    if (!result.success || result.sessions.length === 0) {
+      console.log("❌ No training sessions found for athlete:", athleteId);
+      return { weeklyHours: 0, totalSessions: 0 };
+    }
+    
+    console.log("📊 Total training sessions found:", result.sessions.length);
+    
+    let totalHours = 0;
+    let sessionCount = 0;
+    
+    // Filter for last 4 weeks
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+    console.log("📅 Filtering sessions after:", fourWeeksAgo.toISOString());
+    
+    result.sessions.forEach((session: TrainingSession) => {
+      const sessionDate = session.date;
+      
+      console.log("📅 Session date:", sessionDate.toISOString(), "Duration:", session.duration, "minutes");
+      
+      // Only count sessions from last 4 weeks
+      if (sessionDate >= fourWeeksAgo) {
+        const durationHours = (session.duration || 0) / 60; // Convert minutes to hours
+        totalHours += durationHours;
+        sessionCount++;
+        console.log("✅ Valid session - Duration:", session.duration, "minutes =", durationHours, "hours");
+      } else {
+        console.log("❌ Session too old, skipping");
+      }
+    });
+    
+    const weeklyHours = Math.round((totalHours / 4) * 10) / 10;
+    console.log("📈 Final calculation - Total hours:", totalHours, "Weekly average:", weeklyHours, "Sessions:", sessionCount);
+    
+    return {
+      weeklyHours,
+      totalSessions: sessionCount
+    };
+  } catch (error) {
+    console.error("❌ Error fetching training data for athlete:", athleteId, error);
+    return { weeklyHours: 0, totalSessions: 0 };
+  }
+};
+
+const fetchAthleteQuestData = async (athleteId: string) => {
+  try {
+    // Check if athlete_quests collection exists and fetch completed quests
+    const questQuery = query(
+      collection(db, "athlete_quests"),
+      where("athleteId", "==", athleteId),
+      where("status", "==", "completed")
+    );
+    
+    const questSnapshot = await getDocs(questQuery);
+    let completedQuests = 0;
+    let totalPoints = 0;
+    
+    questSnapshot.forEach((doc) => {
+      const data = doc.data();
+      completedQuests++;
+      totalPoints += data.points || 0;
+    });
+    
+    return {
+      completedQuests,
+      totalPoints
+    };
+  } catch (error) {
+    // If collection doesn't exist or there's an error, return defaults
+    console.log("No quest data available for athlete:", athleteId);
+    return { completedQuests: 0, totalPoints: 0 };
+  }
+};
+
+const fetchAthletePerformanceStats = async (athleteId: string) => {
+  try {
+    console.log("🔍 Fetching performance stats for athlete:", athleteId);
+    
+    // Use the existing service to get training sessions
+    const result = await getTrainingSessions(athleteId, 50); // Get last 50 sessions for stats
+    
+    if (!result.success || result.sessions.length === 0) {
+      console.log("❌ No training sessions found for performance stats:", athleteId);
+      return {
+        strength: 60,
+        speed: 60,
+        endurance: 60,
+        agility: 60,
+        technique: 60,
+        mental: 60
+      };
+    }
+    
+    console.log("📊 Total sessions for performance calculation:", result.sessions.length);
+    
+    // Take most recent 20 sessions for performance calculation
+    const recentSessions = result.sessions.slice(0, 20);
+    
+    // Initialize stats
+    const stats = {
+      strength: 0,
+      speed: 0,
+      endurance: 0,
+      agility: 0,
+      technique: 0,
+      mental: 0
+    };
+    
+    let strengthSessions = 0;
+    let cardioSessions = 0;
+    let flexibilitySessions = 0;
+    let coordinationSessions = 0;
+    let totalIntensityPoints = 0;
+    let totalSessions = recentSessions.length;
+    
+    recentSessions.forEach((session: TrainingSession) => {
+      const category = session.category || 'cardio';
+      const intensity = session.intensity || 'medium';
+      
+      // Map intensity to points
+      const intensityPoints = {
+        'low': 1,
+        'medium': 2, 
+        'high': 3,
+        'peak': 4
+      };
+      
+      totalIntensityPoints += intensityPoints[intensity as keyof typeof intensityPoints] || 2;
+      
+      // Count sessions by category
+      switch (category) {
+        case 'strength':
+          strengthSessions++;
+          break;
+        case 'cardio':
+          cardioSessions++;
+          break;
+        case 'flexibility':
+          flexibilitySessions++;
+          break;
+        case 'coordination':
+          coordinationSessions++;
+          break;
+      }
+    });
+    
+    if (totalSessions > 0) {
+      // Calculate stats based on training data
+      stats.strength = Math.min(100, 50 + (strengthSessions / totalSessions) * 30 + (totalIntensityPoints / totalSessions) * 10);
+      stats.speed = Math.min(100, 50 + (cardioSessions / totalSessions) * 25 + (totalIntensityPoints / totalSessions) * 15);
+      stats.endurance = Math.min(100, 50 + (cardioSessions / totalSessions) * 30 + (totalIntensityPoints / totalSessions) * 10);
+      stats.agility = Math.min(100, 50 + (coordinationSessions / totalSessions) * 25 + (flexibilitySessions / totalSessions) * 15);
+      stats.technique = Math.min(100, 50 + (coordinationSessions / totalSessions) * 20 + (totalIntensityPoints / totalSessions) * 20);
+      stats.mental = Math.min(100, 50 + (totalSessions / 20) * 30 + (totalIntensityPoints / totalSessions) * 10);
+    } else {
+      // Default stats if no training data
+      stats.strength = 60;
+      stats.speed = 60;
+      stats.endurance = 60;
+      stats.agility = 60;
+      stats.technique = 60;
+      stats.mental = 60;
+    }
+    
+    // Round all stats
+    Object.keys(stats).forEach(key => {
+      stats[key as keyof typeof stats] = Math.round(stats[key as keyof typeof stats]);
+    });
+    
+    console.log("📈 Performance stats calculated:", stats);
+    return stats;
+  } catch (error) {
+    console.error("❌ Error fetching performance stats for athlete:", athleteId, error);
+    return {
+      strength: 60,
+      speed: 60,
+      endurance: 60,
+      agility: 60,
+      technique: 60,
+      mental: 60
+    };
+  }
+};
+
+const calculateAthleteMedals = async (athleteId: string) => {
+  try {
+    // Fetch completed quests to determine medals
+    const questQuery = query(
+      collection(db, "athlete_quests"),
+      where("athleteId", "==", athleteId),
+      where("status", "==", "completed")
+    );
+    
+    const questSnapshot = await getDocs(questQuery);
+    
+    let gold = 0;
+    let silver = 0;
+    let bronze = 0;
+    
+    questSnapshot.forEach((doc) => {
+      const data = doc.data();
+      const tier = data.tier || 'bronze';
+      const rarity = data.rarity || 'bronze';
+      
+      // Award medals based on quest tier/rarity
+      switch (tier) {
+        case 'diamond':
+        case 'platinum':
+          gold++;
+          break;
+        case 'gold':
+          if (rarity === 'gold' || rarity === 'platinum' || rarity === 'diamond') {
+            gold++;
+          } else {
+            silver++;
+          }
+          break;
+        case 'silver':
+          silver++;
+          break;
+        default:
+          bronze++;
+          break;
+      }
+    });
+    
+    // Also check achievements collection
+    try {
+      const achievementsQuery = query(
+        collection(db, "achievements"),
+        where("userId", "==", athleteId)
+      );
+      
+      const achievementsSnapshot = await getDocs(achievementsQuery);
+      
+      achievementsSnapshot.forEach((doc) => {
+        const data = doc.data();
+        const type = data.type || 'milestone';
+        
+        // Award medals based on achievement type
+        switch (type) {
+          case 'performance':
+            gold++;
+            break;
+          case 'training':
+            silver++;
+            break;
+          default:
+            bronze++;
+            break;
+        }
+      });
+    } catch (achievementError) {
+      console.log("No achievements collection or error:", achievementError);
+    }
+    
+    return { gold, silver, bronze };
+  } catch (error) {
+    console.log("Error calculating medals, using defaults");
+    return { gold: 0, silver: 0, bronze: 0 };
+  }
+};
+
 export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'athletes' | 'analytics' | 'reports'>('overview');
   const [athleteStats, setAthleteStats] = useState<AthleteStats | null>(null);
@@ -93,25 +365,22 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
       
       for (const doc of athletesSnapshot.docs) {
         const data = doc.data();
+        const athleteId = doc.id;
         
-        // Generate mock performance stats for demonstration
-        const performanceStats = {
-          strength: Math.floor(Math.random() * 40) + 60,
-          speed: Math.floor(Math.random() * 40) + 60,
-          endurance: Math.floor(Math.random() * 40) + 60,
-          agility: Math.floor(Math.random() * 40) + 60,
-          technique: Math.floor(Math.random() * 40) + 60,
-          mental: Math.floor(Math.random() * 40) + 60
-        };
-
-        const medals = {
-          gold: Math.floor(Math.random() * 5),
-          silver: Math.floor(Math.random() * 8),
-          bronze: Math.floor(Math.random() * 10)
-        };
+        // Fetch real training data
+        const trainingData = await fetchAthleteTrainingData(athleteId);
+        
+        // Fetch real quest/challenge data
+        const questData = await fetchAthleteQuestData(athleteId);
+        
+        // Fetch performance stats
+        const performanceStats = await fetchAthletePerformanceStats(athleteId);
+        
+        // Calculate medals based on completed quests/achievements
+        const medals = await calculateAthleteMedals(athleteId);
 
         athleteProfiles.push({
-          id: doc.id,
+          id: athleteId,
           name: data.name || 'Unknown',
           email: data.email || '',
           phone: data.phone || '',
@@ -126,9 +395,13 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
           emergencyContact: data.emergencyContact || '',
           medicalInfo: data.medicalInfo || '',
           performanceStats,
-          trainingHours: Math.floor(Math.random() * 30) + 10,
-          competitionsParticipated: Math.floor(Math.random() * 20) + 5,
-          medals
+          trainingHours: trainingData.weeklyHours || 0,
+          competitionsParticipated: questData.completedQuests || 0,
+          medals: {
+            gold: medals.gold || 0,
+            silver: medals.silver || 0,
+            bronze: medals.bronze || 0
+          }
         });
       }
 
@@ -224,12 +497,12 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-6">
-            <div className="absolute inset-0 rounded-full border-4 border-white/20"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-t-blue-400 border-r-purple-400 border-b-cyan-400 border-l-pink-400 animate-spin"></div>
-            <BarChart3 className="w-6 h-6 text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+            <div className="absolute inset-0 rounded-full border-4 border-gray-300/20"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-black border-r-gray-800 border-b-gray-600 border-l-gray-900 animate-spin"></div>
+            <BarChart3 className="w-6 h-6 text-black absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">Loading Dashboard...</h3>
-          <p className="text-gray-300 text-sm">Gathering athlete data</p>
+          <h3 className="text-xl font-bold text-black mb-2">Loading Dashboard...</h3>
+          <p className="text-gray-600 text-sm">Gathering athlete data</p>
         </div>
       </div>
     );
@@ -241,7 +514,7 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
         {/* Back Button */}
         <button
           onClick={() => setSelectedAthlete(null)}
-          className="flex items-center space-x-2 text-white hover:text-blue-400 transition-colors mb-6"
+          className="flex items-center space-x-2 text-black hover:text-gray-600 transition-colors mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Back to Athletes</span>
@@ -255,25 +528,25 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
               <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
                 <User className="w-12 h-12 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">{selectedAthlete.name}</h2>
+              <h2 className="text-2xl font-bold text-black mb-2">{selectedAthlete.name}</h2>
               <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-full border border-emerald-400/30">
                 <Trophy className="w-4 h-4 text-emerald-400 mr-2" />
-                <span className="text-emerald-300 text-sm font-medium">{selectedAthlete.sport}</span>
+                <span className="text-emerald-700 text-sm font-medium">{selectedAthlete.sport}</span>
               </div>
               
               <div className="mt-6 space-y-3 text-left">
-                <div className="flex items-center text-gray-300">
+                <div className="flex items-center text-gray-700">
                   <Mail className="w-4 h-4 mr-3 text-blue-400" />
                   <span className="text-sm">{selectedAthlete.email}</span>
                 </div>
                 {selectedAthlete.phone && (
-                  <div className="flex items-center text-gray-300">
+                  <div className="flex items-center text-gray-700">
                     <Phone className="w-4 h-4 mr-3 text-green-400" />
                     <span className="text-sm">{selectedAthlete.phone}</span>
                   </div>
                 )}
                 {selectedAthlete.city && (
-                  <div className="flex items-center text-gray-300">
+                  <div className="flex items-center text-gray-700">
                     <MapPin className="w-4 h-4 mr-3 text-red-400" />
                     <span className="text-sm">{selectedAthlete.city}</span>
                   </div>
@@ -285,11 +558,11 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
           {/* Performance Radar Chart */}
           <div className="lg:col-span-2 bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center">
+              <h3 className="text-xl font-bold text-black flex items-center">
                 <Activity className="w-6 h-6 mr-3 text-cyan-400" />
                 Performance Analysis
               </h3>
-              <div className="flex items-center space-x-2 text-cyan-400">
+              <div className="flex items-center space-x-2 text-cyan-600">
                 <Sparkles className="w-4 h-4" />
                 <span className="text-sm">Real-time Data</span>
               </div>
@@ -306,8 +579,8 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
                   { subject: 'Mental', A: selectedAthlete.performanceStats.mental }
                 ]}>
                   <PolarGrid gridType="polygon" stroke="#374151" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#D1D5DB', fontSize: 12 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#9CA3AF', fontSize: 10 }} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: '#000000', fontSize: 12, fontWeight: 'bold' }} />
+                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: '#000000', fontSize: 10 }} />
                   <Radar name="Performance" dataKey="A" stroke="#06B6D4" fill="#06B6D4" fillOpacity={0.3} strokeWidth={2} />
                 </RadarChart>
               </ResponsiveContainer>
@@ -320,9 +593,9 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
           <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-md rounded-2xl p-6 border border-amber-400/30 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-amber-300 text-sm font-medium">Training Hours</p>
-                <p className="text-2xl font-bold text-white">{selectedAthlete.trainingHours || 0}</p>
-                <p className="text-amber-200 text-xs">per week</p>
+                <p className="text-amber-700 text-sm font-medium">Training Hours</p>
+                <p className="text-2xl font-bold text-black">{selectedAthlete.trainingHours || 0}</p>
+                <p className="text-amber-600 text-xs">per week</p>
               </div>
               <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-3 rounded-xl">
                 <Activity className="w-6 h-6 text-white" />
@@ -333,9 +606,9 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
           <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-md rounded-2xl p-6 border border-emerald-400/30 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-emerald-300 text-sm font-medium">Competitions</p>
-                <p className="text-2xl font-bold text-white">{selectedAthlete.competitionsParticipated || 0}</p>
-                <p className="text-emerald-200 text-xs">participated</p>
+                <p className="text-emerald-700 text-sm font-medium">Competitions</p>
+                <p className="text-2xl font-bold text-black">{selectedAthlete.competitionsParticipated || 0}</p>
+                <p className="text-emerald-600 text-xs">participated</p>
               </div>
               <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-3 rounded-xl">
                 <Target className="w-6 h-6 text-white" />
@@ -346,9 +619,9 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
           <div className="bg-gradient-to-br from-yellow-500/20 to-amber-500/20 backdrop-blur-md rounded-2xl p-6 border border-yellow-400/30 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-yellow-300 text-sm font-medium">Gold Medals</p>
-                <p className="text-2xl font-bold text-white">{selectedAthlete.medals?.gold || 0}</p>
-                <p className="text-yellow-200 text-xs">achievements</p>
+                <p className="text-yellow-700 text-sm font-medium">Gold Medals</p>
+                <p className="text-2xl font-bold text-black">{selectedAthlete.medals?.gold || 0}</p>
+                <p className="text-yellow-600 text-xs">achievements</p>
               </div>
               <div className="bg-gradient-to-br from-yellow-500 to-amber-600 p-3 rounded-xl">
                 <Medal className="w-6 h-6 text-white" />
@@ -359,11 +632,11 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
           <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-md rounded-2xl p-6 border border-purple-400/30 shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-300 text-sm font-medium">Total Medals</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-purple-700 text-sm font-medium">Total Medals</p>
+                <p className="text-2xl font-bold text-black">
                   {(selectedAthlete.medals?.gold || 0) + (selectedAthlete.medals?.silver || 0) + (selectedAthlete.medals?.bronze || 0)}
                 </p>
-                <p className="text-purple-200 text-xs">all categories</p>
+                <p className="text-purple-600 text-xs">all categories</p>
               </div>
               <div className="bg-gradient-to-br from-purple-500 to-pink-600 p-3 rounded-xl">
                 <Award className="w-6 h-6 text-white" />
@@ -379,20 +652,20 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold mb-4 text-black">
           Sports Ministry Dashboard
         </h1>
-        <p className="text-gray-300 text-lg">Comprehensive athlete management and analytics platform</p>
+        <p className="text-gray-600 text-lg">Comprehensive athlete management and analytics platform</p>
       </div>
 
       {/* Modern Tab Navigation */}
       <div className="bg-white/10 backdrop-blur-md rounded-2xl p-2 border border-white/20 shadow-xl">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
-            { id: 'overview', label: 'Overview', icon: BarChart3, gradient: 'from-blue-500 to-purple-600' },
-            { id: 'athletes', label: 'Athletes', icon: Users, gradient: 'from-emerald-500 to-teal-600' },
-            { id: 'analytics', label: 'Analytics', icon: TrendingUp, gradient: 'from-amber-500 to-orange-600' },
-            { id: 'reports', label: 'Reports', icon: PieChartIcon, gradient: 'from-red-500 to-pink-600' }
+            { id: 'overview', label: 'Overview', icon: BarChart3, gradient: 'from-black to-gray-900' },
+            { id: 'athletes', label: 'Athletes', icon: Users, gradient: 'from-black to-gray-900' },
+            { id: 'analytics', label: 'Analytics', icon: TrendingUp, gradient: 'from-black to-gray-900' },
+            { id: 'reports', label: 'Reports', icon: PieChartIcon, gradient: 'from-black to-gray-900' }
           ].map((tab) => {
             const IconComponent = tab.icon;
             const isActive = activeTab === tab.id;
@@ -403,7 +676,7 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
                 className={`relative p-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 ${
                   isActive
                     ? `bg-gradient-to-r ${tab.gradient} text-white shadow-lg`
-                    : "text-gray-300 hover:text-white hover:bg-white/10"
+                    : "text-gray-700 hover:text-black hover:bg-gray-100"
                 }`}
               >
                 <div className="flex items-center justify-center space-x-3">
@@ -429,46 +702,73 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
               value: athleteStats.totalAthletes, 
               subtitle: 'Registered athletes', 
               icon: Users, 
-              gradient: 'from-blue-500 to-purple-600',
-              iconBg: 'from-blue-500 to-blue-600'
+              gradient: 'from-blue-500 via-indigo-600 to-purple-700',
+              iconBg: 'from-blue-600 to-indigo-700',
+              bgPattern: 'from-blue-50/90 via-indigo-50/80 to-purple-100/90',
+              textColor: 'text-blue-800',
+              valueColor: 'text-blue-900',
+              subtitleColor: 'text-blue-600'
             },
             { 
               title: 'Active Athletes', 
               value: athleteStats.activeAthletes, 
               subtitle: 'Currently active', 
               icon: Activity, 
-              gradient: 'from-emerald-500 to-teal-600',
-              iconBg: 'from-emerald-500 to-emerald-600'
+              gradient: 'from-emerald-500 via-teal-600 to-cyan-700',
+              iconBg: 'from-emerald-600 to-teal-700',
+              bgPattern: 'from-emerald-50/90 via-teal-50/80 to-cyan-100/90',
+              textColor: 'text-emerald-800',
+              valueColor: 'text-emerald-900',
+              subtitleColor: 'text-emerald-600'
             },
             { 
               title: 'New Registrations', 
               value: athleteStats.newRegistrations, 
               subtitle: 'Last 6 months', 
               icon: TrendingUp, 
-              gradient: 'from-amber-500 to-orange-600',
-              iconBg: 'from-amber-500 to-amber-600'
+              gradient: 'from-amber-500 via-orange-600 to-red-700',
+              iconBg: 'from-amber-600 to-orange-700',
+              bgPattern: 'from-amber-50/90 via-orange-50/80 to-red-100/90',
+              textColor: 'text-amber-800',
+              valueColor: 'text-amber-900',
+              subtitleColor: 'text-amber-600'
             },
             { 
               title: 'With Disabilities', 
               value: athleteStats.byDisability.disabled, 
               subtitle: `${((athleteStats.byDisability.disabled / athleteStats.totalAthletes) * 100).toFixed(1)}% of total`, 
               icon: Shield, 
-              gradient: 'from-purple-500 to-pink-600',
-              iconBg: 'from-purple-500 to-purple-600'
+              gradient: 'from-purple-500 via-pink-600 to-rose-700',
+              iconBg: 'from-purple-600 to-pink-700',
+              bgPattern: 'from-purple-50/90 via-pink-50/80 to-rose-100/90',
+              textColor: 'text-purple-800',
+              valueColor: 'text-purple-900',
+              subtitleColor: 'text-purple-600'
             }
           ].map((stat, index) => {
             const IconComponent = stat.icon;
             return (
-              <div key={index} className={`bg-gradient-to-br ${stat.gradient}/20 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl hover:scale-105 transition-transform duration-300`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`bg-gradient-to-br ${stat.iconBg} p-3 rounded-xl shadow-lg`}>
-                    <IconComponent className="w-6 h-6 text-white" />
+              <div key={index} className={`bg-gradient-to-br ${stat.bgPattern} backdrop-blur-md rounded-2xl p-6 border border-white/30 shadow-2xl hover:scale-105 hover:shadow-3xl transition-all duration-500 relative overflow-hidden group`}>
+                {/* Animated background overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`bg-gradient-to-br ${stat.iconBg} p-4 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <IconComponent className="w-6 h-6 text-white drop-shadow-lg" />
+                    </div>
+                    <Sparkles className={`w-5 h-5 ${stat.textColor} group-hover:animate-pulse`} />
                   </div>
-                  <Sparkles className="w-4 h-4 text-white/60" />
+                  
+                  <h4 className={`${stat.textColor} text-sm font-bold mb-3 group-hover:scale-105 transition-transform duration-300`}>{stat.title}</h4>
+                  <p className={`text-4xl font-black ${stat.valueColor} mb-2 group-hover:scale-105 transition-transform duration-300 drop-shadow-sm`}>
+                    {stat.value.toLocaleString('en-IN')}
+                  </p>
+                  <p className={`${stat.subtitleColor} text-xs font-medium`}>{stat.subtitle}</p>
                 </div>
-                <h4 className="text-white/80 text-sm font-medium mb-2">{stat.title}</h4>
-                <p className="text-3xl font-bold text-white mb-1">{stat.value.toLocaleString('en-IN')}</p>
-                <p className="text-white/60 text-xs">{stat.subtitle}</p>
+                
+                {/* Decorative gradient border */}
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${stat.gradient} opacity-20 blur-sm group-hover:opacity-30 transition-opacity duration-500 pointer-events-none`}></div>
               </div>
             );
           })}
@@ -479,11 +779,11 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
       {activeTab === 'athletes' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white flex items-center">
+            <h2 className="text-2xl font-bold text-black flex items-center">
               <Users className="w-6 h-6 mr-3 text-blue-400" />
               Athlete Directory
             </h2>
-            <div className="text-sm text-gray-300">
+            <div className="text-sm text-gray-600">
               Total: {athletes.length} athletes
             </div>
           </div>
@@ -493,27 +793,27 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
               <div
                 key={athlete.id}
                 onClick={() => setSelectedAthlete(athlete)}
-                className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl hover:scale-105 hover:bg-white/15 transition-all duration-300 cursor-pointer group"
+                className="bg-white/90 backdrop-blur-md rounded-2xl p-6 border border-gray-300 shadow-xl hover:scale-105 hover:bg-white transition-all duration-300 cursor-pointer group"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-12 h-12 bg-gradient-to-br ${GRADIENT_COLORS[index % GRADIENT_COLORS.length]} rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
                     <User className="w-6 h-6 text-white" />
                   </div>
-                  <ChevronRight className="w-5 h-5 text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                  <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-black group-hover:translate-x-1 transition-all" />
                 </div>
                 
-                <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors">
+                <h3 className="text-lg font-semibold text-black mb-2 group-hover:text-blue-600 transition-colors">
                   {athlete.name}
                 </h3>
                 
                 <div className="space-y-2">
-                  <div className="flex items-center text-gray-300">
-                    <Trophy className="w-4 h-4 mr-2 text-amber-400" />
-                    <span className="text-sm">{athlete.sport}</span>
+                  <div className="flex items-center text-gray-600">
+                    <MapPin className="w-4 h-4 mr-2 text-rose-500" />
+                    <span className="text-sm">{athlete.region}</span>
                   </div>
                   
                   {athlete.city && (
-                    <div className="flex items-center text-gray-300">
+                    <div className="flex items-center text-gray-600">
                       <MapPin className="w-4 h-4 mr-2 text-red-400" />
                       <span className="text-sm">{athlete.city}</span>
                     </div>
@@ -544,8 +844,8 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
       {activeTab === 'analytics' && athleteStats && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gender Distribution */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl">
-            <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-6 border border-gray-300 shadow-xl">
+            <h3 className="text-xl font-semibold text-black mb-6 flex items-center">
               <PieChartIcon className="w-6 h-6 mr-3 text-purple-400" />
               Gender Distribution
             </h3>
@@ -575,8 +875,8 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
           </div>
 
           {/* Exercise Category Distribution */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-xl">
-            <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-6 border border-gray-300 shadow-xl">
+            <h3 className="text-xl font-semibold text-black mb-6 flex items-center">
               <BarChart3 className="w-6 h-6 mr-3 text-cyan-400" />
               Exercise Category Distribution
             </h3>
@@ -613,24 +913,29 @@ export default function ModernAdminDashboard({ adminId, adminRole }: AdminDashbo
 
       {/* Reports Tab */}
       {activeTab === 'reports' && (
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20 shadow-xl text-center">
-          <div className="w-24 h-24 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <PieChartIcon className="w-12 h-12 text-white" />
-          </div>
-          <h3 className="text-2xl font-bold text-white mb-4">Advanced Reports</h3>
-          <p className="text-gray-300 mb-8 max-w-md mx-auto">
-            Generate comprehensive reports on athlete performance, demographics, and administrative metrics.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105">
-              Performance Report
-            </button>
-            <button className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-6 py-3 rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all duration-300 transform hover:scale-105">
-              Demographics Report
-            </button>
-            <button className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-amber-600 hover:to-orange-700 transition-all duration-300 transform hover:scale-105">
-              Export Data
-            </button>
+        <div className="bg-gradient-to-br from-black via-gray-900 to-gray-800 rounded-2xl p-8 border border-gray-700 shadow-2xl text-center relative overflow-hidden">
+          {/* Background gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-black/50 via-transparent to-gray-800/30 pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <div className="w-24 h-24 bg-gradient-to-br from-gray-700 via-gray-800 to-black rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl ring-2 ring-gray-600/50">
+              <PieChartIcon className="w-12 h-12 text-white drop-shadow-lg" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-4 drop-shadow-lg">Advanced Reports</h3>
+            <p className="text-gray-300 mb-8 max-w-md mx-auto drop-shadow-sm">
+              Generate comprehensive reports on athlete performance, demographics, and administrative metrics.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button className="bg-gradient-to-r from-white to-gray-100 text-black px-6 py-3 rounded-xl hover:from-gray-100 hover:to-white transition-all duration-300 transform hover:scale-105 font-medium shadow-lg hover:shadow-xl">
+                Performance Report
+              </button>
+              <button className="bg-gradient-to-r from-gray-100 to-white text-black px-6 py-3 rounded-xl hover:from-white hover:to-gray-100 transition-all duration-300 transform hover:scale-105 font-medium shadow-lg hover:shadow-xl">
+                Demographics Report
+              </button>
+              <button className="bg-gradient-to-r from-white to-gray-100 text-black px-6 py-3 rounded-xl hover:from-gray-100 hover:to-white transition-all duration-300 transform hover:scale-105 font-medium shadow-lg hover:shadow-xl">
+                Export Data
+              </button>
+            </div>
           </div>
         </div>
       )}

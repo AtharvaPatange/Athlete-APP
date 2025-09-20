@@ -227,20 +227,29 @@ const CoachDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F7F7]">
+    <div className="min-h-screen bg-white">
+      {/* Grid Background */}
+      <div 
+        className="fixed inset-0 opacity-100 pointer-events-none"
+        style={{
+          backgroundImage: "linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 2px), linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px)",
+          backgroundSize: '32px 32px'
+        }}
+      ></div>
+
       {/* Header - Single unified header like athlete dashboard */}
       <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex items-center h-16 space-x-8">
             {/* Left side - Logo + Navigation Tabs */}
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center space-x-4">
               {/* Logo */}
               <div className="flex-shrink-0">
                 <h1 className="text-2xl font-bold text-[#0F172A] flex items-center gap-3">
                   <div className="bg-[#0F172A] p-2 rounded-lg">
                     <User className="w-6 h-6 text-white" />
                   </div>
-                  Coach Portal
+                  <span className="font-semibold text-[#0F172A] hidden md:block">Welcome, Coach!</span>
                 </h1>
               </div>
 
@@ -256,11 +265,6 @@ const CoachDashboard = () => {
                         : "border-transparent text-[#303644] hover:text-[#0F172A] hover:border-gray-300"
                     }`}
                   >
-                    <span className={`transition-colors ${
-                      activeTab === tab.id ? 'text-[#0F172A]' : 'text-[#182031]'
-                    }`}>
-                      {tab.icon}
-                    </span>
                     {tab.label}
                   </button>
                 ))}
@@ -268,7 +272,7 @@ const CoachDashboard = () => {
             </div>
             
             {/* Right side - Availability + Profile + Logout */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 ml-auto">
               {/* Availability Toggle */}
               <div className="flex items-center space-x-3 px-4 py-2 bg-gray-50 rounded-lg">
                 <div className="text-sm">
@@ -303,9 +307,7 @@ const CoachDashboard = () => {
               </div>
               
               <div className="text-sm text-[#303644]">
-                <span className="font-semibold text-[#0F172A] hidden md:block">Welcome, {userProfile.name}!</span>
                 <div className="flex items-center mt-1">
-                  <MapPin className="w-4 h-4 text-[#182031] mr-1" />
                   <span className="px-2 py-1 bg-[#0F172A] text-white rounded-full text-xs font-medium">
                     {userProfile.region} Region
                   </span>
